@@ -1,0 +1,162 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Thebe Example</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel="stylesheet" href="/static/components/jquery-ui/themes/smoothness/jquery-ui.min.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript">
+    // MathJax disabled, set as null to distingish from *missing* MathJax,
+    // where it will be undefined, and should prompt a dialog later.
+    // window.mathjax_url = "";
+    </script>
+
+    <link rel="stylesheet" href="/static/components/bootstrap-tour/build/css/bootstrap-tour.min.css" type="text/css" />
+    <link rel="stylesheet" href="/static/components/codemirror/lib/codemirror.css">
+    <link rel="stylesheet" href="/static/style/style.min.css" type="text/css"/>
+    <!-- Only needed for IE -->
+    <script src="/static/components/es6-promise/promise.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
+    <script>
+      require.config({
+          
+          baseUrl: '/static/',
+          paths: {
+            underscore : 'components/underscore/underscore-min',
+            backbone : 'components/backbone/backbone-min',
+            jquery: 'components/jquery/jquery.min',
+            bootstrap: 'components/bootstrap/js/bootstrap.min',
+            jqueryui: 'components/jquery-ui/ui/minified/jquery-ui.min',
+            moment: 'components/moment/moment',
+            codemirror: 'components/codemirror',
+            termjs: 'components/term.js/src/term',
+          },
+          shim: {
+            underscore: {
+              exports: '_'
+            },
+            backbone: {
+              deps: ["underscore", "jquery"],
+              exports: "Backbone"
+            },
+            bootstrap: {
+              deps: ["jquery"],
+              exports: "bootstrap"
+            },
+            jqueryui: {
+              deps: ["jquery"],
+              exports: "$"
+            }
+          }
+      });
+
+      require.config({
+          map: {
+              '*':{
+                'contents': 'services/contents',
+              }
+          }
+      });
+    </script>
+
+    
+    
+
+</head>
+
+<body class="notebook_app " 
+
+data-project=""
+data-base-url="http://192.168.59.103:8888/"
+data-ws-url=""
+data-notebook-name=""
+data-notebook-path=""
+
+>
+
+<noscript>
+    <div id='noscript'>
+      IPython Notebook requires JavaScript.<br>
+      Please enable it to proceed.
+  </div>
+</noscript>
+
+
+<pre data-executable='true'>
+z = "hello", 4+4
+print(z)
+</pre>
+
+<p>Blarg blahhh <a href="example.com">bla</a> bla.</p>
+
+<pre data-executable='true'>
+%matplotlib inline
+import matplotlib.pyplot as plt
+import numpy as np
+x = np.linspace(0, 3*np.pi, 500)
+plt.plot(x, np.sin(x**2))
+plt.title('A simple chirp');
+</pre>
+
+<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
+tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+consequat. <strong>Duis</strong> aute irure dolor in reprehenderit in voluptate velit esse
+cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
+proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+<pre data-executable='true'>
+from __future__ import print_function
+from IPython.html.widgets import interact, interactive, fixed
+from IPython.html import widgets
+@interact(x=True, y=1.0)
+def g(x, y):
+    print(x, y)
+</pre>
+
+<pre data-executable='true'>
+%matplotlib inline
+import matplotlib.pyplot as plt
+import numpy as np
+from IPython.html.widgets import interactive
+from IPython.display import Audio, display
+import numpy as np
+
+def beat_freq(f1=220.0, f2=224.0):
+    max_time = 3
+    rate = 8000
+    times = np.linspace(0,max_time,rate*max_time)
+    signal = np.sin(2*np.pi*f1*times) + np.sin(2*np.pi*f2*times)
+    print(f1, f2, abs(f1-f2))
+    display(Audio(data=signal, rate=rate))
+    return signal
+v = interactive(beat_freq, f1=(200.0,300.0), f2=(200.0,300.0))
+display(v)
+</pre>
+
+<p> oiwejf</p>
+
+<pre data-executable='true'>
+print(v.kwargs)
+f1, f2 = v.children
+f1.value = 255
+f2.value = 260
+plt.plot(v.result[0:6000])
+</pre>
+
+<h2>Math!</h2>
+
+<p>\begin{align}
+\dot{x} &amp; = \sigma(y-x) \
+\dot{y} &amp; = \rho x - y - xz \
+\dot{z} &amp; = -\beta z + xy
+\end{align}</p>
+
+<script src="/static/main.js" charset="utf-8"></script>
+</body>
+
+</html>
