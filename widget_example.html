@@ -1,0 +1,120 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Thebe Example With Compiled JS</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel="stylesheet" href="static/components/jquery-ui/themes/smoothness/jquery-ui.min.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <script type="text/javascript"
+      src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+
+    <script type="text/javascript">
+    // MathJax disabled, set as null to distingish from *missing* MathJax,
+    // where it will be undefined, and should prompt a dialog later.
+    // window.mathjax_url = "";
+    </script>
+
+<link rel="stylesheet" href="static/components/codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="static/style/style.min.css" type="text/css"/>
+
+<!-- Only required for IE -->
+<script src="static/components/es6-promise/promise.min.js" type="text/javascript" charset="utf-8"></script>
+
+<script src="static/main-built.js" type="text/javascript" charset="utf-8"></script>
+</head>
+
+<body>
+	
+<h1>Image Manipulation with skimage</h1>
+
+<p>Before docing anything else, we need to install some libraries we'll be using:</p>
+
+<pre data-code-language="python" data-executable="true" data-type="programlisting">
+%%bash
+pip install scikit-image
+</pre>
+
+<p>Once it's installed, we cab build a simple UI for performing basic image manipulation with <a href="http://scikit-image.org/">scikit-image</a>.</p>
+
+<pre data-code-language="python"
+     data-executable="true"
+     data-type="programlisting">
+from IPython.html.widgets import interact, interactive, fixed
+from IPython.display import display
+</pre>
+
+<pre data-code-language="python"
+     data-executable="true"
+     data-type="programlisting">
+import skimage
+from skimage import data, filter, io
+</pre>
+
+<pre data-code-language="python"
+     data-executable="true"
+     data-type="programlisting">
+i = data.coffee()
+</pre>
+
+<pre data-code-language="python"
+     data-executable="true"
+     data-type="programlisting">
+io.Image(i)
+</pre>
+
+<pre data-code-language="python"
+     data-executable="true"
+     data-type="programlisting">
+def edit_image(image, sigma=0.1, r=1.0, g=1.0, b=1.0):
+    new_image = filter.gaussian_filter(image, sigma=sigma, multichannel=True)
+    new_image[:,:,0] = r*new_image[:,:,0]
+    new_image[:,:,1] = g*new_image[:,:,1]
+    new_image[:,:,2] = b*new_image[:,:,2]
+    new_image = io.Image(new_image)
+    display(new_image)
+    return new_image
+</pre>
+
+<pre data-code-language="python"
+     data-executable="true"
+     data-type="programlisting">
+lims = (0.0,1.0,0.01)
+w = interactive(edit_image, image=fixed(i), sigma=(0.0,10.0,0.1), r=lims, g=lims, b=lims)
+display(w)
+</pre>
+
+<pre data-code-language="python"
+     data-executable="true"
+     data-type="programlisting">
+w.result
+</pre>
+
+<h1>Python 3 only: Function annotations</h1>
+
+<p>In Python 3, you can use the new function annotation syntax to describe widgets for interact:</p>
+
+<pre data-code-language="python"
+     data-executable="true"
+     data-type="programlisting">
+lims = (0.0,1.0,0.01)
+
+@interact
+def edit_image(image: fixed(i), sigma:(0.0,10.0,0.1)=0.1, r:lims=1.0, g:lims=1.0, b:lims=1.0):
+    new_image = filter.gaussian_filter(image, sigma=sigma, multichannel=True)
+    new_image[:,:,0] = r*new_image[:,:,0]
+    new_image[:,:,1] = g*new_image[:,:,1]
+    new_image[:,:,2] = b*new_image[:,:,2]
+    new_image = io.Image(new_image)
+    display(new_image)
+    return new_image
+</pre>
+
+
+</body>
+
+</html>
