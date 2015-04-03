@@ -2,6 +2,7 @@ require [
   'base/js/namespace'
   'jquery'
   'notebook/js/notebook'
+  'orm/cookies'
   'contents'
   'services/config'
   'base/js/utils'
@@ -11,7 +12,7 @@ require [
   'notebook/js/kernelselector'
   'codemirror/lib/codemirror'
   'custom/custom'
-], (IPython, $, notebook, contents, configmod, utils, page, events, actions, kernelselector, CodeMirror, custom) ->
+], (IPython, $, notebook, cookies, contents, configmod, utils, page, events, actions, kernelselector, CodeMirror, custom) ->
 
   class Thebe
     constructor: (@selector, @tmpnb_url)->
@@ -101,7 +102,7 @@ require [
 
   # Auto instantiate
   $(->
-      # thebe = new Thebe("pre[data-executable]", 'http://192.168.59.103:8000/spawn')
-      thebe = new Thebe("pre[data-executable]", 'http://jupyter-kernel.odewahn.com:8000/spawn')
+      thebe = new Thebe("pre[data-executable]", 'http://192.168.59.103:8000/spawn')
+      # thebe = new Thebe("pre[data-executable]", 'http://jupyter-kernel.odewahn.com:8000/spawn')
   )
   return Thebe
