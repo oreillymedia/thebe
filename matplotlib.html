@@ -34,75 +34,11 @@
           <img src="https://s3.amazonaws.com/orm-atlas-media/fork-on-github.png" class="fork-on-github"/>
        </a>
     
-    <header>
-      <div id="buttons">
-        <a href="#" id="link-toc">☰</a>
-      </div>
-      <img class="logo" src="http://orm-logo-service.herokuapp.com//logo.svg"/>
-      <h1>ipython tutorial content</h1>
-      </header>
-      <div id="flex-box">
-        <section id="sidebar">
-          <nav data-type="toc" id="idp251312"><ol><li data-type="chapter"><a href="ch01.html#idm3929392">Simple Line Plots</a><ol>
+       <div id="flex-box">
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<li data-type="sect1"><a href="ch01.html#idp83536">Adjusting the Plot: Line Colors and Styles</a></li>
-<li data-type="sect1"><a href="ch01.html#idp84112">Adjusting the Plot: Axes limits</a></li>
-<li data-type="sect1"><a href="ch01.html#idp109632">Labeling Plots</a></li>
-<li data-type="sect1"><a href="ch01.html#idp120032">Sidebar: Gotchas</a></li>
-</ol></li><li data-type="chapter"><a href="ch02.html#idp138128">Writing in Markdown</a><ol>
-
-
-
-<li data-type="sect1"><a href="ch02.html#idp130672">Making a Python program executable</a></li>
-<li data-type="sect1"><a href="ch02.html#idp135552">Embedding an equation</a></li>
-</ol></li></ol></nav>
-        </section>
         <section id="content">
           <section id="content-body">
 	
-	       <table style="border: none; margin-top: 20px">
-		 <tr>
-		   <td>
-	
-		<a href="https://twitter.com/share" class="twitter-share-button" data-via="odewahn">Tweet</a>
-		<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
-		</td>
-		<td>
-		
-             
-
-                </td>
-
-                <td>
-	           
-	        </td>
-              </tr>
-            </table>
             <section data-type="chapter" data-pdf-bookmark="Chapter 1. Simple Line Plots" id="idm3929392">
 <h1>Simple Line Plots</h1>
 
@@ -130,47 +66,6 @@ print("Dependencies loaded...")
 </pre>
 
 
-
-<h1>Interactive example</h1>
-
-<p>Here's a quick example of how to use the interactive widget framework:</p>
-
-<pre data-code-language="python" data-executable="true" data-type="programlisting">
-# Import matplotlib (plotting) and numpy (numerical arrays).
-# This enables their use in the Notebook.
-%matplotlib inline
-import matplotlib.pyplot as plt
-import numpy as np
-
-# Import IPython's interact function which is used below to
-# build the interactive widgets
-from IPython.html.widgets import interact
-
-def plot_sine(frequency=4.0, grid_points=12, plot_original=True):
-    """
-    Plot discrete samples of a sine wave on the interval ``[0, 1]``.
-    """
-    x = np.linspace(0, 1, grid_points + 2)
-    y = np.sin(2 * frequency * np.pi * x)
-
-    xf = np.linspace(0, 1, 1000)
-    yf = np.sin(2 * frequency * np.pi * xf)
-
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.set_xlabel('x')
-    ax.set_ylabel('signal')
-    ax.set_title('Aliasing in discretely sampled periodic signal')
-
-    if plot_original:
-        ax.plot(xf, yf, color='red', linestyle='solid', linewidth=2)
-
-    ax.plot(x,  y,  marker='o', linewidth=2)
-
-# The interact function automatically builds a user interface for exploring the
-# plot_sine function.
-interact(plot_sine, frequency=(1.0, 22.0, 0.5), grid_points=(10, 16, 1), plot_original=True);
-</pre>
-
 <p>In their simplest form, a figure and axes can be created as follows:</p>
 <pre data-code-language="python" data-executable="true" data-type="programlisting">
 fig = plt.figure()
@@ -195,6 +90,25 @@ ax.plot(x, np.cos(x));
 (See the sidebar on page X for a discussion of these two interfaces)</p>
 <pre data-code-language="python" data-executable="true" data-type="programlisting">
 plt.plot(x, np.sin(x));
+</pre>
+
+<p>Here's a quick example of how to use the interactive widget framework:</p>
+
+<pre data-code-language="python" data-executable="true" data-type="programlisting">
+%matplotlib inline
+import matplotlib.pyplot as plt
+import numpy as np
+from IPython.html.widgets import interact
+
+def plot_sine(f=1.0):
+    """
+    Plot discrete samples of a sine wave on the interval ``[0, 1]``.
+    """
+    plt.plot(x, np.sin(x*f));
+
+# The interact function automatically builds a user interface for exploring the
+# plot_sine function.
+interact(plot_sine, f=(0.5.0, 5.0));
 </pre>
 
 
