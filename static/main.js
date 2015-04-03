@@ -42,6 +42,11 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
       }
       invo.open('GET', this.tmpnb_url, true);
       invo.onreadystatechange = this.spawn_handler;
+      invo.onerror = (function(_this) {
+        return function() {
+          return _this.set_state('disconnected');
+        };
+      })(this);
       return invo.send();
     };
 
@@ -49,8 +54,12 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
       if (invo == null) {
         invo = new XMLHttpRequest;
       }
-      console.log('check_existing_container');
       invo.open('GET', url + 'api', true);
+      invo.onerror = (function(_this) {
+        return function(e) {
+          return _this.set_state('disconnected');
+        };
+      })(this);
       invo.onload = (function(_this) {
         return function(e) {
           try {
@@ -66,8 +75,11 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
 
     Thebe.prototype.spawn_handler = function(e) {
       var url;
+      if (e.target.status === 0) {
+        this.set_state('disconnected');
+      }
       if (e.target.responseURL.indexOf('/spawn') !== -1) {
-        return this.no_vacancy(e);
+        return this.set_state('full');
       } else {
         url = e.target.responseURL.replace('/tree', '/');
         this.start_notebook(url);
@@ -93,10 +105,27 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
           });
         };
       })(this));
-      events.on('kernel_idle.Kernel', function(e, k) {
-        return $('button.run.running').removeClass('running').text('run');
-      });
-      return this.notebook_el.hide();
+      events.on('kernel_idle.Kernel', (function(_this) {
+        return function(e, k) {
+          _this.set_state('idle');
+          return $('button.run.running').removeClass('running').text('run');
+        };
+      })(this));
+      this.notebook_el.hide();
+      events.on('kernel_busy.Kernel', (function(_this) {
+        return function() {
+          return _this.set_state('busy');
+        };
+      })(this));
+      return events.on('kernel_disconnected.Kernel', (function(_this) {
+        return function() {
+          return _this.set_state('disconnected');
+        };
+      })(this));
+    };
+
+    Thebe.prototype.set_state = function(state) {
+      return this.ui.attr('data-state', state).html('server: <strong>' + state + '</strong>');
     };
 
     Thebe.prototype.execute_below = function() {
@@ -105,6 +134,7 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
 
     Thebe.prototype.start_notebook = function(base_url) {
       var acts, common_config, common_options, config_section, kernel_selector, keyboard_manager, pager, save_widget;
+      this.set_state('idle');
       console.log('start_notebook at:', base_url);
       common_options = {
         ws_url: '',
@@ -152,16 +182,12 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
       return events.on('kernel_ready.Kernel', this.kernel_ready);
     };
 
-    Thebe.prototype.no_vacancy = function() {
-      return console.log('SORRY NO VACANCY !');
-    };
-
     Thebe.prototype.setup_ui = function() {
       if ($(this.selector).length === 0) {
         return;
       }
       this.ui = $('<div id="thebe_controls">').prependTo('body');
-      return console.log(this.ui);
+      return this.ui.html('starting');
     };
 
     return Thebe;

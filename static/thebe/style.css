@@ -1,0 +1,24 @@
+
+#thebe_controls {
+  position: fixed;
+  background-color: rgb(150, 150, 150);
+  color: white;
+  left: 75%;
+  padding: 4px 8px;
+  border: 1px solid black;
+  border-top: none;
+  border-radius: 0 0 4px 4px ;
+}
+
+#thebe_controls[data-state='idle'] {
+  background-color: rgb(150, 150, 150);
+}
+
+#thebe_controls[data-state='busy'] {
+  background-color: rgb(100, 100, 100);
+}
+
+#thebe_controls[data-state='disconnected'], #thebe_controls[data-state='disconnected'] {
+  background-color: rgb(90, 90, 90);
+  color: rgb(250, 154, 154);
+}

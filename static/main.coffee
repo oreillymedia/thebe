@@ -37,12 +37,17 @@ require [
     call_spawn:(invo=new XMLHttpRequest)->
       invo.open 'GET', @tmpnb_url, true
       invo.onreadystatechange = @spawn_handler
+      invo.onerror = => 
+        @set_state('disconnected')
       invo.send()
 
     check_existing_container: (url, invo=new XMLHttpRequest)->
-      console.log 'check_existing_container'
       # no trailing slash for api
       invo.open 'GET', url+'api', true
+
+      invo.onerror = (e)=>
+        @set_state('disconnected')
+
       invo.onload = (e)=>
         # if we can parse it, it's the actual api
         try 
@@ -55,9 +60,12 @@ require [
       invo.send()
 
     spawn_handler: (e) =>
-      # are we full up?
+      # is the server up?
+      if e.target.status is 0
+        @set_state('disconnected')
+      # is it full up of active containers?
       if e.target.responseURL.indexOf('/spawn') isnt -1
-        @no_vacancy(e)
+        @set_state('full')
       # otherwise start the notebook, passing our user's path
       else
         url = e.target.responseURL.replace('/tree', '/')
@@ -83,15 +91,24 @@ require [
           button.text('running').addClass 'running'
           cell.execute()
       # reset run button when the kernel is idle again
-      events.on 'kernel_idle.Kernel', (e, k) ->
+      events.on 'kernel_idle.Kernel', (e, k) =>
+        @set_state('idle')
         $('button.run.running').removeClass('running').text 'run'
       @notebook_el.hide()
-      # events.on 'kernel_busy.Kernel' ->
-      # events.on 'kernel_disconnected.Kernel' ->
+      events.on 'kernel_busy.Kernel', =>
+        @set_state('busy')
+      events.on 'kernel_disconnected.Kernel', =>
+        @set_state('disconnected')
+
+    set_state: (state) ->
+      @ui.attr('data-state', state).html('server: <strong>'+state+'</strong>')
+
+
     execute_below: =>
       @notebook.execute_cells_below()
 
     start_notebook: (base_url) ->
+      @set_state('idle')
       console.log 'start_notebook at:', base_url
       common_options = 
         ws_url: ''
@@ -136,13 +153,10 @@ require [
 
       events.on 'kernel_ready.Kernel', @kernel_ready
 
-    no_vacancy: ->
-      console.log 'SORRY NO VACANCY !'
-
     setup_ui: ->
       if $(@selector).length is 0 then return
       @ui = $('<div id="thebe_controls">').prependTo('body')
-      console.log @ui
+      @ui.html('starting')
 
 
   # Auto instantiate
