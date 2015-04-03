@@ -40,7 +40,7 @@ define([
         slideshow_preset.push('slideshow.select');
 
         CellToolbar.register_preset('Slideshow',slideshow_preset, notebook);
-        console.log('Slideshow extension for metadata editing loaded.');
+        // console.log('Slideshow extension for metadata editing loaded.');
     };
     return {'register': register};
 });
