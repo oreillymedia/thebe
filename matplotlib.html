@@ -30,9 +30,6 @@
 
   <body data-type="book">
     
-       <a href="https://github.com/oreillymedia/ipython-tutorial-content">
-          <img src="https://s3.amazonaws.com/orm-atlas-media/fork-on-github.png" class="fork-on-github"/>
-       </a>
     
        <div id="flex-box">
 
@@ -42,18 +39,27 @@
             <section data-type="chapter" data-pdf-bookmark="Chapter 1. Simple Line Plots" id="idm3929392">
 <h1>Simple Line Plots</h1>
 
-<p><em>This recipe covers the basics of setting up a matplotlib plot, and how to create simple line plots</em></p>
-<ul>
-<li><code>plt.plot</code></li>
-<li><code>plt.figure</code></li>
-<li><code>plt.axes</code></li>
-<li><code>plt.xlim</code></li>
-<li><code>plt.ylim</code></li>
-<li><code>plt.axis</code></li>
-<li><code>plt.xlabel</code></li>
-<li><code>plt.ylabel</code></li>
-<li><code>plt.title</code></li>
-</ul>
+This recipe will teach you how to make interactive plots, like this:
+
+<pre data-code-language="python" data-executable="true" data-type="programlisting">
+%matplotlib inline
+import matplotlib.pyplot as plt
+import numpy as np
+from IPython.html.widgets import interact
+
+def plot_sine(f=1.0):
+    """
+    Plot discrete samples of a sine wave on the interval ``[0, 1]``.
+    """
+    x = np.linspace(0, 10, 1000)
+    plt.plot(x, np.sin(x*f));
+
+# The interact function automatically builds a user interface for exploring the
+# plot_sine function.
+interact(plot_sine, f=(0.5, 5.0));
+</pre>
+
+
 <p>Perhaps the simplest of all plots is the visualization of a single function <span data-type="tex">y = f(x)</span>.
 Here we will take a first look at creating a simple plot of this type.
 For all matplotlib plots, we start by creating a figure and an axes.</p>
@@ -91,27 +97,6 @@ ax.plot(x, np.cos(x));
 <pre data-code-language="python" data-executable="true" data-type="programlisting">
 plt.plot(x, np.sin(x));
 </pre>
-
-<p>Here's a quick example of how to use the interactive widget framework:</p>
-
-<pre data-code-language="python" data-executable="true" data-type="programlisting">
-%matplotlib inline
-import matplotlib.pyplot as plt
-import numpy as np
-from IPython.html.widgets import interact
-
-def plot_sine(f=1.0):
-    """
-    Plot discrete samples of a sine wave on the interval ``[0, 1]``.
-    """
-    x = np.linspace(0, 10, 1000)
-    plt.plot(x, np.sin(x*f));
-
-# The interact function automatically builds a user interface for exploring the
-# plot_sine function.
-interact(plot_sine, f=(0.5, 5.0));
-</pre>
-
 
 <p>If we want to create a single figure with multiple lines, we can simply call the <code>plot</code> function multiple times:</p>
 <pre data-code-language="python" data-executable="true" data-type="programlisting">
