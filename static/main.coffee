@@ -14,12 +14,23 @@ require [
   'custom/custom'
 ], (IPython, $, notebook, cookies, contents, configmod, utils, page, events, actions, kernelselector, CodeMirror, custom) ->
 
-  log = ->
-    console.log("%c#{[x for x in arguments]}", "color: blue; font-size: large");
+  #not sure if this is required
+  # codecell = require('notebook/js/codecell')
+  # codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity
 
   class Thebe
+    default_options:
+      selector: 'pre[data-executable]'
+      tmpnb_url: 'http://192.168.59.103:8000/spawn'
+      # set to false to not add controls to the page
+      prepend_controls_to: 'html'
+
+
     # Take our two basic configuration options
-    constructor: (@selector, @tmpnb_url)->
+    constructor: (@options={})->
+      # set options to defaults if unset
+      # and break out some commonly used options
+      {@selector, @tmpnb_url} = _.defaults(@options, @default_options)
       @setup_ui()
       # the jupyter global event object
       @events = events
@@ -103,7 +114,6 @@ require [
     set_state: (state) ->
       @ui.attr('data-state', state).html('server: <strong>'+state+'</strong>')
 
-
     execute_below: =>
       @notebook.execute_cells_below()
 
@@ -155,13 +165,30 @@ require [
 
     setup_ui: ->
       if $(@selector).length is 0 then return
-      @ui = $('<div id="thebe_controls">').prependTo('body')
+      @ui = $('<div id="thebe_controls">')
+      if @options.prepend_controls_to
+        @ui.prependTo(@options.prepend_controls_to)
       @ui.html('starting')
+
+      # Add some CSS links to the page
+      urls = ["https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", 
+              "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css", 
+              "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/theme/base16-dark.css"]
+      $.when($.each(urls, (i, url) ->
+        $.get url, ->
+          $('<link>',
+            rel: 'stylesheet'
+            type: 'text/css'
+            'href': url).appendTo 'head'
+      ))#.then ->
+  
+    log: ->
+      console.log("%c#{[x for x in arguments]}", "color: blue; font-size: large");
+
 
 
   # Auto instantiate
   $(->
-      thebe = new Thebe("pre[data-executable]", 'http://192.168.59.103:8000/spawn')
-      # thebe = new Thebe("pre[data-executable]", 'http://jupyter-kernel.odewahn.com:8000/spawn')
+      thebe = new Thebe()
   )
   return Thebe

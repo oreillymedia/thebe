@@ -2,29 +2,21 @@
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
 require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'codemirror/lib/codemirror', 'custom/custom'], function(IPython, $, notebook, cookies, contents, configmod, utils, page, events, actions, kernelselector, CodeMirror, custom) {
-  var Thebe, log;
-  log = function() {
-    var x;
-    return console.log("%c" + [
-      (function() {
-        var _i, _len, _results;
-        _results = [];
-        for (_i = 0, _len = arguments.length; _i < _len; _i++) {
-          x = arguments[_i];
-          _results.push(x);
-        }
-        return _results;
-      }).apply(this, arguments)
-    ], "color: blue; font-size: large");
-  };
+  var Thebe;
   Thebe = (function() {
-    function Thebe(_at_selector, _at_tmpnb_url) {
-      var thebe_url;
-      this.selector = _at_selector;
-      this.tmpnb_url = _at_tmpnb_url;
+    Thebe.prototype.default_options = {
+      selector: 'pre[data-executable]',
+      tmpnb_url: 'http://192.168.59.103:8000/spawn',
+      prepend_controls_to: 'html'
+    };
+
+    function Thebe(_at_options) {
+      var thebe_url, _ref;
+      this.options = _at_options != null ? _at_options : {};
       this.execute_below = __bind(this.execute_below, this);
       this.kernel_ready = __bind(this.kernel_ready, this);
       this.spawn_handler = __bind(this.spawn_handler, this);
+      _ref = _.defaults(this.options, this.default_options), this.selector = _ref.selector, this.tmpnb_url = _ref.tmpnb_url;
       this.setup_ui();
       this.events = events;
       thebe_url = cookies.getItem('thebe_url');
@@ -183,11 +175,40 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
     };
 
     Thebe.prototype.setup_ui = function() {
+      var urls;
       if ($(this.selector).length === 0) {
         return;
       }
-      this.ui = $('<div id="thebe_controls">').prependTo('body');
-      return this.ui.html('starting');
+      this.ui = $('<div id="thebe_controls">');
+      if (this.options.prepend_controls_to) {
+        this.ui.prependTo(this.options.prepend_controls_to);
+      }
+      this.ui.html('starting');
+      urls = ["https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css", "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/theme/base16-dark.css"];
+      return $.when($.each(urls, function(i, url) {
+        return $.get(url, function() {
+          return $('<link>', {
+            rel: 'stylesheet',
+            type: 'text/css',
+            'href': url
+          }).appendTo('head');
+        });
+      }));
+    };
+
+    Thebe.prototype.log = function() {
+      var x;
+      return console.log("%c" + [
+        (function() {
+          var _i, _len, _results;
+          _results = [];
+          for (_i = 0, _len = arguments.length; _i < _len; _i++) {
+            x = arguments[_i];
+            _results.push(x);
+          }
+          return _results;
+        }).apply(this, arguments)
+      ], "color: blue; font-size: large");
     };
 
     return Thebe;
@@ -195,7 +216,7 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
   })();
   $(function() {
     var thebe;
-    return thebe = new Thebe("pre[data-executable]", 'http://192.168.59.103:8000/spawn');
+    return thebe = new Thebe();
   });
   return Thebe;
 });
