@@ -19,7 +19,7 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
       this.start_notebook = __bind(this.start_notebook, this);
       this.start_kernel = __bind(this.start_kernel, this);
       this.before_first_run = __bind(this.before_first_run, this);
-      this.execute_below = __bind(this.execute_below, this);
+      this.set_state = __bind(this.set_state, this);
       this.build_notebook = __bind(this.build_notebook, this);
       this.spawn_handler = __bind(this.spawn_handler, this);
       this.call_spawn = __bind(this.call_spawn, this);
@@ -151,20 +151,10 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
     };
 
     Thebe.prototype.set_state = function(state) {
-      var html;
-      html = 'server: <strong>' + state + '</strong>';
-      if (state === 'busy') {
-        html += '<br><button id="interrupt">interrupt</button><button id="restart">restart</button>';
-      }
-      return this.ui.attr('data-state', state).html(html);
-    };
-
-    Thebe.prototype.execute_below = function() {
-      return this.notebook.execute_cells_below();
+      return this.log('state :' + state);
     };
 
     Thebe.prototype.before_first_run = function(cb) {
-      this.ui.slideDown('fast');
       if (this.url) {
         return this.start_kernel(cb);
       } else {
@@ -244,26 +234,6 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
 
     Thebe.prototype.setup_ui = function() {
       var script, urls;
-      if ($(this.selector).length === 0) {
-        return;
-      }
-      this.ui = $('<div id="thebe_controls">').hide();
-      if (this.options.prepend_controls_to) {
-        this.ui.prependTo(this.options.prepend_controls_to);
-      }
-      this.ui.html('starting');
-      this.ui.on('click', 'button#interrupt', (function(_this) {
-        return function(e) {
-          _this.log('interrupt');
-          return _this.kernel.interrupt();
-        };
-      })(this));
-      this.ui.on('click', 'button#restart', (function(_this) {
-        return function(e) {
-          _this.log('restart');
-          return _this.kernel.restart();
-        };
-      })(this));
       window.mathjax_url = '';
       if (this.options.load_mathjax) {
         script = document.createElement("script");
@@ -272,7 +242,7 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
         document.getElementsByTagName("head")[0].appendChild(script);
       }
       if (this.options.load_css) {
-        urls = ["https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css", "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/theme/base16-dark.css"];
+        urls = ["https://rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css", "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css"];
         return $.when($.each(urls, function(i, url) {
           return $.get(url, function() {
             return $('<link>', {

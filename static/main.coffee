@@ -151,17 +151,11 @@ require [
       @events.on 'kernel_disconnected.Kernel', =>
         @set_state('disconnected')
 
-    set_state: (state) ->
-      html = 'server: <strong>'+state+'</strong>'
-      if state is 'busy'
-        html+='<br><button id="interrupt">interrupt</button><button id="restart">restart</button>'
-      @ui.attr('data-state', state).html(html)
+    set_state: (state) =>
+      @log 'state :'+state
 
-    execute_below: =>
-      @notebook.execute_cells_below()
 
     before_first_run: (cb) =>
-      @ui.slideDown('fast')
       if @url then @start_kernel(cb)
       else @call_spawn(cb)
     
@@ -218,18 +212,12 @@ require [
 
 
     setup_ui: ->
-      if $(@selector).length is 0 then return
-      @ui = $('<div id="thebe_controls">').hide()
-      if @options.prepend_controls_to
-        @ui.prependTo(@options.prepend_controls_to)
-      @ui.html('starting')
-
-      @ui.on 'click', 'button#interrupt', (e)=>
-        @log 'interrupt'
-        @kernel.interrupt()
-      @ui.on 'click', 'button#restart', (e)=>
-        @log 'restart'
-        @kernel.restart()
+      # @ui.on 'click', 'button#interrupt', (e)=>
+      #   @log 'interrupt'
+      #   @kernel.interrupt()
+      # @ui.on 'click', 'button#restart', (e)=>
+      #   @log 'restart'
+      #   @kernel.restart()
 
       # set this no matter what, else we get a warning
       window.mathjax_url = ''
@@ -241,9 +229,14 @@ require [
 
       # Add some CSS links to the page
       if @options.load_css
-        urls = ["https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", 
-                "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css", 
-                "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/theme/base16-dark.css"]
+        urls = [
+          "https://rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
+           # in production use this url instead: 
+           # "https://cdn.rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
+           # or really, use our own cdn
+           "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", 
+           "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css"
+          ]
         $.when($.each(urls, (i, url) ->
           $.get url, ->
             $('<link>',
