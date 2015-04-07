@@ -9,6 +9,7 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
       selector: 'pre[data-executable]',
       tmpnb_url: 'http://192.168.59.103:8000/spawn',
       prepend_controls_to: 'html',
+      load_css: true,
       debug: true
     };
 
@@ -141,7 +142,12 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
     };
 
     Thebe.prototype.set_state = function(state) {
-      return this.ui.attr('data-state', state).html('server: <strong>' + state + '</strong>');
+      var html;
+      html = 'server: <strong>' + state + '</strong>';
+      if (state === 'busy') {
+        html += '<br><button id="interrupt">interrupt</button><button id="restart">restart</button>';
+      }
+      return this.ui.attr('data-state', state).html(html);
     };
 
     Thebe.prototype.execute_below = function() {
@@ -237,16 +243,30 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
         this.ui.prependTo(this.options.prepend_controls_to);
       }
       this.ui.html('starting');
-      urls = ["https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css", "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/theme/base16-dark.css"];
-      return $.when($.each(urls, function(i, url) {
-        return $.get(url, function() {
-          return $('<link>', {
-            rel: 'stylesheet',
-            type: 'text/css',
-            'href': url
-          }).appendTo('head');
-        });
-      }));
+      this.ui.on('click', 'button#interrupt', (function(_this) {
+        return function(e) {
+          _this.log('interrupt');
+          return _this.kernel.interrupt();
+        };
+      })(this));
+      this.ui.on('click', 'button#restart', (function(_this) {
+        return function(e) {
+          _this.log('restart');
+          return _this.kernel.restart();
+        };
+      })(this));
+      if (this.options.load_css) {
+        urls = ["https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css", "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/theme/base16-dark.css"];
+        return $.when($.each(urls, function(i, url) {
+          return $.get(url, function() {
+            return $('<link>', {
+              rel: 'stylesheet',
+              type: 'text/css',
+              'href': url
+            }).appendTo('head');
+          });
+        }));
+      }
     };
 
     Thebe.prototype.log = function() {
@@ -262,7 +282,7 @@ require(['base/js/namespace', 'jquery', 'notebook/js/notebook', 'thebe/cookies',
             }
             return _results;
           }).apply(this, arguments)
-        ], "color: blue; font-size: 13px");
+        ], "color: blue; font-size: 12px");
       }
     };
 

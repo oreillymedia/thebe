@@ -27,6 +27,7 @@ require [
       tmpnb_url: 'http://192.168.59.103:8000/spawn'
       # set to false to not add controls to the page
       prepend_controls_to: 'html'
+      load_css: true
       debug: true
 
 
@@ -127,11 +128,10 @@ require [
           else
             button.text('running').addClass 'running'
             cell.execute()
-      # reset run button when the kernel is idle again
       
       @events.on 'kernel_idle.Kernel', (e, k) =>
         @set_state('idle')
-        $('button.run.running').removeClass('running').text 'run'
+        $('button.run.running').removeClass('running').text('run')#.text('ran').addClass 'ran'
       @notebook_el.hide()
       @events.on 'kernel_busy.Kernel', =>
         @set_state('busy')
@@ -139,7 +139,10 @@ require [
         @set_state('disconnected')
 
     set_state: (state) ->
-      @ui.attr('data-state', state).html('server: <strong>'+state+'</strong>')
+      html = 'server: <strong>'+state+'</strong>'
+      if state is 'busy'
+        html+='<br><button id="interrupt">interrupt</button><button id="restart">restart</button>'
+      @ui.attr('data-state', state).html(html)
 
     execute_below: =>
       @notebook.execute_cells_below()
@@ -208,21 +211,29 @@ require [
         @ui.prependTo(@options.prepend_controls_to)
       @ui.html('starting')
 
-      # Add some CSS links to the page
-      urls = ["https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", 
-              "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css", 
-              "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/theme/base16-dark.css"]
-      $.when($.each(urls, (i, url) ->
-        $.get url, ->
-          $('<link>',
-            rel: 'stylesheet'
-            type: 'text/css'
-            'href': url).appendTo 'head'
-      ))#.then ->
+      @ui.on 'click', 'button#interrupt', (e)=>
+        @log 'interrupt'
+        @kernel.interrupt()
+      @ui.on 'click', 'button#restart', (e)=>
+        @log 'restart'
+        @kernel.restart()
+
+      if @options.load_css
+        # Add some CSS links to the page
+        urls = ["https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", 
+                "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css", 
+                "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/theme/base16-dark.css"]
+        $.when($.each(urls, (i, url) ->
+          $.get url, ->
+            $('<link>',
+              rel: 'stylesheet'
+              type: 'text/css'
+              'href': url).appendTo 'head'
+        ))#.then ->
   
     log: ->
       if @debug
-        console.log("%c#{[x for x in arguments]}", "color: blue; font-size: 13px");
+        console.log("%c#{[x for x in arguments]}", "color: blue; font-size: 12px");
 
 
 

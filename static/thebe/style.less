@@ -5,7 +5,7 @@
   position: fixed;
   background-color: rgb(150, 150, 150);
   color: white;
-  left: 75%;
+  left: 80%;
   padding: 4px 8px;
   border: 1px solid black;
   border-top: none;
@@ -27,8 +27,21 @@
   color: rgb(250, 154, 154);
 }
 
+button#interupt {
+  font-size: 0.8em;
+  text-align: center;
+}
+button.run.running {
+  font-style: italic;
+  font-weight: bold;
+  color: green;
+}
 
-/* Get rid of the input prompt, In [1] .*/
+button.run.ran {
+  font-style: italic;
+}
+
+/* Get rid of the input prompt, the: In [1] */
 div.cell .prompt.input_prompt {
   display: none;
 }

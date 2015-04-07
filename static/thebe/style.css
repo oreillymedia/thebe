@@ -151,7 +151,7 @@ Adapted from GitHub theme
   position: fixed;
   background-color: #969696;
   color: white;
-  left: 75%;
+  left: 80%;
   padding: 4px 8px;
   border: 1px solid black;
   border-top: none;
@@ -170,7 +170,19 @@ Adapted from GitHub theme
   background-color: #5a5a5a;
   color: #fa9a9a;
 }
-/* Get rid of the input prompt, In [1] .*/
+button#interupt {
+  font-size: 0.8em;
+  text-align: center;
+}
+button.run.running {
+  font-style: italic;
+  font-weight: bold;
+  color: green;
+}
+button.run.ran {
+  font-style: italic;
+}
+/* Get rid of the input prompt, the: In [1] */
 div.cell .prompt.input_prompt {
   display: none;
 }
