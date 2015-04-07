@@ -146,29 +146,27 @@ Adapted from GitHub theme
   background-position: right;
   background-repeat: no-repeat;
 }
-/*@import "../components/bootstrap/less/normalize.less";*/
 #thebe_controls {
   position: fixed;
-  background-color: #969696;
-  color: white;
+  background-color: rgba(200, 200, 200, 0.8);
+  color: black;
   left: 80%;
   padding: 4px 8px;
-  border: 1px solid black;
   border-top: none;
   border-radius: 0 0 4px 4px ;
   margin-top: 0px;
   font-family: monospace;
+  border-top: 1px solid rgba(149, 149, 149, 0.8);
 }
 #thebe_controls[data-state='idle'] {
-  background-color: #969696;
+  border-top: 1px solid rgba(149, 149, 149, 0.8);
 }
 #thebe_controls[data-state='busy'] {
-  background-color: #646464;
+  border-top: 1px solid rgba(98, 98, 98, 0.8);
 }
 #thebe_controls[data-state='disconnected'],
 #thebe_controls[data-state='disconnected'] {
-  background-color: #5a5a5a;
-  color: #fa9a9a;
+  border-top: 1px solid red);
 }
 button#interupt {
   font-size: 0.8em;
@@ -198,6 +196,6 @@ div.cell div.input {
   padding: 10px;
 }
 /* In conjunction with viewportMargin set to infinity */
-.CodeMirror {
+div.input_area .CodeMirror {
   height: auto !important;
 }

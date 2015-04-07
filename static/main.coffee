@@ -1,6 +1,7 @@
 require [
   'base/js/namespace'
   'jquery'
+  'thebe/dotimeout'
   'notebook/js/notebook'
   'thebe/cookies'
   'contents'
@@ -13,7 +14,7 @@ require [
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
   'custom/custom'
-], (IPython, $, notebook, cookies, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
+], (IPython, $, doTimeout, notebook, cookies, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
 
   class Thebe
     default_options:
@@ -23,6 +24,7 @@ require [
       # set to false to not add controls to the page
       prepend_controls_to: 'html'
       load_css: true
+      load_mathjax: true
       debug: true
 
 
@@ -108,11 +110,13 @@ require [
         cell.set_text $(el).text()
         button = $("<button class='run' data-cell-id='#{i}'>run</button>")
         $(el).replaceWith cell.element
+        # cell.refresh()
         @cells.push cell
         $(cell.element).prepend button
+        cell.element.removeAttr('tabindex')
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
-        
+
         # TODO, move button stuff elsewhere
         # setup run button
         button.on 'click', (e) =>
@@ -213,8 +217,16 @@ require [
         @log 'restart'
         @kernel.restart()
 
+      # set this no matter what, else we get a warning
+      window.mathjax_url = ''
+      if @options.load_mathjax
+        script = document.createElement("script")
+        script.type = "text/javascript"
+        script.src  = "http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+        document.getElementsByTagName("head")[0].appendChild(script)
+
+      # Add some CSS links to the page
       if @options.load_css
-        # Add some CSS links to the page
         urls = ["https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", 
                 "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css", 
                 "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/theme/base16-dark.css"]
@@ -224,7 +236,10 @@ require [
               rel: 'stylesheet'
               type: 'text/css'
               'href': url).appendTo 'head'
-        ))#.then ->
+        )).then => 
+          # this only works correctly if caching enabled in the browser
+          @log 'loaded css'
+
   
     log: ->
       if @debug

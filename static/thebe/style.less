@@ -1,13 +1,13 @@
 @import "../notebook/less/highlight.less";
-/*@import "../components/bootstrap/less/normalize.less";*/
+
+@gray: rgba(200, 200, 200, 0.8);
 
 #thebe_controls {
   position: fixed;
-  background-color: rgb(150, 150, 150);
-  color: white;
+  background-color: @gray;
+  color: black;
   left: 80%;
   padding: 4px 8px;
-  border: 1px solid black;
   border-top: none;
   border-radius: 0 0 4px 4px ;
   margin-top: 0px;
@@ -15,16 +15,14 @@
 }
 
 #thebe_controls[data-state='idle'] {
-  background-color: rgb(150, 150, 150);
 }
 
 #thebe_controls[data-state='busy'] {
-  background-color: rgb(100, 100, 100);
+
 }
 
 #thebe_controls[data-state='disconnected'], #thebe_controls[data-state='disconnected'] {
-  background-color: rgb(90, 90, 90);
-  color: rgb(250, 154, 154);
+  color: red;
 }
 
 button#interupt {
@@ -60,6 +58,6 @@ div.cell div.input {
 }
 
 /* In conjunction with viewportMargin set to infinity */
-.CodeMirror {
+div.input_area .CodeMirror {
   height: auto !important;
 }
