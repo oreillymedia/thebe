@@ -15,11 +15,6 @@ require [
   'custom/custom'
 ], (IPython, $, notebook, cookies, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
 
-  # We need this set, theoretically, but it seems not to be neccessary in practice
-  # codecell = require('notebook/js/codecell')
-  # codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity
-  Contents = contents.Contents
-
   class Thebe
     default_options:
       selector: 'pre[data-executable]'
@@ -82,7 +77,7 @@ require [
           @log 'cookie was right, use that'
         # otherwise it's a notebook_not_found, a page that would js redirect you to /spawn
         catch
-          # @call_spawn() # get rid of this XXX
+          @start_notebook()
           @log 'cookie was wrong/dated, call spawn'
       # Actually send the request
       invo.send()
@@ -235,7 +230,9 @@ require [
       if @debug
         console.log("%c#{[x for x in arguments]}", "color: blue; font-size: 12px");
 
-
+  # This, in conjunction with height:auto in the CSS, should force CM to auto size to it's content
+  codecell = require('notebook/js/codecell')
+  codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity
 
   # Auto instantiate
   $(->
