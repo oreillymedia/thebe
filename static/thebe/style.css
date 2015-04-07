@@ -146,56 +146,11 @@ Adapted from GitHub theme
   background-position: right;
   background-repeat: no-repeat;
 }
-#thebe_controls {
-  position: fixed;
-  background-color: rgba(200, 200, 200, 0.8);
-  color: black;
-  left: 80%;
-  padding: 4px 8px;
-  border-top: none;
-  border-radius: 0 0 4px 4px ;
-  margin-top: 0px;
-  font-family: monospace;
-  border-top: 1px solid rgba(149, 149, 149, 0.8);
-}
-#thebe_controls[data-state='idle'] {
-  border-top: 1px solid rgba(149, 149, 149, 0.8);
-}
-#thebe_controls[data-state='busy'] {
-  border-top: 1px solid rgba(98, 98, 98, 0.8);
-}
-#thebe_controls[data-state='disconnected'],
-#thebe_controls[data-state='disconnected'] {
-  border-top: 1px solid red);
-}
-button#interupt {
-  font-size: 0.8em;
-  text-align: center;
-}
-button.run.running {
-  font-style: italic;
-  font-weight: bold;
-  color: green;
-}
-button.run.ran {
-  font-style: italic;
+/* In conjunction with viewportMargin set to infinity */
+div.input_area .CodeMirror {
+  height: auto !important;
 }
 /* Get rid of the input prompt, the: In [1] */
 div.cell .prompt.input_prompt {
   display: none;
-}
-div.cell,
-div.input {
-  max-width: 600px;
-}
-div.cell {
-  margin: 10px auto;
-}
-div.cell div.input {
-  border: 1px solid #c8c8c8;
-  padding: 10px;
-}
-/* In conjunction with viewportMargin set to infinity */
-div.input_area .CodeMirror {
-  height: auto !important;
 }
