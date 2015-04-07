@@ -11,9 +11,10 @@ require [
   'notebook/js/actions'
   'notebook/js/kernelselector'
   'services/kernels/kernel'
+  'notebook/js/codecell'
   'codemirror/lib/codemirror'
   'custom/custom'
-], (IPython, $, notebook, cookies, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
+], (IPython, $, notebook, cookies, contents, configmod, utils, page, events, actions, kernelselector, kernel, codecell, CodeMirror, custom) ->
 
   class Thebe
     default_options:
@@ -98,21 +99,25 @@ require [
         cookies.setItem 'thebe_url', @url
 
     build_notebook: =>
-      # don't even try to save or autosave
-      @notebook.writable = false
-
-      @notebook._unsafe_delete_cell(0)
-
       $(@selector).each (i, el) =>
-        cell = @notebook.insert_cell_at_bottom('code')
+        cell = new codecell.CodeCell @kernel, 
+          notebook : @notebook
+          events: @events
+          config: {data: {data:{}}}
+          keyboard_manager:
+            edit_mode: ->
+            command_mode: ->
+            register_events: ->
+
         cell.set_text $(el).text()
         button = $("<button class='run' data-cell-id='#{i}'>run</button>")
         $(el).replaceWith cell.element
+        cell.render()
+        cell.refresh()
         @cells.push cell
         $(cell.element).prepend button
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
-        
         # TODO, move button stuff elsewhere
         # setup run button
         button.on 'click', (e) =>
@@ -127,7 +132,7 @@ require [
       @events.on 'kernel_idle.Kernel', (e, k) =>
         @set_state('idle')
         $('button.run.running').removeClass('running').text('run')#.text('ran').addClass 'ran'
-      @notebook_el.hide()
+      # @notebook_el.hide()
       @events.on 'kernel_busy.Kernel', =>
         @set_state('busy')
       @events.on 'kernel_disconnected.Kernel', =>
@@ -161,40 +166,51 @@ require [
 
     start_notebook: =>
       # Stub a bunch of stuff we don't want to use
-      contents = 
-        list_checkpoints: -> new Promise (resolve, reject) -> resolve {}
-      keyboard_manager = 
-        edit_mode: ->
-        command_mode: ->
-        register_events: ->
-        enable: ->
-        disable: ->
-      keyboard_manager.edit_shortcuts = handles: ->
-      save_widget = 
-        update_document_title: ->
-        contents: ->
-      config_section =  {data: {data:{}}}
-      common_options = 
-        ws_url: ''
-        base_url: ''
-        notebook_path: ''
-        notebook_name: ''
-
-      @notebook_el = $('<div id="notebook"></div>').prependTo('body')
-
-      @notebook = new (notebook.Notebook)('div#notebook', $.extend({
+      # codecell = require('notebook/js/codecell')
+      @notebook = 
         events: @events
-        keyboard_manager: keyboard_manager
-        save_widget: save_widget
-        contents: contents
-        config: config_section
-      }, common_options))
-  
-      @notebook.kernel_selector =
-        set_kernel : -> 
+      # @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, "python2"
+      # cell = new codecell.CodeCell @kernel, 
+        # notebook : @notebook
+        # events: @events
 
-      @events.trigger 'app_initialized.NotebookApp'
-      @notebook.load_notebook common_options.notebook_path
+      # window.cell = cell
+
+
+      # contents = 
+      #   list_checkpoints: -> new Promise (resolve, reject) -> resolve {}
+      # keyboard_manager = 
+      #   edit_mode: ->
+      #   command_mode: ->
+      #   register_events: ->
+      #   enable: ->
+      #   disable: ->
+      # keyboard_manager.edit_shortcuts = handles: ->
+      # save_widget = 
+      #   update_document_title: ->
+      #   contents: ->
+      # config_section =  {data: {data:{}}}
+      # common_options = 
+      #   ws_url: ''
+      #   base_url: ''
+      #   notebook_path: ''
+      #   notebook_name: ''
+
+      # @notebook_el = $('<div id="notebook"></div>').prependTo('body')
+
+      # @notebook = new (notebook.Notebook)('div#notebook', $.extend({
+      #   events: @events
+      #   keyboard_manager: keyboard_manager
+      #   save_widget: save_widget
+      #   contents: contents
+      #   config: config_section
+      # }, common_options))
+  
+      # @notebook.kernel_selector =
+      #   set_kernel : -> 
+
+      # @events.trigger 'app_initialized.NotebookApp'
+      # @notebook.load_notebook common_options.notebook_path
 
       @build_notebook()
 
@@ -231,7 +247,7 @@ require [
         console.log("%c#{[x for x in arguments]}", "color: blue; font-size: 12px");
 
   # This, in conjunction with height:auto in the CSS, should force CM to auto size to it's content
-  codecell = require('notebook/js/codecell')
+  # codecell = require('notebook/js/codecell')
   codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity
 
   # Auto instantiate
