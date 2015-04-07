@@ -11,10 +11,20 @@ Options
 
 ```
     default_options:
+      # jquery selector for elements we want to make runnable 
       selector: 'pre[data-executable]'
-      tmpnb_url: 'http://192.168.59.103:8000/spawn'
+      # the url of either a tmnb server or a notebook server
+      # if it contains "spawn/", assume it's a tmpnb server
+      # otherwise assume it's a notebook url
+      url: 'http://192.168.59.103:8000/spawn/'
       # set to false to not add controls to the page
       prepend_controls_to: 'html'
+      # Automatically load necessary css for codemirror and jquery ui
+      load_css: true
+      # Automatically load mathjax js
+      load_mathjax: true
+      # show messages from .log
+      debug: true
 ```
 
 

@@ -18,47 +18,61 @@ require [
 
   class Thebe
     default_options:
+      # jquery selector for elements we want to make runnable 
       selector: 'pre[data-executable]'
-      # TODO, make this just `url`. if it ends in spawn, it's tmpnb, if it doesn't, assume it's a notebook url
-      tmpnb_url: 'http://192.168.59.103:8000/spawn'
+      # the url of either a tmnb server or a notebook server
+      # if it contains "spawn/", assume it's a tmpnb server
+      # otherwise assume it's a notebook url
+      url: 'http://192.168.59.103:8000/spawn/'
       # set to false to not add controls to the page
       prepend_controls_to: 'html'
+      # Automatically load necessary css for codemirror and jquery ui
       load_css: true
+      # Automatically load mathjax js
       load_mathjax: true
+      # show messages from .log
       debug: true
 
 
     # Take our two basic configuration options
     constructor: (@options={})->
+      # just for debugging
       window.thebe = this
+      # important flag
       @has_kernel_connected = false
-      @url = ''
+
+      # set options to defaults for unset keys
+      # and break out some commonly used options
+      {@selector, @url, @debug} = _.defaults(@options, @default_options)
+
+      # if we've been given a non blank url, make sure it has a trailing slash
+      if @url then @url = @url.replace(/\/?$/, '/')
+      
+      # if it contains /spawn, it's a tmpnb url, not a notebook url
+      if @url.indexOf('/spawn') isnt -1
+        @log 'this is a tmpnb url'
+        @tmpnb_url = @url
+        @url = ''
 
       # we break the notebook's method of tracking cells, so do it ourselves
       @cells = []
-      # set options to defaults if unset
-      # and break out some commonly used options
-      {@selector, @tmpnb_url, @debug} = _.defaults(@options, @default_options)
       @setup_ui()
       # the jupyter global event object
       @events = events
-      thebe_url = cookies.getItem 'thebe_url'
       # we only ever want the first call
       @spawn_handler = _.once(@spawn_handler)
-      
-      # Does the user already have a container running?
-      if thebe_url
+      # Does the user already have a container running
+      thebe_url = cookies.getItem 'thebe_url'
+      # (passing a notebook url takes precedence over a cookie)
+      if thebe_url and @url is ''
         @check_existing_container(thebe_url)
-        @log 'cookie says check existin'
       else
         @start_notebook()
-        # @call_spawn()
-        # @log 'spawn it'
     
     # CORS + redirects + are crazy, lots of things didn't work for this
     # this was from an example is on MDN
-    call_spawn:(cb)->
-      console.log 'call spawn'
+    call_spawn:(cb)=>
+      @log 'call spawn'
       invo = new XMLHttpRequest
       invo.open 'GET', @tmpnb_url, true
       invo.onreadystatechange = (e)=> @spawn_handler(e, cb)

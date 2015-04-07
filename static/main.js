@@ -6,7 +6,7 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
   Thebe = (function() {
     Thebe.prototype.default_options = {
       selector: 'pre[data-executable]',
-      tmpnb_url: 'http://192.168.59.103:8000/spawn',
+      url: 'http://192.168.59.103:8000/spawn/',
       prepend_controls_to: 'html',
       load_css: true,
       load_mathjax: true,
@@ -22,18 +22,25 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
       this.execute_below = __bind(this.execute_below, this);
       this.build_notebook = __bind(this.build_notebook, this);
       this.spawn_handler = __bind(this.spawn_handler, this);
+      this.call_spawn = __bind(this.call_spawn, this);
       window.thebe = this;
       this.has_kernel_connected = false;
-      this.url = '';
+      _ref = _.defaults(this.options, this.default_options), this.selector = _ref.selector, this.url = _ref.url, this.debug = _ref.debug;
+      if (this.url) {
+        this.url = this.url.replace(/\/?$/, '/');
+      }
+      if (this.url.indexOf('/spawn') !== -1) {
+        this.log('this is a tmpnb url');
+        this.tmpnb_url = this.url;
+        this.url = '';
+      }
       this.cells = [];
-      _ref = _.defaults(this.options, this.default_options), this.selector = _ref.selector, this.tmpnb_url = _ref.tmpnb_url, this.debug = _ref.debug;
       this.setup_ui();
       this.events = events;
-      thebe_url = cookies.getItem('thebe_url');
       this.spawn_handler = _.once(this.spawn_handler);
-      if (thebe_url) {
+      thebe_url = cookies.getItem('thebe_url');
+      if (thebe_url && this.url === '') {
         this.check_existing_container(thebe_url);
-        this.log('cookie says check existin');
       } else {
         this.start_notebook();
       }
@@ -41,7 +48,7 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
 
     Thebe.prototype.call_spawn = function(cb) {
       var invo;
-      console.log('call spawn');
+      this.log('call spawn');
       invo = new XMLHttpRequest;
       invo.open('GET', this.tmpnb_url, true);
       invo.onreadystatechange = (function(_this) {
