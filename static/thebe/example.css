@@ -157,3 +157,21 @@ div.cell .prompt.input_prompt {
 .thebe_controls button.ran {
   font-style: italic;
 }
+div.thebe_controls {
+  margin-top: 15px;
+  margin-bottom: 5px;
+}
+div.cell,
+p,
+pre {
+  max-width: 600px;
+}
+div.cell,
+p,
+pre {
+  margin: 10px auto;
+}
+div.cell div.input {
+  border: 1px solid #c8c8c8;
+  padding: 10px;
+}

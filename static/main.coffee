@@ -56,9 +56,10 @@ require [
 
       # we break the notebook's method of tracking cells, so do it ourselves
       @cells = []
-      @setup_ui()
       # the jupyter global event object
       @events = events
+      # add some css and js dynamically, and set up some events
+      @setup()
       # we only ever want the first call
       @spawn_handler = _.once(@spawn_handler)
       # Does the user already have a container running
@@ -122,37 +123,32 @@ require [
       $(@selector).each (i, el) =>
         cell = @notebook.insert_cell_at_bottom('code')
         cell.set_text $(el).text()
-        button = $("<button class='run' data-cell-id='#{i}'>run</button>")
+        controls = $("<div class='thebe_controls' data-cell-id='#{i}'></div>")
+        controls.html(@controls_html())
         $(el).replaceWith cell.element
         # cell.refresh()
         @cells.push cell
-        $(cell.element).prepend button
+        $(cell.element).prepend controls
         cell.element.removeAttr('tabindex')
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
 
-        # TODO, move button stuff elsewhere
-        # setup run button
-        button.on 'click', (e) =>
-          if not @has_kernel_connected
-            @before_first_run =>
-              button.text('running').addClass 'running'
-              cell.execute()
-          else
-            button.text('running').addClass 'running'
-            cell.execute()
+      @notebook_el.hide()
       
       @events.on 'kernel_idle.Kernel', (e, k) =>
         @set_state('idle')
-        $('button.run.running').removeClass('running').text('run')#.text('ran').addClass 'ran'
-      @notebook_el.hide()
       @events.on 'kernel_busy.Kernel', =>
         @set_state('busy')
       @events.on 'kernel_disconnected.Kernel', =>
         @set_state('disconnected')
 
-    set_state: (state) =>
-      @log 'state :'+state
+    set_state: (@state) =>
+      @log 'state :'+@state
+      # debounce messages here for controls html
+      # todo
+
+    controls_html: (state)-> 
+      "<button data-action='run'>run</button>"
 
 
     before_first_run: (cb) =>
@@ -209,9 +205,32 @@ require [
       @notebook.load_notebook common_options.notebook_path
 
       @build_notebook()
+    
+    setup: =>
+      @log 'setup'
+      @events.on 'execute.CodeCell', (e, cell) =>
+        id = $('.cell').index(cell.cell.element)
+        button = $(".thebe_controls[data-cell-id=#{id}] button[data-action='run']")
+        button.text('ran').removeClass('running').addClass('ran')
+      
+
+      $('body').on 'click', 'div.thebe_controls button', (e)=>
+        button = $(e.target)
+        id = button.parent().data('cell-id')
+        action = button.data('action')
+        cell = @cells[id]
+        switch action
+          when 'run'
+            if not @has_kernel_connected
+              @before_first_run =>
+                button.text('running').addClass 'running'
+                cell.execute()
+            else
+              button.text('running').addClass 'running'
+              cell.execute()
 
 
-    setup_ui: ->
+        # @cells[id]?.execute()
       # @ui.on 'click', 'button#interrupt', (e)=>
       #   @log 'interrupt'
       #   @kernel.interrupt()
@@ -230,7 +249,7 @@ require [
       # Add some CSS links to the page
       if @options.load_css
         urls = [
-          "https://rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
+          # "https://rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
            # in production use this url instead: 
            # "https://cdn.rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
            # or really, use our own cdn
