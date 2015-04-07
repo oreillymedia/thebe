@@ -144,11 +144,14 @@ require [
 
     set_state: (@state) =>
       @log 'state :'+@state
+      $.doTimeout 'thebe_set_state', 500, =>
+        $(".thebe_controls .state").text(@state)
+        return false
       # debounce messages here for controls html
       # todo
 
-    controls_html: (state)-> 
-      "<button data-action='run'>run</button>"
+    controls_html: (state='')->
+      "<button data-action='run'>run</button><span class='state'></span>"
 
 
     before_first_run: (cb) =>

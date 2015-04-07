@@ -157,6 +157,12 @@ div.cell .prompt.input_prompt {
 .thebe_controls button.ran {
   font-style: italic;
 }
+.thebe_controls span.state {
+  font-family: monospace;
+  margin-left: 10px;
+  opacity: 0.5;
+  font-size: 0.8em;
+}
 div.thebe_controls {
   margin-top: 15px;
   margin-bottom: 5px;
@@ -174,4 +180,12 @@ pre {
 div.cell div.input {
   border: 1px solid #c8c8c8;
   padding: 10px;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-align: center;
 }

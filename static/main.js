@@ -142,11 +142,20 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
 
     Thebe.prototype.set_state = function(_at_state) {
       this.state = _at_state;
-      return this.log('state :' + this.state);
+      this.log('state :' + this.state);
+      return $.doTimeout('thebe_set_state', 500, (function(_this) {
+        return function() {
+          $(".thebe_controls .state").text(_this.state);
+          return false;
+        };
+      })(this));
     };
 
     Thebe.prototype.controls_html = function(state) {
-      return "<button data-action='run'>run</button>";
+      if (state == null) {
+        state = '';
+      }
+      return "<button data-action='run'>run</button><span class='state'></span>";
     };
 
     Thebe.prototype.before_first_run = function(cb) {
