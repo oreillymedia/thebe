@@ -377,7 +377,9 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
   window.Thebe = Thebe;
   $(function() {
     var thebe;
-    return thebe = new Thebe();
+    if ($('body').data('runnable')) {
+      return thebe = new Thebe();
+    }
   });
   return Thebe;
 });
