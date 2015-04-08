@@ -4,6 +4,7 @@ require [
   'thebe/dotimeout'
   'notebook/js/notebook'
   'thebe/cookies'
+  'thebe/default_css'
   'contents'
   'services/config'
   'base/js/utils'
@@ -14,7 +15,7 @@ require [
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
   'custom/custom'
-], (IPython, $, doTimeout, notebook, cookies, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
+], (IPython, $, doTimeout, notebook, cookies, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
 
   class Thebe
     default_options:
@@ -24,14 +25,16 @@ require [
       # if it contains "spawn/", assume it's a tmpnb server
       # otherwise assume it's a notebook url
       url: 'http://192.168.59.103:8000/spawn/'
-      # set to false to not add controls to the page
-      prepend_controls_to: 'html'
-      # Automatically load necessary css for codemirror and jquery ui
+      # set to false to prevent kernel_controls from being added
+      append_kernel_controls_to: 'body'
+      # Automatically inject basic default css we need
+      inject_css: true
+      # Automatically load other necessary css (jquery ui)
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
-      # show messages from .log
-      debug: true
+      # show messages from .log()
+      debug: false
 
 
     # Take our two basic configuration options
@@ -91,11 +94,11 @@ require [
           JSON.parse e.target.responseText
           @url = url
           @start_notebook()
-          @log 'cookie was right, use that'
+          @log 'cookie was right, use that as needed'
         # otherwise it's a notebook_not_found, a page that would js redirect you to /spawn
         catch
           @start_notebook()
-          @log 'cookie was wrong/dated, call spawn'
+          @log 'cookie was wrong/dated, call spawn as needed'
       # Actually send the request
       invo.send()
 
@@ -111,13 +114,14 @@ require [
       else
         @url = e.target.responseURL.replace('/tree', '/')
         @start_kernel(cb)
-        # @start_notebook() # get rid of this XXX
         cookies.setItem 'thebe_url', @url
 
     build_notebook: =>
       # don't even try to save or autosave
       @notebook.writable = false
 
+      # get rid of default first cell
+      # otherwise this will mess up our index
       @notebook._unsafe_delete_cell(0)
 
       $(@selector).each (i, el) =>
@@ -147,16 +151,22 @@ require [
       $.doTimeout 'thebe_set_state', 500, =>
         $(".thebe_controls .state").text(@state)
         return false
-      # debounce messages here for controls html
-      # todo
 
-    controls_html: (state='')->
+    controls_html: ->
       "<button data-action='run'>run</button><span class='state'></span>"
+
+    kernel_controls_html: ->
+      "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button><span class='state'></span>"
 
 
     before_first_run: (cb) =>
       if @url then @start_kernel(cb)
       else @call_spawn(cb)
+
+      if @options.append_kernel_controls_to 
+        kernel_controls = $("<div class='thebe_controls kernel_controls'></div>")
+        kernel_controls.html(@kernel_controls_html()).appendTo @options.append_kernel_controls_to
+
     
     start_kernel: (cb)=>
       @log 'start_kernel'
@@ -211,12 +221,8 @@ require [
     
     setup: =>
       @log 'setup'
-      @events.on 'execute.CodeCell', (e, cell) =>
-        id = $('.cell').index(cell.cell.element)
-        button = $(".thebe_controls[data-cell-id=#{id}] button[data-action='run']")
-        button.text('ran').removeClass('running').addClass('ran')
-      
 
+      # main click handler
       $('body').on 'click', 'div.thebe_controls button', (e)=>
         button = $(e.target)
         id = button.parent().data('cell-id')
@@ -231,15 +237,17 @@ require [
             else
               button.text('running').addClass 'running'
               cell.execute()
+          when 'interrupt'
+            @kernel.interrupt()
+          when 'restart'
+            if confirm('Are you sure you want to restart the kernel? Your work will be lost.')
+              @kernel.restart()
 
-
-        # @cells[id]?.execute()
-      # @ui.on 'click', 'button#interrupt', (e)=>
-      #   @log 'interrupt'
-      #   @kernel.interrupt()
-      # @ui.on 'click', 'button#restart', (e)=>
-      #   @log 'restart'
-      #   @kernel.restart()
+      @events.on 'execute.CodeCell', (e, cell) =>
+        id = $('.cell').index(cell.cell.element)
+        @log 'exec done for codecell '+id
+        button = $(".thebe_controls[data-cell-id=#{id}] button[data-action='run']")
+        button.text('ran').removeClass('running').addClass('ran')
 
       # set this no matter what, else we get a warning
       window.mathjax_url = ''
@@ -249,14 +257,16 @@ require [
         script.src  = "http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
         document.getElementsByTagName("head")[0].appendChild(script)
 
+      if @options.inject_css
+        $("<style>#{default_css.css}</style>").appendTo('head')
+
       # Add some CSS links to the page
       if @options.load_css
         urls = [
           # "https://rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
            # in production use this url instead: 
            # "https://cdn.rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
-           # or really, use our own cdn
-           "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", 
+           # "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", 
            "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css"
           ]
         $.when($.each(urls, (i, url) ->
