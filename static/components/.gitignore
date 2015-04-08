@@ -58,7 +58,6 @@ moment/min/*
 !moment/min/moment.min.js
 
 #bootstrap excludes
-bootstrap/js
 !bootstrap/js/bootstrap*.js
 bootstrap/css
 bootstrap/fonts/*.svg
