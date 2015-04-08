@@ -45,7 +45,7 @@ define([
         example_preset.push('default.rawedit');
 
         CellToolbar.register_preset('Edit Metadata', example_preset, notebook);
-        console.log('Default extension for cell metadata editing loaded.');
+        // console.log('Default extension for cell metadata editing loaded.');
     };
     return {'register': register};
 });

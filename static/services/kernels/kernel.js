@@ -94,7 +94,7 @@ define([
         });
 
         var record_status = function (evt, info) {
-            console.log('Kernel: ' + evt.type + ' (' + info.kernel.id + ')');
+            // console.log('Kernel: ' + evt.type + ' (' + info.kernel.id + ')');
         };
 
         this.events.on('kernel_created.Kernel', record_status);
@@ -443,7 +443,7 @@ define([
 
         // CHANGED BY ZACH XXX
         var ws_url = utils.url_join_encode(that.kernel_url.replace('http', 'ws'), 'channels')+"?session_id=" + that.session_id
-        console.log('Actuall ws_url:', ws_url);
+        // console.log('Actuall ws_url:', ws_url);
 
         this.ws = new this.WebSocket(ws_url);
         

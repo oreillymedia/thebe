@@ -6,19 +6,10 @@
 
     <title>Thebe Example</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <link rel="stylesheet" href="/static/components/jquery-ui/themes/smoothness/jquery-ui.min.css" type="text/css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript">
-    // MathJax disabled, set as null to distingish from *missing* MathJax,
-    // where it will be undefined, and should prompt a dialog later.
-    // window.mathjax_url = "";
-    </script>
 
-    <link rel="stylesheet" href="/static/components/bootstrap-tour/build/css/bootstrap-tour.min.css" type="text/css" />
-    <link rel="stylesheet" href="/static/components/codemirror/lib/codemirror.css">
-    <link rel="stylesheet" href="/static/style/style.min.css" type="text/css"/>
-    <!-- Only needed for IE -->
+    <link rel="stylesheet" href="/static/thebe/site.css" type="text/css"/>
+
     <script src="/static/components/es6-promise/promise.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="/static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
     <script>
@@ -68,15 +59,7 @@
 
 </head>
 
-<body class="notebook_app " 
-
-data-project=""
-data-base-url="http://192.168.59.103:8888/"
-data-ws-url=""
-data-notebook-name=""
-data-notebook-path=""
-
->
+<body>
 
 <noscript>
     <div id='noscript'>
@@ -156,6 +139,7 @@ plt.plot(v.result[0:6000])
 \dot{z} &amp; = -\beta z + xy
 \end{align}</p>
 
+<p> Something else here</p>
 <script src="/static/main.js" charset="utf-8"></script>
 </body>
 

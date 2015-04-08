@@ -6,21 +6,10 @@
 
     <title>Thebe Example With Compiled JS</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <link rel="stylesheet" href="static/components/jquery-ui/themes/smoothness/jquery-ui.min.css" type="text/css" />
+
+    <link rel="stylesheet" href="/static/thebe/site.css" type="text/css"/>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <script type="text/javascript"
-      src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-    </script>
-
-    <script type="text/javascript">
-    // MathJax disabled, set as null to distingish from *missing* MathJax,
-    // where it will be undefined, and should prompt a dialog later.
-    // window.mathjax_url = "";
-    </script>
-
-<link rel="stylesheet" href="static/components/codemirror/lib/codemirror.css">
-<link rel="stylesheet" href="static/style/style.min.css" type="text/css"/>
 
 <!-- Only required for IE -->
 <script src="static/components/es6-promise/promise.min.js" type="text/javascript" charset="utf-8"></script>
@@ -29,9 +18,8 @@
 </head>
 
 <body>
-<h1> Hello world</h1>
-
 <h1>An illustrated introduction to the t-SNE algorithm</h1>
+
 <p>In the Big Data era, data is not only becoming bigger and bigger; it is also becoming more and more complex. This translates into a spectacular increase of the dimensionality of the data. For example, the dimensionality of a set of images is the number of pixels in any image, which ranges from thousands to millions.</p>
 <p>Computers have no problem processing that many dimensions. However, we humans are limited to three dimensions. Computers still need us (thankfully), so we often need ways to effectively visualize high-dimensional data before handing it over to the computer.</p>
 <p>How can we possibly reduce the dimensionality of a dataset from an arbitrary number to two or three, which is what we're doing when we visualize data on a screen?</p>
@@ -239,33 +227,24 @@ plt.savefig('images/similarity.png', dpi=120)
 <p>The final mapping is obtained when the equilibrium is reached.</p>
 <p>Here is an illustration of a dynamic graph layout based on a similar idea. Nodes are connected via springs and the system evolves according to law of physics (example by <a href="http://bl.ocks.org/mbostock/4062045">Mike Bostock</a>).</p>
 <iframe src="http://bl.ocks.org/rossant/raw/f06184034ba66a0bd06a/"
-        style="border: 0; width: 620px; height: 440px; margin: 0; padding: 0;" />
+        style="border: 0; width: 620px; height: 440px; margin: 0; padding: 0;" /></iframe>
 
 
+<h2 id="algorithm">Algorithm</h2>
 
+<p>Remarkably, this physical analogy stems naturally from the mathematical algorithm. It corresponds to minimizing the <a href="http://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence">Kullback-Leiber</a> divergence between the two distributions <span class="math-tex" data-type="tex"><span class="math">\(\big(p_{ij}\big)\)</span></span> and <span class="math-tex" data-type="tex"><span class="math">\(\big(q_{ij}\big)\)</span></span>:</p>
 
+<p><span class="math-tex" data-type="tex"><span class="math">\(KL(P||Q) = \sum_{i, j} p_{ij} \, \log \frac{p_{ij}}{q_{ij}}.\)</span></span></p>
 
+<p>This measures the distance between our two similarity matrices.</p>
 
+<p>To minimize this score, we perform a gradient descent. The gradient can be computed analytically:</p>
 
+<p><span class="math-tex" data-type="tex"><span class="math">\(\frac{\partial \, KL(P || Q)}{\partial y_i} = 4 \sum_j (p_{ij} - q_{ij}) g\left( \left| x_i - x_j\right| \right) u_{ij} \quad \textrm{where} \, g(z) = \frac{z}{1+z^2}.\)</span></span></p>
 
+<p>Here, <span class="math-tex" data-type="tex"><span class="math">\(u_{ij}\)</span></span> is a unit vector going from <span class="math-tex" data-type="tex"><span class="math">\(y_j\)</span></span> to <span class="math-tex" data-type="tex"><span class="math">\(y_i\)</span></span>. This gradient expresses the sum of all spring forces applied to map point <span class="math-tex" data-type="tex"><span class="math">\(i\)</span></span>.</p>
 
-
-
-## Algorithm
-
-Remarkably, this physical analogy stems naturally from the mathematical algorithm. It corresponds to minimizing the [Kullback-Leiber](http://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence) divergence between the two distributions <span class="math-tex" data-type="tex">\\(\big(p_{ij}\big)\\)</span> and <span class="math-tex" data-type="tex">\\(\big(q_{ij}\big)\\)</span>:
-
-<span class="math-tex" data-type="tex">\\(KL(P||Q) = \sum_{i, j} p_{ij} \, \log \frac{p_{ij}}{q_{ij}}.\\)</span>
-
-This measures the distance between our two similarity matrices.
-
-To minimize this score, we perform a gradient descent. The gradient can be computed analytically:
-
-<span class="math-tex" data-type="tex">\\(\frac{\partial \, KL(P || Q)}{\partial y_i} = 4 \sum_j (p_{ij} - q_{ij}) g\left( \left| x_i - x_j\right| \right) u_{ij} \quad \textrm{where} \, g(z) = \frac{z}{1+z^2}.\\)</span>
-
-Here, <span class="math-tex" data-type="tex">\\(u_{ij}\\)</span> is a unit vector going from <span class="math-tex" data-type="tex">\\(y_j\\)</span> to <span class="math-tex" data-type="tex">\\(y_i\\)</span>. This gradient expresses the sum of all spring forces applied to map point <span class="math-tex" data-type="tex">\\(i\\)</span>.
-
-Let's illustrate this process by creating an animation of the convergence. We'll have to [monkey-patch](http://en.wikipedia.org/wiki/Monkey_patch) the internal `_gradient_descent()` function from scikit-learn's t-SNE implementation in order to register the position of the map points at every iteration.
+<p>Let&#8217;s illustrate this process by creating an animation of the convergence. We&#8217;ll have to <a href="http://en.wikipedia.org/wiki/Monkey_patch">monkey-patch</a> the internal <code>_gradient_descent()</code> function from scikit-learn&#8217;s t-SNE implementation in order to register the position of the map points at every iteration.</p>
 
 <pre data-code-language="python"
      data-executable="true"
@@ -316,7 +295,7 @@ def _gradient_descent(objective, p0, it, n_iter, n_iter_without_progress=30,
 sklearn.manifold.t_sne._gradient_descent = _gradient_descent
 </pre>
 
-Let's run the algorithm again, but this time saving all intermediate positions.
+<p>Let&#8217;s run the algorithm again, but this time saving all intermediate positions.</p>
 
 <pre data-code-language="python"
      data-executable="true"
@@ -331,7 +310,7 @@ X_iter = np.dstack(position.reshape(-1, 2)
                    for position in positions)
 </pre>
 
-We create an animation using [MoviePy](http://zulko.github.io/moviepy/).
+<p>We create an animation using <a href="http://zulko.github.io/moviepy/">MoviePy</a>.</p>
 
 <pre data-code-language="python"
      data-executable="true"
@@ -353,11 +332,11 @@ animation = mpy.VideoClip(make_frame_mpl,
 animation.write_gif("images/animation.gif", fps=20)
 </pre>
 
-<img src="images/animation.gif" />
+<p><img src="images/animation.gif" /></p>
 
-We can clearly observe the different phases of the optimization, as described in the original paper.
+<p>We can clearly observe the different phases of the optimization, as described in the original paper.</p>
 
-Let's also create an animation of the similarity matrix of the map points. We'll observe that it's getting closer and closer to the similarity matrix of the data points.
+<p>Let&#8217;s also create an animation of the similarity matrix of the map points. We&#8217;ll observe that it&#8217;s getting closer and closer to the similarity matrix of the data points.</p>
 
 <pre data-code-language="python"
      data-executable="true"
@@ -385,13 +364,13 @@ animation = mpy.VideoClip(make_frame_mpl,
 animation.write_gif("images/animation_matrix.gif", fps=20)
 </pre>
 
-<img src="images/animation_matrix.gif" />
+<p><img src="images/animation_matrix.gif" /></p>
 
-## The t-Student distribution
+<h2 id="thet-studentdistribution">The t-Student distribution</h2>
 
-Let's now explain the choice of the t-Student distribution for the map points, while a normal distribution is used for the data points. [It is well known that](http://en.wikipedia.org/wiki/Volume_of_an_n-ball) the volume of the <span class="math-tex" data-type="tex">\\(N\\)</span>-dimensional ball of radius <span class="math-tex" data-type="tex">\\(r\\)</span> scales as <span class="math-tex" data-type="tex">\\(r^N\\)</span>. When <span class="math-tex" data-type="tex">\\(N\\)</span> is large, if we pick random points uniformly in the ball, most points will be close to the surface, and very few will be near the center.
+<p>Let&#8217;s now explain the choice of the t-Student distribution for the map points, while a normal distribution is used for the data points. <a href="http://en.wikipedia.org/wiki/Volume_of_an_n-ball">It is well known that</a> the volume of the <span class="math-tex" data-type="tex"><span class="math">\(N\)</span></span>-dimensional ball of radius <span class="math-tex" data-type="tex"><span class="math">\(r\)</span></span> scales as <span class="math-tex" data-type="tex"><span class="math">\(r^N\)</span></span>. When <span class="math-tex" data-type="tex"><span class="math">\(N\)</span></span> is large, if we pick random points uniformly in the ball, most points will be close to the surface, and very few will be near the center.</p>
 
-This is illustrated by the following simulation, showing the distribution of the distances of these points, for different dimensions.
+<p>This is illustrated by the following simulation, showing the distribution of the distances of these points, for different dimensions.</p>
 
 <pre data-code-language="python"
      data-executable="true"
@@ -418,11 +397,15 @@ for i, D in enumerate((2, 5, 10)):
 plt.savefig('images/spheres.png', dpi=100, bbox_inches='tight')
 </pre>
 
-![Spheres](images/spheres.png)
+<figure>
+<img src="images/spheres.png" alt="Spheres" />
+<figcaption>Spheres</figcaption></figure>
 
-When reducing the dimensionality of a dataset, if we used the same Gaussian distribution for the data points and the map points, we would get an _imbalance_ in the distribution of the distances of a point's neighbors. This is because the distribution of the distances is so different between a high-dimensional space and a low-dimensional space. Yet, the algorithm tries to reproduce the same distances in the two spaces. This imbalance would lead to an excess of attraction forces and a sometimes unappealing mapping. This is actually what happens in the original SNE algorithm, by [Hinton and Roweis (2002)](http://www.cs.toronto.edu/~fritz/absps/sne.pdf).
 
-The t-SNE algorithm works around this problem by using a t-Student with one degree of freedom (or Cauchy) distribution for the map points. This distribution has a much heavier tail than the Gaussian distribution, which _compensates_ the original imbalance. For a given similarity between two data points, the two corresponding map points will need to be much further apart in order for their similarity to match the data similarity. This can be seen in the following plot.
+
+<p>When reducing the dimensionality of a dataset, if we used the same Gaussian distribution for the data points and the map points, we would get an <em>imbalance</em> in the distribution of the distances of a point&#8217;s neighbors. This is because the distribution of the distances is so different between a high-dimensional space and a low-dimensional space. Yet, the algorithm tries to reproduce the same distances in the two spaces. This imbalance would lead to an excess of attraction forces and a sometimes unappealing mapping. This is actually what happens in the original SNE algorithm, by <a href="http://www.cs.toronto.edu/~fritz/absps/sne.pdf">Hinton and Roweis (2002)</a>.</p>
+
+<p>The t-SNE algorithm works around this problem by using a t-Student with one degree of freedom (or Cauchy) distribution for the map points. This distribution has a much heavier tail than the Gaussian distribution, which <em>compensates</em> the original imbalance. For a given similarity between two data points, the two corresponding map points will need to be much further apart in order for their similarity to match the data similarity. This can be seen in the following plot.</p>
 
 <pre data-code-language="python"
      data-executable="true"
@@ -436,109 +419,33 @@ plt.legend()
 plt.savefig('images/distributions.png', dpi=100)
 </pre>
 
-![Gaussian and Cauchy distributions](images/distributions.png)
+<figure>
+<img src="images/distributions.png" alt="Gaussian and Cauchy distributions" />
+<figcaption>Gaussian and Cauchy distributions</figcaption></figure>
 
-Using this distribution leads to more effective data visualizations, where clusters of points are more distinctly separated.
 
-## Conclusion
 
-The t-SNE algorithm provides an effective method to visualize a complex dataset. It successfully uncovers hidden structures in the data, exposing natural clusters and smooth nonlinear variations along the dimensions. It has been implemented in many languages, including Python, and it can be easily used thanks to the scikit-learn library.
+<p>Using this distribution leads to more effective data visualizations, where clusters of points are more distinctly separated.</p>
 
-The references below describe some optimizations and improvements that can be made to the algorithm and implementations. In particular, the algorithm described here is quadratic in the number of samples, which makes it unscalable to large datasets. One could for example obtain an <span class="math-tex" data-type="tex">\\(O(N \log N)\\)</span> complexity by using the Barnes-Hut algorithm to accelerate the N-body simulation via a quadtree or an octree.
+<h2 id="conclusion">Conclusion</h2>
 
-## References
+<p>The t-SNE algorithm provides an effective method to visualize a complex dataset. It successfully uncovers hidden structures in the data, exposing natural clusters and smooth nonlinear variations along the dimensions. It has been implemented in many languages, including Python, and it can be easily used thanks to the scikit-learn library.</p>
 
-* [Original paper](http://jmlr.csail.mit.edu/papers/volume9/vandermaaten08a/vandermaaten08a.pdf)
-* [Optimized t-SNE paper](http://lvdmaaten.github.io/publications/papers/JMLR_2014.pdf)
-* [A notebook on t-SNE by Alexander Flabish](http://nbviewer.ipython.org/urls/gist.githubusercontent.com/AlexanderFabisch/1a0c648de22eff4a2a3e/raw/59d5bc5ed8f8bfd9ff1f7faa749d1b095aa97d5a/t-SNE.ipynb)
-* [Official t-SNE page](http://lvdmaaten.github.io/tsne/)
-* [scikit documentation](http://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html)
-* [Barnes-Hut t-SNE implementation in Python](https://github.com/danielfrg/tsne)
-* [Barnes-Hut on Wikipedia](http://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation)
-* [t-SNE on Wikipedia](http://en.wikipedia.org/wiki/T-distributed_stochastic_neighbor_embedding)
-* [Implementation in scikit-learn](https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/manifold/t_sne.py)
+<p>The references below describe some optimizations and improvements that can be made to the algorithm and implementations. In particular, the algorithm described here is quadratic in the number of samples, which makes it unscalable to large datasets. One could for example obtain an <span class="math-tex" data-type="tex"><span class="math">\(O(N \log N)\)</span></span> complexity by using the Barnes-Hut algorithm to accelerate the N-body simulation via a quadtree or an octree.</p>
 
-<pre>
-z = "hello", 4+4
-print(z)
-</pre>
-<!-- <iframe width="560" height="315" src="https://www.youtube.com/embed/I64CQp6z0Pk" frameborder="0" allowfullscreen></iframe> -->
+<h2 id="references">References</h2>
 
-<p>Blarg blahhh <a href="example.com">bla</a> bla.</p>
-
-<pre>
-%matplotlib inline
-import matplotlib.pyplot as plt
-import numpy as np
-x = np.linspace(0, 3*np.pi, 500)
-plt.plot(x, np.sin(x**2))
-plt.title('A simple chirp');
-</pre>
-
-<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-consequat. <strong>Duis</strong> aute irure dolor in reprehenderit in voluptate velit esse
-cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-
-<pre>
-from __future__ import print_function
-from IPython.html.widgets import interact, interactive, fixed
-from IPython.html import widgets
-@interact(x=True, y=1.0)
-def g(x, y):
-    print(x, y)
-</pre>
-
-<pre>
-%matplotlib inline
-import matplotlib.pyplot as plt
-import numpy as np
-from IPython.html.widgets import interactive
-from IPython.display import Audio, display
-import numpy as np
-
-def beat_freq(f1=220.0, f2=224.0):
-    max_time = 3
-    rate = 8000
-    times = np.linspace(0,max_time,rate*max_time)
-    signal = np.sin(2*np.pi*f1*times) + np.sin(2*np.pi*f2*times)
-    print(f1, f2, abs(f1-f2))
-    display(Audio(data=signal, rate=rate))
-    return signal
-v = interactive(beat_freq, f1=(200.0,300.0), f2=(200.0,300.0))
-display(v)
-</pre>
-
-<section>
-<h2>Section!</h2>
-<pre>
-ls
-</pre>
-<p> Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-
-<pre>
-print(v.kwargs)
-f1, f2 = v.children
-f1.value = 255
-f2.value = 260
-plt.plot(v.result[0:6000])
-</pre>
-</section>
-
-<h3>Math!</h3>
-
-<p>\begin{align}
-\dot{x} &amp; = \sigma(y-x) \
-\dot{y} &amp; = \rho x - y - xz \
-\dot{z} &amp; = -\beta z + xy
-\end{align}</p>
+<ul>
+<li><a href="http://jmlr.csail.mit.edu/papers/volume9/vandermaaten08a/vandermaaten08a.pdf">Original paper</a></li>
+<li><a href="http://lvdmaaten.github.io/publications/papers/JMLR_2014.pdf">Optimized t-SNE paper</a></li>
+<li><a href="http://nbviewer.ipython.org/urls/gist.githubusercontent.com/AlexanderFabisch/1a0c648de22eff4a2a3e/raw/59d5bc5ed8f8bfd9ff1f7faa749d1b095aa97d5a/t-SNE.ipynb">A notebook on t-SNE by Alexander Flabish</a></li>
+<li><a href="http://lvdmaaten.github.io/tsne/">Official t-SNE page</a></li>
+<li><a href="http://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html">scikit documentation</a></li>
+<li><a href="https://github.com/danielfrg/tsne">Barnes-Hut t-SNE implementation in Python</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation">Barnes-Hut on Wikipedia</a></li>
+<li><a href="http://en.wikipedia.org/wiki/T-distributed_stochastic_neighbor_embedding">t-SNE on Wikipedia</a></li>
+<li><a href="https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/manifold/t_sne.py">Implementation in scikit-learn</a></li>
+</ul>
 
 
 </body>
