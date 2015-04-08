@@ -160,6 +160,7 @@ require [
 
 
     before_first_run: (cb) =>
+      @set_state('starting...')
       if @url then @start_kernel(cb)
       else @call_spawn(cb)
 
@@ -279,7 +280,6 @@ require [
         )).then => 
           # this only works correctly if caching enabled in the browser
           @log 'loaded css'
-
   
     log: ->
       if @debug

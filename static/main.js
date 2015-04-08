@@ -162,6 +162,7 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
 
     Thebe.prototype.before_first_run = function(cb) {
       var kernel_controls;
+      this.set_state('starting...');
       if (this.url) {
         this.start_kernel(cb);
       } else {
