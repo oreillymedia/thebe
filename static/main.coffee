@@ -24,8 +24,8 @@ require [
       # the url of either a tmnb server or a notebook server
       # if it contains "spawn/", assume it's a tmpnb server
       # otherwise assume it's a notebook url
-      # url: 'http://192.168.59.103:8000/spawn/'
-      url: 'http://jupyter-kernel.odewahn.com:8000/spawn/'
+      url: 'http://192.168.59.103:8000/spawn/'
+      # url: 'http://jupyter-kernel.odewahn.com:8000/spawn/'
       # set to false to prevent kernel_controls from being added
       append_kernel_controls_to: 'body'
       # Automatically inject basic default css we need
@@ -35,7 +35,7 @@ require [
       # Automatically load mathjax js
       load_mathjax: true
       # show messages from .log()
-      debug: false
+      debug: true
 
     # Take our two basic configuration options
     constructor: (@options={})->
@@ -219,7 +219,27 @@ require [
       @notebook.load_notebook common_options.notebook_path
 
       @build_notebook()
-    
+
+    get_button_by_cell_id: (id)->
+      $(".thebe_controls[data-cell-id=#{id}] button[data-action='run']")
+
+    run_cell: (cell_id, end_id=false)=>
+      cell = @cells[cell_id]
+      button = @get_button_by_cell_id(cell_id)
+      if not @has_kernel_connected
+        @before_first_run =>
+          button.text('running').addClass 'running'
+          cell.execute()
+          if end_id
+            for cell in @cells[cell_id+1..end_id]
+              cell.execute()
+      else
+        button.text('running').addClass 'running'
+        cell.execute()
+        if end_id
+          for cell in @cells[cell_id+1..end_id]
+            cell.execute()
+
     setup: =>
       @log 'setup'
       # main click handler
@@ -227,16 +247,15 @@ require [
         button = $(e.target)
         id = button.parent().data('cell-id')
         action = button.data('action')
-        cell = @cells[id]
+        if e.shiftKey
+          action = 'shift-'+action
+        # cell = @cells[id]
         switch action
           when 'run'
-            if not @has_kernel_connected
-              @before_first_run =>
-                button.text('running').addClass 'running'
-                cell.execute()
-            else
-              button.text('running').addClass 'running'
-              cell.execute()
+            @run_cell(id)
+          when 'shift-run'
+            @log 'exec from top to here: '+id
+            @run_cell(0, id)
           when 'interrupt'
             @kernel.interrupt()
           when 'restart'
@@ -246,7 +265,7 @@ require [
       @events.on 'execute.CodeCell', (e, cell) =>
         id = $('.cell').index(cell.cell.element)
         @log 'exec done for codecell '+id
-        button = $(".thebe_controls[data-cell-id=#{id}] button[data-action='run']")
+        button = @get_button_by_cell_id(id)
         button.text('ran').removeClass('running').addClass('ran')
 
       # set this no matter what, else we get a warning

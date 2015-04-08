@@ -6,18 +6,19 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
   Thebe = (function() {
     Thebe.prototype.default_options = {
       selector: 'pre[data-executable]',
-      url: 'http://jupyter-kernel.odewahn.com:8000/spawn/',
+      url: 'http://192.168.59.103:8000/spawn/',
       append_kernel_controls_to: 'body',
       inject_css: true,
       load_css: true,
       load_mathjax: true,
-      debug: false
+      debug: true
     };
 
     function Thebe(_at_options) {
       var thebe_url, _ref;
       this.options = _at_options != null ? _at_options : {};
       this.setup = __bind(this.setup, this);
+      this.run_cell = __bind(this.run_cell, this);
       this.start_notebook = __bind(this.start_notebook, this);
       this.start_kernel = __bind(this.start_kernel, this);
       this.before_first_run = __bind(this.before_first_run, this);
@@ -244,28 +245,67 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
       return this.build_notebook();
     };
 
+    Thebe.prototype.get_button_by_cell_id = function(id) {
+      return $(".thebe_controls[data-cell-id=" + id + "] button[data-action='run']");
+    };
+
+    Thebe.prototype.run_cell = function(cell_id, end_id) {
+      var button, cell, _i, _len, _ref, _results;
+      if (end_id == null) {
+        end_id = false;
+      }
+      cell = this.cells[cell_id];
+      button = this.get_button_by_cell_id(cell_id);
+      if (!this.has_kernel_connected) {
+        return this.before_first_run((function(_this) {
+          return function() {
+            var _i, _len, _ref, _results;
+            button.text('running').addClass('running');
+            cell.execute();
+            if (end_id) {
+              _ref = _this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
+              _results = [];
+              for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                cell = _ref[_i];
+                _results.push(cell.execute());
+              }
+              return _results;
+            }
+          };
+        })(this));
+      } else {
+        button.text('running').addClass('running');
+        cell.execute();
+        if (end_id) {
+          _ref = this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            cell = _ref[_i];
+            _results.push(cell.execute());
+          }
+          return _results;
+        }
+      }
+    };
+
     Thebe.prototype.setup = function() {
       var script, urls;
       this.log('setup');
       $('body').on('click', 'div.thebe_controls button', (function(_this) {
         return function(e) {
-          var action, button, cell, id;
+          var action, button, id;
           button = $(e.target);
           id = button.parent().data('cell-id');
           action = button.data('action');
-          cell = _this.cells[id];
+          if (e.shiftKey) {
+            action = 'shift-' + action;
+          }
           switch (action) {
             case 'run':
-              if (!_this.has_kernel_connected) {
-                return _this.before_first_run(function() {
-                  button.text('running').addClass('running');
-                  return cell.execute();
-                });
-              } else {
-                button.text('running').addClass('running');
-                return cell.execute();
-              }
-              break;
+              return _this.run_cell(id);
+            case 'shift-run':
+              _this.log('exec from top to here: ' + id);
+              return _this.run_cell(0, id);
             case 'interrupt':
               return _this.kernel.interrupt();
             case 'restart':
@@ -280,7 +320,7 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
           var button, id;
           id = $('.cell').index(cell.cell.element);
           _this.log('exec done for codecell ' + id);
-          button = $(".thebe_controls[data-cell-id=" + id + "] button[data-action='run']");
+          button = _this.get_button_by_cell_id(id);
           return button.text('ran').removeClass('running').addClass('ran');
         };
       })(this));
