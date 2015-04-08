@@ -333,6 +333,7 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
   })();
   codecell = require('notebook/js/codecell');
   codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity;
+  window.Thebe = Thebe;
   $(function() {
     var thebe;
     return thebe = new Thebe();

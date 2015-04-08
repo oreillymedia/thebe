@@ -36,7 +36,6 @@ require [
       # show messages from .log()
       debug: false
 
-
     # Take our two basic configuration options
     constructor: (@options={})->
       # just for debugging
@@ -221,7 +220,6 @@ require [
     
     setup: =>
       @log 'setup'
-
       # main click handler
       $('body').on 'click', 'div.thebe_controls button', (e)=>
         button = $(e.target)
@@ -257,17 +255,19 @@ require [
         script.src  = "http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
         document.getElementsByTagName("head")[0].appendChild(script)
 
+      # inject  default styles right into the page
       if @options.inject_css
         $("<style>#{default_css.css}</style>").appendTo('head')
 
       # Add some CSS links to the page
       if @options.load_css
         urls = [
-          # "https://rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
+           "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css"
+           # The below is currently included in default_css.css, so the below isn't needed
+           # "https://rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
            # in production use this url instead: 
            # "https://cdn.rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
            # "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", 
-           "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css"
           ]
         $.when($.each(urls, (i, url) ->
           $.get url, ->
@@ -288,7 +288,10 @@ require [
   codecell = require('notebook/js/codecell')
   codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity
 
-  # Auto instantiate
+  # So people can access it
+  window.Thebe = Thebe
+
+  # Auto instantiate it with defaults
   $(->
       thebe = new Thebe()
   )
