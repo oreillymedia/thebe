@@ -24,7 +24,8 @@ require [
       # the url of either a tmnb server or a notebook server
       # if it contains "spawn/", assume it's a tmpnb server
       # otherwise assume it's a notebook url
-      url: 'http://192.168.59.103:8000/spawn/'
+      # url: 'http://192.168.59.103:8000/spawn/'
+      url: 'http://jupyter-kernel.odewahn.com:8000/spawn/'
       # set to false to prevent kernel_controls from being added
       append_kernel_controls_to: 'body'
       # Automatically inject basic default css we need

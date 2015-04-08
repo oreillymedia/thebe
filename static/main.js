@@ -6,7 +6,7 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
   Thebe = (function() {
     Thebe.prototype.default_options = {
       selector: 'pre[data-executable]',
-      url: 'http://192.168.59.103:8000/spawn/',
+      url: 'http://jupyter-kernel.odewahn.com:8000/spawn/',
       append_kernel_controls_to: 'body',
       inject_css: true,
       load_css: true,
