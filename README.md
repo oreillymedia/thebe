@@ -18,13 +18,28 @@ Include the `Thebe` script like so:
 <script src="https://rawgit.com/oreillymedia/thebe/master/static/main-built.js" type="text/javascript" charset="utf-8"></script>
 ```
 
-When loaded, this will automatically instantiate `Thebe` with the default options. Any `pre` tags with the `data-executable` attribute will be turned into editable, runnable examples, and a run button will be added for each. Once run is clicked, `Thebe` will try to connect to our testing tmpnb server, start the kernel, and execute the code in that example.
+and then 
 
+```
+<script>
+    $(function(){
+        new Thebe({url:"some.tmpnb.server.com:8000/spawn/"});
+    });
+</script>
+```
 
-## Thebe Options
-You can override these when you instantiate: `Thebe(options)`
+Any `pre` tags with the `data-executable` attribute will be turned into editable, executable examples, and a run button will be added for each. Once run is clicked, `Thebe` will try to connect to the notebook server url you supplied, start the kernel, and execute the code in that example.
 
-    default_options:
+`shift`+`click`ing a run button will execute every preceding code example and then execute the current one.
+
+Clicking run the first time will also add kernel controls to the bottom of the page, which will allow users to interrupt and restart the kernel. (Interrupting is equivalent to a keyboard interrupt, whereas restarting will lose all the user's variables and data.)
+
+**Opt-in auto instantiation:** When loaded, the script will automatically start `Thebe` with the default options *if* the `body` has a `data-runnable` attribute that is set to true. 
+
+## Options
+You can override the below default options when you instantiate Thebe: `Thebe(options)`
+
+    options:
       # jquery selector for elements we want to make runnable 
       selector: 'pre[data-executable]'
       # the url of either a tmnb server or a notebook server
@@ -42,19 +57,25 @@ You can override these when you instantiate: `Thebe(options)`
       # show messages from .log()
       debug: false
 
+For example, 
+
+    $(function(){
+        var thebe = new Thebe({
+          selector:"pre.cool",
+          url: 'http://localhost:8888/'
+        });
+    });
+
+will make each `pre` tag with class `cool` runnable, and will try to connect with an ipython notebook server running locally at the ipython notebook default address and port.
+
 # Run Locally (Simple)
-The easiest way to get this running locally is to simply set the `url` option to the url of an running ipython notebook.
+The easiest way to get this running locally is to simply set the `url` option to the url of a running ipython notebook server, as above.
 
 After installing ipython, run it like so:
 
     ipython notebook  --NotebookApp.allow_origin=* --no-browser
 
 Which defaults to running at http://localhost:8888/, and should tell you that.
-
-Now, in your javascript, after docready, instantiate Thebe with that url:
-
-    thebe = new Thebe({url:http://localhost:8888/, selector:'pre'})
-
 
 ## Developing the Front End
 Most of the actual development takes place in `static/main.coffee`. I've tried to make as few changes to the rest of the jupyter front end as possible, but there were some cases where it was unavoidable (see #2 for more info on this).

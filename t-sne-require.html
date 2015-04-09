@@ -4,17 +4,60 @@
 <head>
     <meta charset="utf-8">
 
-    <title>Thebe Example With Compiled JS</title>
+    <title>Thebe Example With RequireJs</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
 
     <link rel="stylesheet" href="static/thebe/site.css" type="text/css"/>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Required for older versions of IE -->
+    <script src="static/components/es6-promise/promise.min.js" type="text/javascript" charset="utf-8"></script>
+    <!-- Required for dev, as is the config below -->
+    <!-- See built.html for examples of how to use this in production. -->
+    <script src="static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
+    <script>
+      require.config({
+          
+          baseUrl: 'static/',
+          paths: {
+            underscore : 'components/underscore/underscore-min',
+            backbone : 'components/backbone/backbone-min',
+            jquery: 'components/jquery/jquery.min',
+            bootstrap: 'components/bootstrap/js/bootstrap.min',
+            jqueryui: 'components/jquery-ui/ui/minified/jquery-ui.min',
+            moment: 'components/moment/moment',
+            codemirror: 'components/codemirror',
+            termjs: 'components/term.js/src/term',
+          },
+          shim: {
+            underscore: {
+              exports: '_'
+            },
+            backbone: {
+              deps: ["underscore", "jquery"],
+              exports: "Backbone"
+            },
+            bootstrap: {
+              deps: ["jquery"],
+              exports: "bootstrap"
+            },
+            jqueryui: {
+              deps: ["jquery"],
+              exports: "$"
+            }
+          }
+      });
 
-<!-- Only required for IE -->
-<script src="static/components/es6-promise/promise.min.js" type="text/javascript" charset="utf-8"></script>
+      require.config({
+          map: {
+              '*':{
+                'contents': 'services/contents',
+              }
+          }
+      });
+    </script>
+    <script src="static/main.js" charset="utf-8"></script>
 
-<script src="static/main-built.js" type="text/javascript" charset="utf-8"></script>
 </head>
 
 <body data-runnable="true">
@@ -227,7 +270,7 @@ plt.savefig('images/similarity.png', dpi=120)
 <p>The final mapping is obtained when the equilibrium is reached.</p>
 <p>Here is an illustration of a dynamic graph layout based on a similar idea. Nodes are connected via springs and the system evolves according to law of physics (example by <a href="http://bl.ocks.org/mbostock/4062045">Mike Bostock</a>).</p>
 <iframe src="http://bl.ocks.org/rossant/raw/f06184034ba66a0bd06a/"
-        style="border: 0; width: 620px; height: 440px; padding: 0;" /></iframe>
+        style="border: 0; width: 620px; height: 440px; margin: 0; padding: 0;" /></iframe>
 
 
 <h2 id="algorithm">Algorithm</h2>
