@@ -5,7 +5,7 @@ In short, this is an easy way to let users on a web page run code examples on a 
 
 Three things are required:
 
-1. A server, either a [tmpnb](https://github.com/zischwartz/tmpnb) server, for lots of users, or simple an ipython notebook server.
+1. A server, either a [tmpnb](https://github.com/zischwartz/tmpnb) server, for lots of users, or simple an [ipython notebook server](http://ipython.org/notebook.html).
 1. A web page with some code examples
 1. A script tag in the page that includes the compiled javascript of `Thebe`, which is in this repo at `static/main-built.js`
 
@@ -23,7 +23,7 @@ and then
 ```
 <script>
     $(function(){
-        new Thebe({url:"some.tmpnb.server.com:8000/spawn/"});
+        new Thebe({url:"http://some.tmpnb.server.com:8000/spawn/"});
     });
 </script>
 ```
