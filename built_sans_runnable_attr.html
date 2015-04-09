@@ -17,11 +17,8 @@
 <script src="static/main-built.js" type="text/javascript" charset="utf-8"></script>
 
 <script>
-    console.log('hi', window.libGlobalName)
     $(function(){
-        console.log(window.Thebe, window.thebe);
-        console.log(window.libGlobalName);
-
+        new Thebe({selector:"pre[data-executable]"});
     });
 </script>
 

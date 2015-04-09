@@ -1,4 +1,4 @@
-require [
+define [
   'base/js/namespace'
   'jquery'
   'thebe/dotimeout'
@@ -312,7 +312,6 @@ require [
 
   # Auto instantiate it with defaults if body has data-runnable="true"
   $(->
-      console.log 'docready in thebe'
       if $('body').data('runnable')
         thebe = new Thebe()
   )

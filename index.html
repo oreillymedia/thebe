@@ -55,6 +55,12 @@
               }
           }
       });
+
+      // And then actually require it, so Thebe runs
+      require(['main'], function(main){
+
+      });
+
     </script>
 
     
@@ -143,7 +149,6 @@ plt.plot(v.result[0:6000])
 \end{align}</p>
 
 <p> Something else here</p>
-<script src="static/main.js" charset="utf-8"></script>
 </body>
 
 </html>
