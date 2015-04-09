@@ -308,11 +308,12 @@ require [
   codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity
 
   # So people can access it
-  window.Thebe = Thebe
+  # window.Thebe = Thebe
 
   # Auto instantiate it with defaults if body has data-runnable="true"
   $(->
+      console.log 'docready in thebe'
       if $('body').data('runnable')
         thebe = new Thebe()
   )
-  return Thebe
+  return {Thebe: Thebe}

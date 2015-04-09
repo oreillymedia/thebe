@@ -12,7 +12,10 @@
         termjs: 'components/term.js/src/term',
         contents: 'services/contents'
   },
-
+  wrap: {
+    "startFile": "wrap.start",
+    "endFile": "wrap.end" 
+  },
   shim: {
     underscore: {
       exports: '_'
@@ -32,7 +35,7 @@
   },
     name: "main",
     out: "main-built.js",
-    // optimize: 'uglify2',
+    optimize: "none"//'uglify2',
 })
 
 

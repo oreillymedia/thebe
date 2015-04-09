@@ -374,14 +374,16 @@ require(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook
   })();
   codecell = require('notebook/js/codecell');
   codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity;
-  window.Thebe = Thebe;
   $(function() {
     var thebe;
+    console.log('docready in thebe');
     if ($('body').data('runnable')) {
       return thebe = new Thebe();
     }
   });
-  return Thebe;
+  return {
+    Thebe: Thebe
+  };
 });
 
 //# sourceMappingURL=main.js.map
