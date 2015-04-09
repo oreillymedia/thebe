@@ -15,8 +15,14 @@
 <script src="static/components/es6-promise/promise.min.js" type="text/javascript" charset="utf-8"></script>
 
 <script src="static/main-built.js" type="text/javascript" charset="utf-8"></script>
-</head>
 
+<script>
+    $(function(){
+        new Thebe({selector:"pre[data-executable]"});
+    });
+</script>
+
+</head>
 <body>
 <h1>An illustrated introduction to the t-SNE algorithm</h1>
 
@@ -98,7 +104,7 @@ for i in range(ncols * nrows):
 plt.savefig('images/digits.png', dpi=150)
 </pre>
 
-<p><img alt="Digits" src="images/digits.png" /></p>
+<!-- <p><img alt="Digits" src="images/digits.png" /></p> -->
 <p>Now let's run the t-SNE algorithm on the dataset. It just takes one line with scikit-learn.</p>
 <pre data-code-language="python"
      data-executable="true"
@@ -156,7 +162,7 @@ scatter(digits_proj, y)
 plt.savefig('images/digits_tsne.png', dpi=120)
 </pre>
 
-<p><img alt="Transformed digits with t-SNE" src="images/digits_tsne.png" /></p>
+<!-- <p><img alt="Transformed digits with t-SNE" src="images/digits_tsne.png" /></p> -->
 <p>We observe that the images corresponding to the different digits are clearly separated into different clusters of points.</p>
 <h2>Mathematical framework</h2>
 <p>Let's explain how the algorithm works. First, a few definitions.</p>
@@ -332,7 +338,7 @@ animation = mpy.VideoClip(make_frame_mpl,
 animation.write_gif("images/animation.gif", fps=20)
 </pre>
 
-<p><img src="images/animation.gif" /></p>
+<!-- <p><img src="images/animation.gif" /></p> -->
 
 <p>We can clearly observe the different phases of the optimization, as described in the original paper.</p>
 
@@ -364,7 +370,7 @@ animation = mpy.VideoClip(make_frame_mpl,
 animation.write_gif("images/animation_matrix.gif", fps=20)
 </pre>
 
-<p><img src="images/animation_matrix.gif" /></p>
+<!-- <p><img src="images/animation_matrix.gif" /></p> -->
 
 <h2 id="thet-studentdistribution">The t-Student distribution</h2>
 
@@ -398,7 +404,7 @@ plt.savefig('images/spheres.png', dpi=100, bbox_inches='tight')
 </pre>
 
 <figure>
-<img src="images/spheres.png" alt="Spheres" />
+<!-- <img src="images/spheres.png" alt="Spheres" /> -->
 <figcaption>Spheres</figcaption></figure>
 
 
@@ -420,7 +426,7 @@ plt.savefig('images/distributions.png', dpi=100)
 </pre>
 
 <figure>
-<img src="images/distributions.png" alt="Gaussian and Cauchy distributions" />
+<!-- <img src="images/distributions.png" alt="Gaussian and Cauchy distributions" /> -->
 <figcaption>Gaussian and Cauchy distributions</figcaption></figure>
 
 
