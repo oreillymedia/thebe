@@ -31679,6 +31679,7 @@ define('main',['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/no
             return _this.log('cookie was right, use that as needed');
           } catch (_error) {
             _this.start_notebook();
+            cookies.removeItem('thebe_url');
             return _this.log('cookie was wrong/dated, call spawn as needed');
           }
         };

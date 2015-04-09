@@ -98,6 +98,7 @@ define [
         # otherwise it's a notebook_not_found, a page that would js redirect you to /spawn
         catch
           @start_notebook()
+          cookies.removeItem 'thebe_url'
           @log 'cookie was wrong/dated, call spawn as needed'
       # Actually send the request
       invo.send()
