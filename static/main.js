@@ -6,7 +6,7 @@ define(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook'
   Thebe = (function() {
     Thebe.prototype.default_options = {
       selector: 'pre[data-executable]',
-      url: 'http://192.168.59.103:8000/spawn/',
+      url: '//192.168.59.103:8000/spawn/',
       append_kernel_controls_to: 'body',
       inject_css: true,
       load_css: true,
@@ -329,7 +329,7 @@ define(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook'
       if (this.options.load_mathjax) {
         script = document.createElement("script");
         script.type = "text/javascript";
-        script.src = "http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+        script.src = "//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
         document.getElementsByTagName("head")[0].appendChild(script);
       }
       if (this.options.inject_css) {
