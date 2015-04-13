@@ -3,6 +3,8 @@
 ## What? Why?
 In short, this is an easy way to let users on a web page run code examples on a server. 
 
+Here are a [some](https://oreillymedia.github.io/thebe/matplotlib-3d.html) relatively simple [examples](https://oreillymedia.github.io/thebe/matplotlib.html) and a more [complicated](https://oreillymedia.github.io/thebe/built_sans_runnable_attr.html) one.
+
 Three things are required:
 
 1. A server, either a [tmpnb](https://github.com/zischwartz/tmpnb) server, for lots of users, or simple an [ipython notebook server](http://ipython.org/notebook.html).
