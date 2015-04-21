@@ -17,7 +17,8 @@ define([
      *
      * @constructor
      */
-
+    // var $ = $ui;
+    console.log($);
     var OutputArea = function (options) {
         this.selector = options.selector;
         this.events = options.events;
