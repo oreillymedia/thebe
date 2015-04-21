@@ -80,7 +80,8 @@ define [
       invo = new XMLHttpRequest
       invo.open 'GET', @tmpnb_url, true
       invo.onreadystatechange = (e)=> @spawn_handler(e, cb)
-      invo.onerror = => 
+      invo.onerror = (e)=>
+        @log "cannot find tmpnb server"; console.log(e)
         @set_state('disconnected')
       invo.send()
 
@@ -105,15 +106,18 @@ define [
 
     spawn_handler: (e, cb) =>
       # is the server up?
-      if e.target.status is 0
+      if e.target.status in [0, 405]
+        @log 'cannot connect to tmpnb server: ' + e.target.status
         @set_state('disconnected')
       # is it full up of active containers?
-      if e.target.responseURL.indexOf('/spawn') isnt -1
-        @log 'server full'
+      else if e.target.responseURL.indexOf('/spawn') isnt -1
+        @log 'tmpnb server full'
         @set_state('full')
       # otherwise start the notebook, passing our user's path
       else
         @url = e.target.responseURL.replace('/tree', '/')
+        @log '----->'
+        @log e.target.responseURL
         @start_kernel(cb)
         cookies.setItem 'thebe_url', @url
 
