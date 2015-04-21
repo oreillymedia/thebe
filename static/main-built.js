@@ -19471,7 +19471,8 @@ define('notebook/js/outputarea',[
      *
      * @constructor
      */
-
+    // var $ = $ui;
+    console.log($);
     var OutputArea = function (options) {
         this.selector = options.selector;
         this.events = options.events;
@@ -30273,69 +30274,120 @@ define('notebook/js/notebook',['require','base/js/namespace','jquery','base/js/u
     return {'Notebook': Notebook};
 });
 
-/*\
-|*|
-|*|  :: cookies.js ::
-|*|
-|*|  A complete cookies reader/writer framework with full unicode support.
-|*|
-|*|  https://developer.mozilla.org/en-US/docs/DOM/document.cookie
-|*|
-|*|  This framework is released under the GNU Public License, version 3 or later.
-|*|  http://www.gnu.org/licenses/gpl-3.0-standalone.html
-|*|
-|*|  Syntaxes:
-|*|
-|*|  * docCookies.setItem(name, value[, end[, path[, domain[, secure]]]])
-|*|  * docCookies.getItem(name)
-|*|  * docCookies.removeItem(name[, path], domain)
-|*|  * docCookies.hasItem(name)
-|*|  * docCookies.keys()
-|*|
-\*/
-define('thebe/cookies',[],function(){
+/*!
+ * jQuery Cookie Plugin v1.4.1
+ * https://github.com/carhartl/jquery-cookie
+ *
+ * Copyright 2006, 2014 Klaus Hartl
+ * Released under the MIT license
+ */
+(function (factory) {
+	if (typeof define === 'function' && define.amd) {
+		// AMD (Register as an anonymous module)
+		define('thebe/jquery-cookie',['jquery'], factory);
+	} else if (typeof exports === 'object') {
+		// Node/CommonJS
+		module.exports = factory(require('jquery'));
+	} else {
+		// Browser globals
+		factory(jQuery);
+	}
+}(function ($) {
 
-  return {
-      getItem: function (sKey) {
-        return decodeURIComponent(document.cookie.replace(new RegExp("(?:(?:^|.*;)\\s*" + encodeURIComponent(sKey).replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=\\s*([^;]*).*$)|^.*$"), "$1")) || null;
-      },
-      setItem: function (sKey, sValue, vEnd, sPath, sDomain, bSecure) {
-        if (!sKey || /^(?:expires|max\-age|path|domain|secure)$/i.test(sKey)) { return false; }
-        var sExpires = "";
-        if (vEnd) {
-          switch (vEnd.constructor) {
-            case Number:
-              sExpires = vEnd === Infinity ? "; expires=Fri, 31 Dec 9999 23:59:59 GMT" : "; max-age=" + vEnd;
-              break;
-            case String:
-              sExpires = "; expires=" + vEnd;
-              break;
-            case Date:
-              sExpires = "; expires=" + vEnd.toUTCString();
-              break;
-          }
-        }
-        document.cookie = encodeURIComponent(sKey) + "=" + encodeURIComponent(sValue) + sExpires + (sDomain ? "; domain=" + sDomain : "") + (sPath ? "; path=" + sPath : "") + (bSecure ? "; secure" : "");
-        return true;
-      },
+	var pluses = /\+/g;
 
+	function encode(s) {
+		return config.raw ? s : encodeURIComponent(s);
+	}
 
-      removeItem: function (sKey, sPath, sDomain) {
-        if (!sKey || !this.hasItem(sKey)) { return false; }
-        document.cookie = encodeURIComponent(sKey) + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT" + ( sDomain ? "; domain=" + sDomain : "") + ( sPath ? "; path=" + sPath : "");
-        return true;
-      },
-      hasItem: function (sKey) {
-        return (new RegExp("(?:^|;\\s*)" + encodeURIComponent(sKey).replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=")).test(document.cookie);
-      },
-      keys: /* optional method: you can safely remove it! */ function () {
-        var aKeys = document.cookie.replace(/((?:^|\s*;)[^\=]+)(?=;|$)|^\s*|\s*(?:\=[^;]*)?(?:\1|$)/g, "").split(/\s*(?:\=[^;]*)?;\s*/);
-        for (var nIdx = 0; nIdx < aKeys.length; nIdx++) { aKeys[nIdx] = decodeURIComponent(aKeys[nIdx]); }
-        return aKeys;
-      }
-    }
+	function decode(s) {
+		return config.raw ? s : decodeURIComponent(s);
+	}
 
-});
+	function stringifyCookieValue(value) {
+		return encode(config.json ? JSON.stringify(value) : String(value));
+	}
+
+	function parseCookieValue(s) {
+		if (s.indexOf('"') === 0) {
+			// This is a quoted cookie as according to RFC2068, unescape...
+			s = s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+		}
+
+		try {
+			// Replace server-side written pluses with spaces.
+			// If we can't decode the cookie, ignore it, it's unusable.
+			// If we can't parse the cookie, ignore it, it's unusable.
+			s = decodeURIComponent(s.replace(pluses, ' '));
+			return config.json ? JSON.parse(s) : s;
+		} catch(e) {}
+	}
+
+	function read(s, converter) {
+		var value = config.raw ? s : parseCookieValue(s);
+		return $.isFunction(converter) ? converter(value) : value;
+	}
+
+	var config = $.cookie = function (key, value, options) {
+
+		// Write
+
+		if (arguments.length > 1 && !$.isFunction(value)) {
+			options = $.extend({}, config.defaults, options);
+
+			if (typeof options.expires === 'number') {
+				var days = options.expires, t = options.expires = new Date();
+				t.setMilliseconds(t.getMilliseconds() + days * 864e+5);
+			}
+
+			return (document.cookie = [
+				encode(key), '=', stringifyCookieValue(value),
+				options.expires ? '; expires=' + options.expires.toUTCString() : '', // use expires attribute, max-age is not supported by IE
+				options.path    ? '; path=' + options.path : '',
+				options.domain  ? '; domain=' + options.domain : '',
+				options.secure  ? '; secure' : ''
+			].join(''));
+		}
+
+		// Read
+
+		var result = key ? undefined : {},
+			// To prevent the for loop in the first place assign an empty array
+			// in case there are no cookies at all. Also prevents odd result when
+			// calling $.cookie().
+			cookies = document.cookie ? document.cookie.split('; ') : [],
+			i = 0,
+			l = cookies.length;
+
+		for (; i < l; i++) {
+			var parts = cookies[i].split('='),
+				name = decode(parts.shift()),
+				cookie = parts.join('=');
+
+			if (key === name) {
+				// If second argument (value) is a function it's a converter...
+				result = read(cookie, value);
+				break;
+			}
+
+			// Prevent storing a cookie that we couldn't decode.
+			if (!key && (cookie = read(cookie)) !== undefined) {
+				result[name] = cookie;
+			}
+		}
+
+		return result;
+	};
+
+	config.defaults = {};
+
+	$.removeCookie = function (key, options) {
+		// Must not alter options, thus extending a fresh object...
+		$.cookie(key, '', $.extend({}, options, { expires: -1 }));
+		return !$.cookie(key);
+	};
+
+}));
 // This was generated and minified from thebe/style.less
 
 define('thebe/default_css',[],function(){
@@ -31592,392 +31644,400 @@ define('notebook/js/kernelselector',[
 define("custom/custom", function(){});
 
 // Generated by CoffeeScript 1.9.0
-var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+(function() {
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
-define('main',['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/cookies', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'custom/custom'], function(IPython, $, doTimeout, notebook, cookies, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) {
-  var Thebe, codecell;
-  Thebe = (function() {
-    Thebe.prototype.default_options = {
-      selector: 'pre[data-executable]',
-      url: '//192.168.59.103:8000/spawn/',
-      append_kernel_controls_to: 'body',
-      inject_css: true,
-      load_css: true,
-      load_mathjax: true,
-      debug: true
-    };
+  define('main',['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'custom/custom'], function(IPython, $, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) {
+    var Thebe, codecell;
+    Thebe = (function() {
+      Thebe.prototype.default_options = {
+        selector: 'pre[data-executable]',
+        url: '//192.168.59.103:8000/spawn/',
+        append_kernel_controls_to: 'body',
+        inject_css: true,
+        load_css: true,
+        load_mathjax: true,
+        debug: true
+      };
 
-    function Thebe(_at_options) {
-      var thebe_url, _ref;
-      this.options = _at_options != null ? _at_options : {};
-      this.setup = __bind(this.setup, this);
-      this.run_cell = __bind(this.run_cell, this);
-      this.start_notebook = __bind(this.start_notebook, this);
-      this.start_kernel = __bind(this.start_kernel, this);
-      this.before_first_run = __bind(this.before_first_run, this);
-      this.set_state = __bind(this.set_state, this);
-      this.build_notebook = __bind(this.build_notebook, this);
-      this.spawn_handler = __bind(this.spawn_handler, this);
-      this.call_spawn = __bind(this.call_spawn, this);
-      window.thebe = this;
-      this.has_kernel_connected = false;
-      _ref = _.defaults(this.options, this.default_options), this.selector = _ref.selector, this.url = _ref.url, this.debug = _ref.debug;
-      if (this.url) {
-        this.url = this.url.replace(/\/?$/, '/');
+      function Thebe(_at_options) {
+        var thebe_url, _ref;
+        this.options = _at_options != null ? _at_options : {};
+        this.setup = __bind(this.setup, this);
+        this.run_cell = __bind(this.run_cell, this);
+        this.start_notebook = __bind(this.start_notebook, this);
+        this.start_kernel = __bind(this.start_kernel, this);
+        this.before_first_run = __bind(this.before_first_run, this);
+        this.set_state = __bind(this.set_state, this);
+        this.build_notebook = __bind(this.build_notebook, this);
+        this.spawn_handler = __bind(this.spawn_handler, this);
+        this.call_spawn = __bind(this.call_spawn, this);
+        window.thebe = this;
+        this.has_kernel_connected = false;
+        _ref = _.defaults(this.options, this.default_options), this.selector = _ref.selector, this.url = _ref.url, this.debug = _ref.debug;
+        if (this.url) {
+          this.url = this.url.replace(/\/?$/, '/');
+        }
+        if (this.url.indexOf('/spawn') !== -1) {
+          this.log('this is a tmpnb url');
+          this.tmpnb_url = this.url;
+          this.url = '';
+        }
+        this.cells = [];
+        this.events = events;
+        this.setup();
+        this.spawn_handler = _.once(this.spawn_handler);
+        thebe_url = $.cookie('thebe_url');
+        if (thebe_url && this.url === '') {
+          this.check_existing_container(thebe_url);
+        } else {
+          this.start_notebook();
+        }
       }
-      if (this.url.indexOf('/spawn') !== -1) {
-        this.log('this is a tmpnb url');
-        this.tmpnb_url = this.url;
-        this.url = '';
-      }
-      this.cells = [];
-      this.events = events;
-      this.setup();
-      this.spawn_handler = _.once(this.spawn_handler);
-      thebe_url = cookies.getItem('thebe_url');
-      if (thebe_url && this.url === '') {
-        this.check_existing_container(thebe_url);
-      } else {
-        this.start_notebook();
-      }
-    }
 
-    Thebe.prototype.call_spawn = function(cb) {
-      var invo;
-      this.log('call spawn');
-      invo = new XMLHttpRequest;
-      invo.open('GET', this.tmpnb_url, true);
-      invo.onreadystatechange = (function(_this) {
-        return function(e) {
-          return _this.spawn_handler(e, cb);
-        };
-      })(this);
-      invo.onerror = (function(_this) {
-        return function() {
-          return _this.set_state('disconnected');
-        };
-      })(this);
-      return invo.send();
-    };
-
-    Thebe.prototype.check_existing_container = function(url, invo) {
-      if (invo == null) {
+      Thebe.prototype.call_spawn = function(cb) {
+        var invo;
+        this.log('call spawn');
         invo = new XMLHttpRequest;
-      }
-      invo.open('GET', url + 'api', true);
-      invo.onerror = (function(_this) {
-        return function(e) {
-          return _this.set_state('disconnected');
-        };
-      })(this);
-      invo.onload = (function(_this) {
-        return function(e) {
-          try {
-            JSON.parse(e.target.responseText);
-            _this.url = url;
-            _this.start_notebook();
-            return _this.log('cookie was right, use that as needed');
-          } catch (_error) {
-            _this.start_notebook();
-            cookies.removeItem('thebe_url');
-            return _this.log('cookie was wrong/dated, call spawn as needed');
-          }
-        };
-      })(this);
-      return invo.send();
-    };
+        invo.open('GET', this.tmpnb_url, true);
+        invo.onreadystatechange = (function(_this) {
+          return function(e) {
+            return _this.spawn_handler(e, cb);
+          };
+        })(this);
+        invo.onerror = (function(_this) {
+          return function(e) {
+            _this.log("cannot find tmpnb server");
+            console.log(e);
+            return _this.set_state('disconnected');
+          };
+        })(this);
+        return invo.send();
+      };
 
-    Thebe.prototype.spawn_handler = function(e, cb) {
-      if (e.target.status === 0) {
-        this.set_state('disconnected');
-      }
-      if (e.target.responseURL.indexOf('/spawn') !== -1) {
-        this.log('server full');
-        return this.set_state('full');
-      } else {
-        this.url = e.target.responseURL.replace('/tree', '/');
-        this.start_kernel(cb);
-        return cookies.setItem('thebe_url', this.url);
-      }
-    };
-
-    Thebe.prototype.build_notebook = function() {
-      this.notebook.writable = false;
-      this.notebook._unsafe_delete_cell(0);
-      $(this.selector).each((function(_this) {
-        return function(i, el) {
-          var cell, controls;
-          cell = _this.notebook.insert_cell_at_bottom('code');
-          cell.set_text($(el).text());
-          controls = $("<div class='thebe_controls' data-cell-id='" + i + "'></div>");
-          controls.html(_this.controls_html());
-          $(el).replaceWith(cell.element);
-          _this.cells.push(cell);
-          $(cell.element).prepend(controls);
-          cell.element.removeAttr('tabindex');
-          return cell.element.off('dblclick');
-        };
-      })(this));
-      this.notebook_el.hide();
-      this.events.on('kernel_idle.Kernel', (function(_this) {
-        return function(e, k) {
-          return _this.set_state('idle');
-        };
-      })(this));
-      this.events.on('kernel_busy.Kernel', (function(_this) {
-        return function() {
-          return _this.set_state('busy');
-        };
-      })(this));
-      return this.events.on('kernel_disconnected.Kernel', (function(_this) {
-        return function() {
-          return _this.set_state('disconnected');
-        };
-      })(this));
-    };
-
-    Thebe.prototype.set_state = function(_at_state) {
-      this.state = _at_state;
-      this.log('state :' + this.state);
-      return $.doTimeout('thebe_set_state', 500, (function(_this) {
-        return function() {
-          $(".thebe_controls .state").text(_this.state);
-          return false;
-        };
-      })(this));
-    };
-
-    Thebe.prototype.controls_html = function() {
-      return "<button data-action='run'>run</button><span class='state'></span>";
-    };
-
-    Thebe.prototype.kernel_controls_html = function() {
-      return "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button><span class='state'></span>";
-    };
-
-    Thebe.prototype.before_first_run = function(cb) {
-      var kernel_controls;
-      this.set_state('starting...');
-      if (this.url) {
-        this.start_kernel(cb);
-      } else {
-        this.call_spawn(cb);
-      }
-      if (this.options.append_kernel_controls_to) {
-        kernel_controls = $("<div class='thebe_controls kernel_controls'></div>");
-        return kernel_controls.html(this.kernel_controls_html()).appendTo(this.options.append_kernel_controls_to);
-      }
-    };
-
-    Thebe.prototype.start_kernel = function(cb) {
-      this.log('start_kernel');
-      this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, "python2");
-      this.kernel.start();
-      this.notebook.kernel = this.kernel;
-      return this.events.on('kernel_ready.Kernel', (function(_this) {
-        return function() {
-          var cell, _i, _len, _ref;
-          _this.has_kernel_connected = true;
-          _this.log('kernel ready');
-          _ref = _this.cells;
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            cell = _ref[_i];
-            cell.set_kernel(_this.kernel);
-          }
-          return cb();
-        };
-      })(this));
-    };
-
-    Thebe.prototype.start_notebook = function() {
-      var common_options, config_section, keyboard_manager, save_widget;
-      contents = {
-        list_checkpoints: function() {
-          return new Promise(function(resolve, reject) {
-            return resolve({});
-          });
+      Thebe.prototype.check_existing_container = function(url, invo) {
+        if (invo == null) {
+          invo = new XMLHttpRequest;
         }
-      };
-      keyboard_manager = {
-        edit_mode: function() {},
-        command_mode: function() {},
-        register_events: function() {},
-        enable: function() {},
-        disable: function() {}
-      };
-      keyboard_manager.edit_shortcuts = {
-        handles: function() {}
-      };
-      save_widget = {
-        update_document_title: function() {},
-        contents: function() {}
-      };
-      config_section = {
-        data: {
-          data: {}
-        }
-      };
-      common_options = {
-        ws_url: '',
-        base_url: '',
-        notebook_path: '',
-        notebook_name: ''
-      };
-      this.notebook_el = $('<div id="notebook"></div>').prependTo('body');
-      this.notebook = new notebook.Notebook('div#notebook', $.extend({
-        events: this.events,
-        keyboard_manager: keyboard_manager,
-        save_widget: save_widget,
-        contents: contents,
-        config: config_section
-      }, common_options));
-      this.notebook.kernel_selector = {
-        set_kernel: function() {}
-      };
-      this.events.trigger('app_initialized.NotebookApp');
-      this.notebook.load_notebook(common_options.notebook_path);
-      return this.build_notebook();
-    };
-
-    Thebe.prototype.get_button_by_cell_id = function(id) {
-      return $(".thebe_controls[data-cell-id=" + id + "] button[data-action='run']");
-    };
-
-    Thebe.prototype.run_cell = function(cell_id, end_id) {
-      var button, cell, _i, _len, _ref, _results;
-      if (end_id == null) {
-        end_id = false;
-      }
-      cell = this.cells[cell_id];
-      button = this.get_button_by_cell_id(cell_id);
-      if (!this.has_kernel_connected) {
-        return this.before_first_run((function(_this) {
-          return function() {
-            var _i, _len, _ref, _results;
-            button.text('running').addClass('running');
-            cell.execute();
-            if (end_id) {
-              _ref = _this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
-              _results = [];
-              for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-                cell = _ref[_i];
-                _results.push(cell.execute());
-              }
-              return _results;
+        invo.open('GET', url + 'api', true);
+        invo.onerror = (function(_this) {
+          return function(e) {
+            return _this.set_state('disconnected');
+          };
+        })(this);
+        invo.onload = (function(_this) {
+          return function(e) {
+            try {
+              JSON.parse(e.target.responseText);
+              _this.url = url;
+              _this.start_notebook();
+              return _this.log('cookie was right, use that as needed');
+            } catch (_error) {
+              _this.start_notebook();
+              $.removeCookie('thebe_url');
+              return _this.log('cookie was wrong/dated, call spawn as needed');
             }
           };
-        })(this));
-      } else {
-        button.text('running').addClass('running');
-        cell.execute();
-        if (end_id) {
-          _ref = this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
-          _results = [];
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            cell = _ref[_i];
-            _results.push(cell.execute());
-          }
-          return _results;
-        }
-      }
-    };
+        })(this);
+        return invo.send();
+      };
 
-    Thebe.prototype.setup = function() {
-      var script, urls;
-      this.log('setup');
-      $('body').on('click', 'div.thebe_controls button', (function(_this) {
-        return function(e) {
-          var action, button, id;
-          button = $(e.target);
-          id = button.parent().data('cell-id');
-          action = button.data('action');
-          if (e.shiftKey) {
-            action = 'shift-' + action;
-          }
-          switch (action) {
-            case 'run':
-              return _this.run_cell(id);
-            case 'shift-run':
-              _this.log('exec from top to here: ' + id);
-              return _this.run_cell(0, id);
-            case 'interrupt':
-              return _this.kernel.interrupt();
-            case 'restart':
-              if (confirm('Are you sure you want to restart the kernel? Your work will be lost.')) {
-                return _this.kernel.restart();
-              }
-          }
-        };
-      })(this));
-      this.events.on('execute.CodeCell', (function(_this) {
-        return function(e, cell) {
-          var button, id;
-          id = $('.cell').index(cell.cell.element);
-          _this.log('exec done for codecell ' + id);
-          button = _this.get_button_by_cell_id(id);
-          return button.text('ran').removeClass('running').addClass('ran');
-        };
-      })(this));
-      window.mathjax_url = '';
-      if (this.options.load_mathjax) {
-        script = document.createElement("script");
-        script.type = "text/javascript";
-        script.src = "//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
-        document.getElementsByTagName("head")[0].appendChild(script);
-      }
-      if (this.options.inject_css) {
-        $("<style>" + default_css.css + "</style>").appendTo('head');
-      }
-      if (this.options.load_css) {
-        urls = ["https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css"];
-        return $.when($.each(urls, function(i, url) {
-          return $.get(url, function() {
-            return $('<link>', {
-              rel: 'stylesheet',
-              type: 'text/css',
-              'href': url
-            }).appendTo('head');
-          });
-        })).then((function(_this) {
-          return function() {
-            return _this.log('loaded css');
+      Thebe.prototype.spawn_handler = function(e, cb) {
+        var _ref;
+        if ((_ref = e.target.status) === 0 || _ref === 405) {
+          this.log('cannot connect to tmpnb server: ' + e.target.status);
+          return this.set_state('disconnected');
+        } else if (e.target.responseURL.indexOf('/spawn') !== -1) {
+          this.log('tmpnb server full');
+          return this.set_state('full');
+        } else {
+          this.url = e.target.responseURL.replace('/tree', '/');
+          this.log('----->');
+          this.log(e.target.responseURL);
+          this.start_kernel(cb);
+          return $.cookie('thebe_url', this.url);
+        }
+      };
+
+      Thebe.prototype.build_notebook = function() {
+        this.notebook.writable = false;
+        this.notebook._unsafe_delete_cell(0);
+        $(this.selector).each((function(_this) {
+          return function(i, el) {
+            var cell, controls;
+            cell = _this.notebook.insert_cell_at_bottom('code');
+            cell.set_text($(el).text());
+            controls = $("<div class='thebe_controls' data-cell-id='" + i + "'></div>");
+            controls.html(_this.controls_html());
+            $(el).replaceWith(cell.element);
+            _this.cells.push(cell);
+            $(cell.element).prepend(controls);
+            cell.element.removeAttr('tabindex');
+            return cell.element.off('dblclick');
           };
         })(this));
-      }
-    };
+        this.notebook_el.hide();
+        this.events.on('kernel_idle.Kernel', (function(_this) {
+          return function(e, k) {
+            return _this.set_state('idle');
+          };
+        })(this));
+        this.events.on('kernel_busy.Kernel', (function(_this) {
+          return function() {
+            return _this.set_state('busy');
+          };
+        })(this));
+        return this.events.on('kernel_disconnected.Kernel', (function(_this) {
+          return function() {
+            return _this.set_state('disconnected');
+          };
+        })(this));
+      };
 
-    Thebe.prototype.log = function() {
-      var x;
-      if (this.debug) {
-        return console.log("%c" + [
-          (function() {
-            var _i, _len, _results;
+      Thebe.prototype.set_state = function(_at_state) {
+        this.state = _at_state;
+        this.log('state :' + this.state);
+        return $.doTimeout('thebe_set_state', 500, (function(_this) {
+          return function() {
+            $(".thebe_controls .state").text(_this.state);
+            return false;
+          };
+        })(this));
+      };
+
+      Thebe.prototype.controls_html = function() {
+        return "<button data-action='run'>run</button><span class='state'></span>";
+      };
+
+      Thebe.prototype.kernel_controls_html = function() {
+        return "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button><span class='state'></span>";
+      };
+
+      Thebe.prototype.before_first_run = function(cb) {
+        var kernel_controls;
+        this.set_state('starting...');
+        if (this.url) {
+          this.start_kernel(cb);
+        } else {
+          this.call_spawn(cb);
+        }
+        if (this.options.append_kernel_controls_to) {
+          kernel_controls = $("<div class='thebe_controls kernel_controls'></div>");
+          return kernel_controls.html(this.kernel_controls_html()).appendTo(this.options.append_kernel_controls_to);
+        }
+      };
+
+      Thebe.prototype.start_kernel = function(cb) {
+        this.log('start_kernel');
+        this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, "python2");
+        this.kernel.start();
+        this.notebook.kernel = this.kernel;
+        return this.events.on('kernel_ready.Kernel', (function(_this) {
+          return function() {
+            var cell, _i, _len, _ref;
+            _this.has_kernel_connected = true;
+            _this.log('kernel ready');
+            _ref = _this.cells;
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              cell = _ref[_i];
+              cell.set_kernel(_this.kernel);
+            }
+            return cb();
+          };
+        })(this));
+      };
+
+      Thebe.prototype.start_notebook = function() {
+        var common_options, config_section, keyboard_manager, save_widget;
+        contents = {
+          list_checkpoints: function() {
+            return new Promise(function(resolve, reject) {
+              return resolve({});
+            });
+          }
+        };
+        keyboard_manager = {
+          edit_mode: function() {},
+          command_mode: function() {},
+          register_events: function() {},
+          enable: function() {},
+          disable: function() {}
+        };
+        keyboard_manager.edit_shortcuts = {
+          handles: function() {}
+        };
+        save_widget = {
+          update_document_title: function() {},
+          contents: function() {}
+        };
+        config_section = {
+          data: {
+            data: {}
+          }
+        };
+        common_options = {
+          ws_url: '',
+          base_url: '',
+          notebook_path: '',
+          notebook_name: ''
+        };
+        this.notebook_el = $('<div id="notebook"></div>').prependTo('body');
+        this.notebook = new notebook.Notebook('div#notebook', $.extend({
+          events: this.events,
+          keyboard_manager: keyboard_manager,
+          save_widget: save_widget,
+          contents: contents,
+          config: config_section
+        }, common_options));
+        this.notebook.kernel_selector = {
+          set_kernel: function() {}
+        };
+        this.events.trigger('app_initialized.NotebookApp');
+        this.notebook.load_notebook(common_options.notebook_path);
+        return this.build_notebook();
+      };
+
+      Thebe.prototype.get_button_by_cell_id = function(id) {
+        return $(".thebe_controls[data-cell-id=" + id + "] button[data-action='run']");
+      };
+
+      Thebe.prototype.run_cell = function(cell_id, end_id) {
+        var button, cell, _i, _len, _ref, _results;
+        if (end_id == null) {
+          end_id = false;
+        }
+        cell = this.cells[cell_id];
+        button = this.get_button_by_cell_id(cell_id);
+        if (!this.has_kernel_connected) {
+          return this.before_first_run((function(_this) {
+            return function() {
+              var _i, _len, _ref, _results;
+              button.text('running').addClass('running');
+              cell.execute();
+              if (end_id) {
+                _ref = _this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
+                _results = [];
+                for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                  cell = _ref[_i];
+                  _results.push(cell.execute());
+                }
+                return _results;
+              }
+            };
+          })(this));
+        } else {
+          button.text('running').addClass('running');
+          cell.execute();
+          if (end_id) {
+            _ref = this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
             _results = [];
-            for (_i = 0, _len = arguments.length; _i < _len; _i++) {
-              x = arguments[_i];
-              _results.push(x);
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              cell = _ref[_i];
+              _results.push(cell.execute());
             }
             return _results;
-          }).apply(this, arguments)
-        ], "color: blue; font-size: 12px");
+          }
+        }
+      };
+
+      Thebe.prototype.setup = function() {
+        var script, urls;
+        this.log('setup');
+        $('body').on('click', 'div.thebe_controls button', (function(_this) {
+          return function(e) {
+            var action, button, id;
+            button = $(e.target);
+            id = button.parent().data('cell-id');
+            action = button.data('action');
+            if (e.shiftKey) {
+              action = 'shift-' + action;
+            }
+            switch (action) {
+              case 'run':
+                return _this.run_cell(id);
+              case 'shift-run':
+                _this.log('exec from top to here: ' + id);
+                return _this.run_cell(0, id);
+              case 'interrupt':
+                return _this.kernel.interrupt();
+              case 'restart':
+                if (confirm('Are you sure you want to restart the kernel? Your work will be lost.')) {
+                  return _this.kernel.restart();
+                }
+            }
+          };
+        })(this));
+        this.events.on('execute.CodeCell', (function(_this) {
+          return function(e, cell) {
+            var button, id;
+            id = $('.cell').index(cell.cell.element);
+            _this.log('exec done for codecell ' + id);
+            button = _this.get_button_by_cell_id(id);
+            return button.text('ran').removeClass('running').addClass('ran');
+          };
+        })(this));
+        window.mathjax_url = '';
+        if (this.options.load_mathjax) {
+          script = document.createElement("script");
+          script.type = "text/javascript";
+          script.src = "//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+          document.getElementsByTagName("head")[0].appendChild(script);
+        }
+        if (this.options.inject_css) {
+          $("<style>" + default_css.css + "</style>").appendTo('head');
+        }
+        if (this.options.load_css) {
+          urls = ["https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css"];
+          return $.when($.each(urls, function(i, url) {
+            return $.get(url, function() {
+              return $('<link>', {
+                rel: 'stylesheet',
+                type: 'text/css',
+                'href': url
+              }).appendTo('head');
+            });
+          })).then((function(_this) {
+            return function() {
+              return _this.log('loaded css');
+            };
+          })(this));
+        }
+      };
+
+      Thebe.prototype.log = function() {
+        var x;
+        if (this.debug) {
+          return console.log("%c" + [
+            (function() {
+              var _i, _len, _results;
+              _results = [];
+              for (_i = 0, _len = arguments.length; _i < _len; _i++) {
+                x = arguments[_i];
+                _results.push(x);
+              }
+              return _results;
+            }).apply(this, arguments)
+          ], "color: blue; font-size: 12px");
+        }
+      };
+
+      return Thebe;
+
+    })();
+    codecell = require('notebook/js/codecell');
+    codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity;
+    $(function() {
+      var thebe;
+      if ($('body').data('runnable')) {
+        return thebe = new Thebe();
       }
+    });
+    return {
+      Thebe: Thebe
     };
-
-    return Thebe;
-
-  })();
-  codecell = require('notebook/js/codecell');
-  codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity;
-  $(function() {
-    var thebe;
-    if ($('body').data('runnable')) {
-      return thebe = new Thebe();
-    }
   });
-  return {
-    Thebe: Thebe
-  };
-});
+
+}).call(this);
 
 //# sourceMappingURL=main.js.map
 ;

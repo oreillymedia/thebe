@@ -2,7 +2,7 @@
 (function() {
   var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
-  define(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/cookies', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'custom/custom'], function(IPython, $, doTimeout, notebook, cookies, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) {
+  define(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'custom/custom'], function(IPython, $, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) {
     var Thebe, codecell;
     Thebe = (function() {
       Thebe.prototype.default_options = {
@@ -42,7 +42,7 @@
         this.events = events;
         this.setup();
         this.spawn_handler = _.once(this.spawn_handler);
-        thebe_url = cookies.getItem('thebe_url');
+        thebe_url = $.cookie('thebe_url');
         if (thebe_url && this.url === '') {
           this.check_existing_container(thebe_url);
         } else {
@@ -89,7 +89,7 @@
               return _this.log('cookie was right, use that as needed');
             } catch (_error) {
               _this.start_notebook();
-              cookies.removeItem('thebe_url');
+              $.removeCookie('thebe_url');
               return _this.log('cookie was wrong/dated, call spawn as needed');
             }
           };
@@ -110,7 +110,7 @@
           this.log('----->');
           this.log(e.target.responseURL);
           this.start_kernel(cb);
-          return cookies.setItem('thebe_url', this.url);
+          return $.cookie('thebe_url', this.url);
         }
       };
 

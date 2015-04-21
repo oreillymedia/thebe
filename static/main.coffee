@@ -3,7 +3,7 @@ define [
   'jquery'
   'thebe/dotimeout'
   'notebook/js/notebook'
-  'thebe/cookies'
+  'thebe/jquery-cookie'
   'thebe/default_css'
   'contents'
   'services/config'
@@ -15,7 +15,7 @@ define [
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
   'custom/custom'
-], (IPython, $, doTimeout, notebook, cookies, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
+], (IPython, $, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
 
   class Thebe
     default_options:
@@ -66,7 +66,7 @@ define [
       # we only ever want the first call
       @spawn_handler = _.once(@spawn_handler)
       # Does the user already have a container running
-      thebe_url = cookies.getItem 'thebe_url'
+      thebe_url = $.cookie 'thebe_url'
       # (passing a notebook url takes precedence over a cookie)
       if thebe_url and @url is ''
         @check_existing_container(thebe_url)
@@ -99,7 +99,7 @@ define [
         # otherwise it's a notebook_not_found, a page that would js redirect you to /spawn
         catch
           @start_notebook()
-          cookies.removeItem 'thebe_url'
+          $.removeCookie 'thebe_url'
           @log 'cookie was wrong/dated, call spawn as needed'
       # Actually send the request
       invo.send()
@@ -119,7 +119,7 @@ define [
         @log '----->'
         @log e.target.responseURL
         @start_kernel(cb)
-        cookies.setItem 'thebe_url', @url
+        $.cookie 'thebe_url', @url
 
     build_notebook: =>
       # don't even try to save or autosave
