@@ -16,8 +16,6 @@
     <!-- See built.html for examples of how to use this in production. -->
     <script src="static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
     <script>
-    
-    $ = {'x':'bagels'};
 
       require.config({
           
@@ -53,12 +51,8 @@
 
       // And then actually require it, so Thebe runs
       require(['main'], function(main){
-          thebe = new main.Thebe({url:"https://192.168.59.103:8000/spawn/"});
-          // $.noConflict()
-          console.log('a', $);
+          thebe = new main.Thebe({url:"//192.168.59.103:8000/spawn/"});
       });
-      console.log('b', $);
-
 
     </script>
 
