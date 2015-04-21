@@ -282,7 +282,9 @@ define [
         document.getElementsByTagName("head")[0].appendChild(script)
 
       # inject  default styles right into the page
-      if @options.inject_css
+      if @options.inject_css is 'no_hl'
+        $("<style>#{default_css.no_hl}</style>").appendTo('head')
+      else if @options.inject_css 
         $("<style>#{default_css.css}</style>").appendTo('head')
 
       # Add some CSS links to the page

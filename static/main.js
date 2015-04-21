@@ -338,7 +338,9 @@
           script.src = "//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
           document.getElementsByTagName("head")[0].appendChild(script);
         }
-        if (this.options.inject_css) {
+        if (this.options.inject_css === 'no_hl') {
+          $("<style>" + default_css.no_hl + "</style>").appendTo('head');
+        } else if (this.options.inject_css) {
           $("<style>" + default_css.css + "</style>").appendTo('head');
         }
         if (this.options.load_css) {
