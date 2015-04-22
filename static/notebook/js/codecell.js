@@ -129,7 +129,9 @@ define([
                 "Ctrl-/" : "toggleComment"
             },
             mode: 'ipython',
+            // XXX Changed by Zach
             theme: 'oreilly', // "ipython"
+            viewportMargin: Infinity,
             matchBrackets: true
         }
     };

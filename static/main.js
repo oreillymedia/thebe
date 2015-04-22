@@ -34,7 +34,7 @@
           this.url = this.url.replace(/\/?$/, '/');
         }
         if (this.url.indexOf('/spawn') !== -1) {
-          this.log('this is a tmpnb url');
+          this.log(this.url + ' is a tmpnb url');
           this.tmpnb_url = this.url;
           this.url = '';
         }
@@ -86,11 +86,11 @@
               JSON.parse(e.target.responseText);
               _this.url = url;
               _this.start_notebook();
-              return _this.log('cookie was right, use that as needed');
+              return _this.log('cookie  with notebook server url was right, use as needed');
             } catch (_error) {
               _this.start_notebook();
               $.removeCookie('thebe_url');
-              return _this.log('cookie was wrong/dated, call spawn as needed');
+              return _this.log('cookie was wrong/outdated, call spawn as needed');
             }
           };
         })(this);
@@ -297,7 +297,6 @@
 
       Thebe.prototype.setup = function() {
         var script, urls;
-        this.log('setup');
         $('body').on('click', 'div.thebe_controls button', (function(_this) {
           return function(e) {
             var action, button, id;
@@ -311,7 +310,7 @@
               case 'run':
                 return _this.run_cell(id);
               case 'shift-run':
-                _this.log('exec from top to here: ' + id);
+                _this.log('exec from top to cell #' + id);
                 return _this.run_cell(0, id);
               case 'interrupt':
                 return _this.kernel.interrupt();
@@ -354,9 +353,7 @@
               }).appendTo('head');
             });
           })).then((function(_this) {
-            return function() {
-              return _this.log('loaded css');
-            };
+            return function() {};
           })(this));
         }
       };
@@ -381,6 +378,7 @@
       return Thebe;
 
     })();
+    window.Thebe = Thebe;
     $(function() {
       var thebe;
       if ($('body').data('runnable')) {
