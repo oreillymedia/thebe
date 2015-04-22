@@ -16,6 +16,7 @@
     <!-- See built.html for examples of how to use this in production. -->
     <script src="static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
     <script>
+
       require.config({
           
           baseUrl: 'static/',
@@ -48,17 +49,9 @@
           }
       });
 
-      require.config({
-          map: {
-              '*':{
-                'contents': 'services/contents',
-              }
-          }
-      });
-
       // And then actually require it, so Thebe runs
       require(['main'], function(main){
-          thebe = new main.Thebe({});
+          thebe = new main.Thebe({url:"//192.168.59.103:8000/spawn/"});
       });
 
     </script>

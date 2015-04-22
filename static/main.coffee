@@ -3,7 +3,7 @@ define [
   'jquery'
   'thebe/dotimeout'
   'notebook/js/notebook'
-  'thebe/cookies'
+  'thebe/jquery-cookie'
   'thebe/default_css'
   'contents'
   'services/config'
@@ -15,7 +15,7 @@ define [
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
   'custom/custom'
-], (IPython, $, doTimeout, notebook, cookies, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
+], (IPython, $, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
 
   class Thebe
     default_options:
@@ -66,7 +66,7 @@ define [
       # we only ever want the first call
       @spawn_handler = _.once(@spawn_handler)
       # Does the user already have a container running
-      thebe_url = cookies.getItem 'thebe_url'
+      thebe_url = $.cookie 'thebe_url'
       # (passing a notebook url takes precedence over a cookie)
       if thebe_url and @url is ''
         @check_existing_container(thebe_url)
@@ -80,7 +80,8 @@ define [
       invo = new XMLHttpRequest
       invo.open 'GET', @tmpnb_url, true
       invo.onreadystatechange = (e)=> @spawn_handler(e, cb)
-      invo.onerror = => 
+      invo.onerror = (e)=>
+        @log "cannot find tmpnb server"; console.log(e)
         @set_state('disconnected')
       invo.send()
 
@@ -98,24 +99,27 @@ define [
         # otherwise it's a notebook_not_found, a page that would js redirect you to /spawn
         catch
           @start_notebook()
-          cookies.removeItem 'thebe_url'
+          $.removeCookie 'thebe_url'
           @log 'cookie was wrong/dated, call spawn as needed'
       # Actually send the request
       invo.send()
 
     spawn_handler: (e, cb) =>
       # is the server up?
-      if e.target.status is 0
+      if e.target.status in [0, 405]
+        @log 'cannot connect to tmpnb server: ' + e.target.status
         @set_state('disconnected')
       # is it full up of active containers?
-      if e.target.responseURL.indexOf('/spawn') isnt -1
-        @log 'server full'
+      else if e.target.responseURL.indexOf('/spawn') isnt -1
+        @log 'tmpnb server full'
         @set_state('full')
       # otherwise start the notebook, passing our user's path
       else
         @url = e.target.responseURL.replace('/tree', '/')
+        @log '----->'
+        @log e.target.responseURL
         @start_kernel(cb)
-        cookies.setItem 'thebe_url', @url
+        $.cookie 'thebe_url', @url
 
     build_notebook: =>
       # don't even try to save or autosave
@@ -278,7 +282,9 @@ define [
         document.getElementsByTagName("head")[0].appendChild(script)
 
       # inject  default styles right into the page
-      if @options.inject_css
+      if @options.inject_css is 'no_hl'
+        $("<style>#{default_css.no_hl}</style>").appendTo('head')
+      else if @options.inject_css 
         $("<style>#{default_css.css}</style>").appendTo('head')
 
       # Add some CSS links to the page
