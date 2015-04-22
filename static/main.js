@@ -9,7 +9,7 @@
         selector: 'pre[data-executable]',
         url: '//192.168.59.103:8000/spawn/',
         append_kernel_controls_to: 'body',
-        inject_css: true,
+        inject_css: 'no_hl',
         load_css: true,
         load_mathjax: true,
         debug: true
@@ -383,6 +383,7 @@
     })();
     codecell = require('notebook/js/codecell');
     codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity;
+    CodeMirror.defaults.viewportMargin = Infinity;
     $(function() {
       var thebe;
       if ($('body').data('runnable')) {

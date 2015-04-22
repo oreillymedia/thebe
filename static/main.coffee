@@ -28,8 +28,8 @@ define [
       url: '//192.168.59.103:8000/spawn/'
       # set to false to prevent kernel_controls from being added
       append_kernel_controls_to: 'body'
-      # Automatically inject basic default css we need
-      inject_css: true
+      # Automatically inject basic default css we need, no highlighting
+      inject_css: 'no_hl'
       # Automatically load other necessary css (jquery ui)
       load_css: true
       # Automatically load mathjax js
@@ -314,7 +314,8 @@ define [
   # This, in conjunction with height:auto in the CSS, should force CM to auto size to it's content
   codecell = require('notebook/js/codecell')
   codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity
-
+  # or maybe this
+  CodeMirror.defaults.viewportMargin = Infinity;
   # So people can access it
   # window.Thebe = Thebe
 
