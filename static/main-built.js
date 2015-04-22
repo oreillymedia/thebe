@@ -21041,6 +21041,9 @@ define('notebook/js/codecell',[
     
     var Cell = cell.Cell;
 
+    // console.log(CodeMirror.defaults.viewportMargin);
+    CodeMirror.defaults.viewportMargin = Infinity;
+
     /* local util for codemirror */
     var posEq = function(a, b) {return a.line === b.line && a.ch === b.ch;};
 
@@ -21129,8 +21132,7 @@ define('notebook/js/codecell',[
             },
             mode: 'ipython',
             theme: 'ipython',
-            matchBrackets: true,
-            viewportMargin: Infinity
+            matchBrackets: true
         }
     };
 
