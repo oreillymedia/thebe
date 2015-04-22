@@ -3,7 +3,7 @@
   var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   define(['base/js/namespace', 'jquery', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'custom/custom'], function(IPython, $, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) {
-    var Thebe, codecell;
+    var Thebe;
     Thebe = (function() {
       Thebe.prototype.default_options = {
         selector: 'pre[data-executable]',
@@ -381,9 +381,6 @@
       return Thebe;
 
     })();
-    codecell = require('notebook/js/codecell');
-    codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity;
-    CodeMirror.defaults.viewportMargin = Infinity;
     $(function() {
       var thebe;
       if ($('body').data('runnable')) {

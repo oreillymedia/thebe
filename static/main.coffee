@@ -312,10 +312,10 @@ define [
         console.log("%c#{[x for x in arguments]}", "color: blue; font-size: 12px");
 
   # This, in conjunction with height:auto in the CSS, should force CM to auto size to it's content
-  codecell = require('notebook/js/codecell')
-  codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity
+  # codecell = require('notebook/js/codecell')
+  # codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity
   # or maybe this
-  CodeMirror.defaults.viewportMargin = Infinity;
+  # CodeMirror.defaults.viewportMargin = Infinity;
   # So people can access it
   # window.Thebe = Thebe
 

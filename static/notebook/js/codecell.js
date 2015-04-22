@@ -127,7 +127,8 @@ define([
             },
             mode: 'ipython',
             theme: 'ipython',
-            matchBrackets: true
+            matchBrackets: true,
+            viewportMargin: Infinity
         }
     };
 
