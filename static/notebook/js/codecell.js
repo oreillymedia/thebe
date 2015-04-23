@@ -39,6 +39,9 @@ define([
     
     var Cell = cell.Cell;
 
+    // console.log(CodeMirror.defaults.viewportMargin);
+    // CodeMirror.defaults.viewportMargin = Infinity;
+
     /* local util for codemirror */
     var posEq = function(a, b) {return a.line === b.line && a.ch === b.ch;};
 
@@ -126,7 +129,9 @@ define([
                 "Ctrl-/" : "toggleComment"
             },
             mode: 'ipython',
-            theme: 'ipython',
+            // XXX Changed by Zach
+            theme: 'oreilly', // "ipython"
+            viewportMargin: Infinity,
             matchBrackets: true
         }
     };

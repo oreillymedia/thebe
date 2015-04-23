@@ -10,7 +10,7 @@
         moment: 'components/moment/moment',
         codemirror: 'components/codemirror',
         termjs: 'components/term.js/src/term',
-        contents: 'services/contents'
+        // contents: 'contents'
   },
   wrap: {
     "startFile": "wrap.start",

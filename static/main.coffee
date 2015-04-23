@@ -3,7 +3,7 @@ define [
   'jquery'
   'thebe/dotimeout'
   'notebook/js/notebook'
-  'thebe/cookies'
+  'thebe/jquery-cookie'
   'thebe/default_css'
   'contents'
   'services/config'
@@ -15,7 +15,7 @@ define [
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
   'custom/custom'
-], (IPython, $, doTimeout, notebook, cookies, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
+], (IPython, $, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
 
   class Thebe
     default_options:
@@ -28,8 +28,8 @@ define [
       url: '//192.168.59.103:8000/spawn/'
       # set to false to prevent kernel_controls from being added
       append_kernel_controls_to: 'body'
-      # Automatically inject basic default css we need
-      inject_css: true
+      # Automatically inject basic default css we need, no highlighting
+      inject_css: 'no_hl'
       # Automatically load other necessary css (jquery ui)
       load_css: true
       # Automatically load mathjax js
@@ -53,7 +53,7 @@ define [
       
       # if it contains /spawn, it's a tmpnb url, not a notebook url
       if @url.indexOf('/spawn') isnt -1
-        @log 'this is a tmpnb url'
+        @log @url+' is a tmpnb url'
         @tmpnb_url = @url
         @url = ''
 
@@ -66,7 +66,7 @@ define [
       # we only ever want the first call
       @spawn_handler = _.once(@spawn_handler)
       # Does the user already have a container running
-      thebe_url = cookies.getItem 'thebe_url'
+      thebe_url = $.cookie 'thebe_url'
       # (passing a notebook url takes precedence over a cookie)
       if thebe_url and @url is ''
         @check_existing_container(thebe_url)
@@ -80,7 +80,8 @@ define [
       invo = new XMLHttpRequest
       invo.open 'GET', @tmpnb_url, true
       invo.onreadystatechange = (e)=> @spawn_handler(e, cb)
-      invo.onerror = => 
+      invo.onerror = (e)=>
+        @log "cannot find tmpnb server"; console.log(e)
         @set_state('disconnected')
       invo.send()
 
@@ -94,28 +95,31 @@ define [
           JSON.parse e.target.responseText
           @url = url
           @start_notebook()
-          @log 'cookie was right, use that as needed'
+          @log 'cookie  with notebook server url was right, use as needed'
         # otherwise it's a notebook_not_found, a page that would js redirect you to /spawn
         catch
           @start_notebook()
-          cookies.removeItem 'thebe_url'
-          @log 'cookie was wrong/dated, call spawn as needed'
+          $.removeCookie 'thebe_url'
+          @log 'cookie was wrong/outdated, call spawn as needed'
       # Actually send the request
       invo.send()
 
     spawn_handler: (e, cb) =>
       # is the server up?
-      if e.target.status is 0
+      if e.target.status in [0, 405]
+        @log 'cannot connect to tmpnb server: ' + e.target.status
         @set_state('disconnected')
       # is it full up of active containers?
-      if e.target.responseURL.indexOf('/spawn') isnt -1
-        @log 'server full'
+      else if e.target.responseURL.indexOf('/spawn') isnt -1
+        @log 'tmpnb server full'
         @set_state('full')
       # otherwise start the notebook, passing our user's path
       else
         @url = e.target.responseURL.replace('/tree', '/')
+        @log '----->'
+        @log e.target.responseURL
         @start_kernel(cb)
-        cookies.setItem 'thebe_url', @url
+        $.cookie 'thebe_url', @url
 
     build_notebook: =>
       # don't even try to save or autosave
@@ -242,7 +246,6 @@ define [
             cell.execute()
 
     setup: =>
-      @log 'setup'
       # main click handler
       $('body').on 'click', 'div.thebe_controls button', (e)=>
         button = $(e.target)
@@ -255,7 +258,7 @@ define [
           when 'run'
             @run_cell(id)
           when 'shift-run'
-            @log 'exec from top to here: '+id
+            @log 'exec from top to cell #'+id
             @run_cell(0, id)
           when 'interrupt'
             @kernel.interrupt()
@@ -278,18 +281,15 @@ define [
         document.getElementsByTagName("head")[0].appendChild(script)
 
       # inject  default styles right into the page
-      if @options.inject_css
+      if @options.inject_css is 'no_hl'
+        $("<style>#{default_css.no_hl}</style>").appendTo('head')
+      else if @options.inject_css 
         $("<style>#{default_css.css}</style>").appendTo('head')
 
       # Add some CSS links to the page
       if @options.load_css
         urls = [
-           "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css"
-           # The below is currently included in default_css.css, so the below isn't needed
-           # "https://rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
-           # in production use this url instead: 
-           # "https://cdn.rawgit.com/oreillymedia/thebe/smarter-starting/static/thebe/style.css",
-           # "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.1.0/codemirror.css", 
+           "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css" 
           ]
         $.when($.each(urls, (i, url) ->
           $.get url, ->
@@ -298,19 +298,15 @@ define [
               type: 'text/css'
               'href': url).appendTo 'head'
         )).then => 
-          # this only works correctly if caching enabled in the browser
-          @log 'loaded css'
+          # this only works correctly if caching is enabled in the browser
+          # @log 'loaded css'
   
     log: ->
       if @debug
         console.log("%c#{[x for x in arguments]}", "color: blue; font-size: 12px");
 
-  # This, in conjunction with height:auto in the CSS, should force CM to auto size to it's content
-  codecell = require('notebook/js/codecell')
-  codecell.CodeCell.options_default.cm_config.viewportMargin = Infinity
-
   # So people can access it
-  # window.Thebe = Thebe
+  window.Thebe = Thebe
 
   # Auto instantiate it with defaults if body has data-runnable="true"
   $(->
