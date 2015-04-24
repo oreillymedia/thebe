@@ -29,6 +29,7 @@
         this.call_spawn = __bind(this.call_spawn, this);
         window.thebe = this;
         this.has_kernel_connected = false;
+        this.server_error = false;
         _ref = _.defaults(this.options, this.default_options), this.selector = _ref.selector, this.url = _ref.url, this.debug = _ref.debug;
         if (this.url) {
           this.url = this.url.replace(/\/?$/, '/');
@@ -48,8 +49,9 @@
         }
         if (this.tmpnb_url) {
           this.check_server();
+        } else {
+          this.start_notebook();
         }
-        this.start_notebook();
       }
 
       Thebe.prototype.call_spawn = function(cb) {
@@ -76,22 +78,19 @@
         if (invo == null) {
           invo = new XMLHttpRequest;
         }
-        invo.open('GET', this.tmpnb_url.replace('spawn/', '') + 'stats', true);
+        invo.open('GET', this.tmpnb_url.replace('/spawn', '') + 'user/some_fake_user/api', true);
         invo.onerror = (function(_this) {
           return function(e) {
-            return _this.log('aaaaaa');
+            _this.log('Cannot connect to tmpnb server!');
+            _this.server_error = true;
+            console.log(e);
+            return _this.start_notebook();
           };
         })(this);
         invo.onload = (function(_this) {
           return function(e) {
-            var data;
-            try {
-              data = JSON.parse(e.target.responseText);
-              console.log(data);
-              return _this.log('bbbbb');
-            } catch (_error) {
-              return _this.log('ccccc');
-            }
+            _this.log('Tmpnb server seems to be up');
+            return _this.start_notebook();
           };
         })(this);
         return invo.send();
@@ -152,7 +151,9 @@
             controls.html(_this.controls_html());
             $(el).replaceWith(cell.element);
             _this.cells.push(cell);
-            $(cell.element).prepend(controls);
+            if (!_this.server_error) {
+              $(cell.element).prepend(controls);
+            }
             cell.element.removeAttr('tabindex');
             return cell.element.off('dblclick');
           };

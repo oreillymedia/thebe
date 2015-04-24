@@ -41,8 +41,10 @@ define [
     constructor: (@options={})->
       # just for debugging
       window.thebe = this
-      # important flag
+      
+      # important flags
       @has_kernel_connected = false
+      @server_error = false
 
       # set options to defaults for unset keys
       # and break out some commonly used options
@@ -70,9 +72,13 @@ define [
       # passing a notebook url takes precedence over a cookie
       if thebe_url and @url is ''
         @check_existing_container(thebe_url)
+      
+      # check that the tmpnb server is even up
+      # before we go and add run buttons
       if @tmpnb_url
         @check_server()
-      @start_notebook()
+      else
+        @start_notebook()
     
     # CORS + redirects + are crazy, lots of things didn't work for this
     # this was from an example is on MDN
@@ -87,21 +93,17 @@ define [
         $.removeCookie 'thebe_url'
       invo.send()
 
-    # 
     check_server: (invo=new XMLHttpRequest)->
-      # no trailing slash for api url
-      invo.open 'GET', @tmpnb_url.replace('spawn/','')+'stats', true
+      # Hacky, the /stats endpoint would be more appropriate, but I didn't include that in my pr
+      invo.open 'GET', @tmpnb_url.replace('/spawn', '')+'user/some_fake_user/api', true
       invo.onerror = (e)=>
-        @log 'aaaaaa'
+        @log 'Cannot connect to tmpnb server!'
+        @server_error = true
+        console.log e
+        @start_notebook()
       invo.onload = (e)=>
-        # if we can parse the response, it's the actual api
-        try
-          data = JSON.parse e.target.responseText
-          console.log data
-          @log 'bbbbb'
-        catch
-          @log 'ccccc'
-      # Actually send the request
+        @log 'Tmpnb server seems to be up'
+        @start_notebook()
       invo.send()
 
     check_existing_container: (url, invo=new XMLHttpRequest)->
@@ -156,7 +158,8 @@ define [
         $(el).replaceWith cell.element
         # cell.refresh()
         @cells.push cell
-        $(cell.element).prepend controls
+        unless @server_error
+          $(cell.element).prepend controls
         cell.element.removeAttr('tabindex')
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
