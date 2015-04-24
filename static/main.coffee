@@ -35,7 +35,7 @@ define [
       # Automatically load mathjax js
       load_mathjax: true
       # show messages from @log()
-      debug: true
+      debug: false
 
     # Take our two basic configuration options
     constructor: (@options={})->
@@ -67,6 +67,8 @@ define [
       @setup()
       # we only ever want the first call
       @spawn_handler = _.once(@spawn_handler)
+      # and we don't want to let a user run this multiple times accidentally
+      @call_spawn = _.once(@call_spawn)
       # Does the user already have a container running
       thebe_url = $.cookie 'thebe_url'
       # passing a notebook url takes precedence over a cookie
@@ -77,12 +79,12 @@ define [
       # before we go and add run buttons
       if @tmpnb_url
         @check_server()
-      else
-        @start_notebook()
+      @start_notebook()
     
     # CORS + redirects + are crazy, lots of things didn't work for this
     # this was from an example is on MDN
     call_spawn:(cb)=>
+      @set_state('starting...')
       @log 'call spawn'
       invo = new XMLHttpRequest
       invo.open 'GET', @tmpnb_url, true
@@ -97,13 +99,13 @@ define [
       # Hacky, the /stats endpoint would be more appropriate, but I didn't include that in my pr
       invo.open 'GET', @tmpnb_url.replace('/spawn', '')+'user/some_fake_user/api', true
       invo.onerror = (e)=>
-        @log 'Cannot connect to tmpnb server!'
+        @log 'Checked and cannot connect to tmpnb server!'+ e.target.status, true
+        # if this request completes before we add controls
         @server_error = true
-        console.log e
-        @start_notebook()
+        # otherwise, remove controls
+        $('.thebe_controls').remove()
       invo.onload = (e)=>
         @log 'Tmpnb server seems to be up'
-        @start_notebook()
       invo.send()
 
     check_existing_container: (url, invo=new XMLHttpRequest)->
@@ -188,7 +190,6 @@ define [
 
 
     before_first_run: (cb) =>
-      @set_state('starting...')
       if @url then @start_kernel(cb)
       else @call_spawn(cb)
 
@@ -198,6 +199,7 @@ define [
 
     
     start_kernel: (cb)=>
+      @set_state('starting...')
       @log 'start_kernel'
       @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, "python2"
       @kernel.start()

@@ -12,7 +12,7 @@
         inject_css: 'no_hl',
         load_css: true,
         load_mathjax: true,
-        debug: true
+        debug: false
       };
 
       function Thebe(_at_options) {
@@ -43,19 +43,20 @@
         this.events = events;
         this.setup();
         this.spawn_handler = _.once(this.spawn_handler);
+        this.call_spawn = _.once(this.call_spawn);
         thebe_url = $.cookie('thebe_url');
         if (thebe_url && this.url === '') {
           this.check_existing_container(thebe_url);
         }
         if (this.tmpnb_url) {
           this.check_server();
-        } else {
-          this.start_notebook();
         }
+        this.start_notebook();
       }
 
       Thebe.prototype.call_spawn = function(cb) {
         var invo;
+        this.set_state('starting...');
         this.log('call spawn');
         invo = new XMLHttpRequest;
         invo.open('GET', this.tmpnb_url, true);
@@ -81,16 +82,14 @@
         invo.open('GET', this.tmpnb_url.replace('/spawn', '') + 'user/some_fake_user/api', true);
         invo.onerror = (function(_this) {
           return function(e) {
-            _this.log('Cannot connect to tmpnb server!');
+            _this.log('Checked and cannot connect to tmpnb server!' + e.target.status, true);
             _this.server_error = true;
-            console.log(e);
-            return _this.start_notebook();
+            return $('.thebe_controls').remove();
           };
         })(this);
         invo.onload = (function(_this) {
           return function(e) {
-            _this.log('Tmpnb server seems to be up');
-            return _this.start_notebook();
+            return _this.log('Tmpnb server seems to be up');
           };
         })(this);
         return invo.send();
@@ -197,7 +196,6 @@
 
       Thebe.prototype.before_first_run = function(cb) {
         var kernel_controls;
-        this.set_state('starting...');
         if (this.url) {
           this.start_kernel(cb);
         } else {
@@ -210,6 +208,7 @@
       };
 
       Thebe.prototype.start_kernel = function(cb) {
+        this.set_state('starting...');
         this.log('start_kernel');
         this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, "python2");
         this.kernel.start();
