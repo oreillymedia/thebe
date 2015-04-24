@@ -70,8 +70,7 @@ define [
       # passing a notebook url takes precedence over a cookie
       if thebe_url and @url is ''
         @check_existing_container(thebe_url)
-      else
-        @start_notebook()
+      @start_notebook()
     
     # CORS + redirects + are crazy, lots of things didn't work for this
     # this was from an example is on MDN
@@ -81,7 +80,7 @@ define [
       invo.open 'GET', @tmpnb_url, true
       invo.onreadystatechange = (e)=> @spawn_handler(e, cb)
       invo.onerror = (e)=>
-        @log "cannot find tmpnb server"; console.log(e)
+        @log "Cannot connect to tmpnb server", true 
         @set_state('disconnected')
         $.removeCookie 'thebe_url'
       invo.send()
@@ -90,20 +89,16 @@ define [
       # no trailing slash for api url
       invo.open 'GET', url+'api', true
       invo.onerror = (e)=>
-        @set_state('disconnected')
         $.removeCookie 'thebe_url'
-        # Maybe a very old/bad cookie, start the notebook anyway
-        @start_notebook()
+        @log 'server error when checking existing container'
       invo.onload = (e)=>
         # if we can parse the response, it's the actual api
         try
           JSON.parse e.target.responseText
           @url = url
-          @start_notebook()
           @log 'cookie with notebook server url was right, use as needed'
         # otherwise it's a notebook_not_found, a page that would js redirect you to /spawn
         catch
-          @start_notebook()
           $.removeCookie 'thebe_url'
           @log 'cookie was wrong/outdated, call spawn as needed'
       # Actually send the request
@@ -112,13 +107,13 @@ define [
     spawn_handler: (e, cb) =>
       # is the server up?
       if e.target.status in [0, 405]
-        @log 'cannot connect to tmpnb server: ' + e.target.status
+        @log 'Cannot connect to tmpnb server, status: ' + e.target.status, true
         @set_state('disconnected')
       # is it full up of active containers?
       else if e.target.responseURL.indexOf('/spawn') isnt -1
-        @log 'tmpnb server full'
+        @log 'tmpnb server full', true
         @set_state('full')
-      # otherwise start the notebook, passing our user's path
+      # otherwise start the kernel
       else
         @url = e.target.responseURL.replace('/tree', '/')
         @log 'responseUrl is'
@@ -306,9 +301,9 @@ define [
           # this only works correctly if caching is enabled in the browser
           # @log 'loaded css'
   
-    log: ->
-      if @debug
-        console.log("%c#{[x for x in arguments]}", "color: blue; font-size: 12px");
+    log: (m, serious=false)->
+      if @debug then console.log("%c#{m}", "color: blue; font-size: 12px");
+      if serious then console.log(m)
 
   # So people can access it
   window.Thebe = Thebe

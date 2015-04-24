@@ -45,9 +45,8 @@
         thebe_url = $.cookie('thebe_url');
         if (thebe_url && this.url === '') {
           this.check_existing_container(thebe_url);
-        } else {
-          this.start_notebook();
         }
+        this.start_notebook();
       }
 
       Thebe.prototype.call_spawn = function(cb) {
@@ -62,8 +61,7 @@
         })(this);
         invo.onerror = (function(_this) {
           return function(e) {
-            _this.log("cannot find tmpnb server");
-            console.log(e);
+            _this.log("Cannot connect to tmpnb server", true);
             _this.set_state('disconnected');
             return $.removeCookie('thebe_url');
           };
@@ -78,9 +76,8 @@
         invo.open('GET', url + 'api', true);
         invo.onerror = (function(_this) {
           return function(e) {
-            _this.set_state('disconnected');
             $.removeCookie('thebe_url');
-            return _this.start_notebook();
+            return _this.log('server error when checking existing container');
           };
         })(this);
         invo.onload = (function(_this) {
@@ -88,10 +85,8 @@
             try {
               JSON.parse(e.target.responseText);
               _this.url = url;
-              _this.start_notebook();
               return _this.log('cookie with notebook server url was right, use as needed');
             } catch (_error) {
-              _this.start_notebook();
               $.removeCookie('thebe_url');
               return _this.log('cookie was wrong/outdated, call spawn as needed');
             }
@@ -103,10 +98,10 @@
       Thebe.prototype.spawn_handler = function(e, cb) {
         var _ref;
         if ((_ref = e.target.status) === 0 || _ref === 405) {
-          this.log('cannot connect to tmpnb server: ' + e.target.status);
+          this.log('Cannot connect to tmpnb server, status: ' + e.target.status, true);
           return this.set_state('disconnected');
         } else if (e.target.responseURL.indexOf('/spawn') !== -1) {
-          this.log('tmpnb server full');
+          this.log('tmpnb server full', true);
           return this.set_state('full');
         } else {
           this.url = e.target.responseURL.replace('/tree', '/');
@@ -361,20 +356,15 @@
         }
       };
 
-      Thebe.prototype.log = function() {
-        var x;
+      Thebe.prototype.log = function(m, serious) {
+        if (serious == null) {
+          serious = false;
+        }
         if (this.debug) {
-          return console.log("%c" + [
-            (function() {
-              var _i, _len, _results;
-              _results = [];
-              for (_i = 0, _len = arguments.length; _i < _len; _i++) {
-                x = arguments[_i];
-                _results.push(x);
-              }
-              return _results;
-            }).apply(this, arguments)
-          ], "color: blue; font-size: 12px");
+          console.log("%c" + m, "color: blue; font-size: 12px");
+        }
+        if (serious) {
+          return console.log(m);
         }
       };
 
