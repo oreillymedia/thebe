@@ -152,7 +152,8 @@ define [
 
       $(@selector).each (i, el) =>
         cell = @notebook.insert_cell_at_bottom('code')
-        cell.set_text $(el).text()
+        # grab text, trim it, put it in cell
+        cell.set_text $(el).text().trim()
         controls = $("<div class='thebe_controls' data-cell-id='#{i}'></div>")
         controls.html(@controls_html())
         $(el).replaceWith cell.element

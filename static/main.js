@@ -146,7 +146,7 @@
           return function(i, el) {
             var cell, controls;
             cell = _this.notebook.insert_cell_at_bottom('code');
-            cell.set_text($(el).text());
+            cell.set_text($(el).text().trim());
             controls = $("<div class='thebe_controls' data-cell-id='" + i + "'></div>");
             controls.html(_this.controls_html());
             $(el).replaceWith(cell.element);
