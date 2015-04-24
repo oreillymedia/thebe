@@ -34,7 +34,7 @@ define [
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
-      # show messages from .log()
+      # show messages from @log()
       debug: true
 
     # Take our two basic configuration options
@@ -67,7 +67,7 @@ define [
       @spawn_handler = _.once(@spawn_handler)
       # Does the user already have a container running
       thebe_url = $.cookie 'thebe_url'
-      # (passing a notebook url takes precedence over a cookie)
+      # passing a notebook url takes precedence over a cookie
       if thebe_url and @url is ''
         @check_existing_container(thebe_url)
       else
@@ -83,19 +83,24 @@ define [
       invo.onerror = (e)=>
         @log "cannot find tmpnb server"; console.log(e)
         @set_state('disconnected')
+        $.removeCookie 'thebe_url'
       invo.send()
 
     check_existing_container: (url, invo=new XMLHttpRequest)->
       # no trailing slash for api url
       invo.open 'GET', url+'api', true
-      invo.onerror = (e)=>  @set_state('disconnected')
+      invo.onerror = (e)=>
+        @set_state('disconnected')
+        $.removeCookie 'thebe_url'
+        # Maybe a very old/bad cookie, start the notebook anyway
+        @start_notebook()
       invo.onload = (e)=>
         # if we can parse the response, it's the actual api
         try
           JSON.parse e.target.responseText
           @url = url
           @start_notebook()
-          @log 'cookie  with notebook server url was right, use as needed'
+          @log 'cookie with notebook server url was right, use as needed'
         # otherwise it's a notebook_not_found, a page that would js redirect you to /spawn
         catch
           @start_notebook()
@@ -116,7 +121,7 @@ define [
       # otherwise start the notebook, passing our user's path
       else
         @url = e.target.responseURL.replace('/tree', '/')
-        @log '----->'
+        @log 'responseUrl is'
         @log e.target.responseURL
         @start_kernel(cb)
         $.cookie 'thebe_url', @url

@@ -64,7 +64,8 @@
           return function(e) {
             _this.log("cannot find tmpnb server");
             console.log(e);
-            return _this.set_state('disconnected');
+            _this.set_state('disconnected');
+            return $.removeCookie('thebe_url');
           };
         })(this);
         return invo.send();
@@ -77,7 +78,9 @@
         invo.open('GET', url + 'api', true);
         invo.onerror = (function(_this) {
           return function(e) {
-            return _this.set_state('disconnected');
+            _this.set_state('disconnected');
+            $.removeCookie('thebe_url');
+            return _this.start_notebook();
           };
         })(this);
         invo.onload = (function(_this) {
@@ -86,7 +89,7 @@
               JSON.parse(e.target.responseText);
               _this.url = url;
               _this.start_notebook();
-              return _this.log('cookie  with notebook server url was right, use as needed');
+              return _this.log('cookie with notebook server url was right, use as needed');
             } catch (_error) {
               _this.start_notebook();
               $.removeCookie('thebe_url');
@@ -107,7 +110,7 @@
           return this.set_state('full');
         } else {
           this.url = e.target.responseURL.replace('/tree', '/');
-          this.log('----->');
+          this.log('responseUrl is');
           this.log(e.target.responseURL);
           this.start_kernel(cb);
           return $.cookie('thebe_url', this.url);
