@@ -70,6 +70,8 @@ define [
       # passing a notebook url takes precedence over a cookie
       if thebe_url and @url is ''
         @check_existing_container(thebe_url)
+      if @tmpnb_url
+        @check_server()
       @start_notebook()
     
     # CORS + redirects + are crazy, lots of things didn't work for this
@@ -83,6 +85,23 @@ define [
         @log "Cannot connect to tmpnb server", true 
         @set_state('disconnected')
         $.removeCookie 'thebe_url'
+      invo.send()
+
+    # 
+    check_server: (invo=new XMLHttpRequest)->
+      # no trailing slash for api url
+      invo.open 'GET', @tmpnb_url.replace('spawn/','')+'stats', true
+      invo.onerror = (e)=>
+        @log 'aaaaaa'
+      invo.onload = (e)=>
+        # if we can parse the response, it's the actual api
+        try
+          data = JSON.parse e.target.responseText
+          console.log data
+          @log 'bbbbb'
+        catch
+          @log 'ccccc'
+      # Actually send the request
       invo.send()
 
     check_existing_container: (url, invo=new XMLHttpRequest)->

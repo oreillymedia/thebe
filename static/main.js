@@ -46,6 +46,9 @@
         if (thebe_url && this.url === '') {
           this.check_existing_container(thebe_url);
         }
+        if (this.tmpnb_url) {
+          this.check_server();
+        }
         this.start_notebook();
       }
 
@@ -64,6 +67,31 @@
             _this.log("Cannot connect to tmpnb server", true);
             _this.set_state('disconnected');
             return $.removeCookie('thebe_url');
+          };
+        })(this);
+        return invo.send();
+      };
+
+      Thebe.prototype.check_server = function(invo) {
+        if (invo == null) {
+          invo = new XMLHttpRequest;
+        }
+        invo.open('GET', this.tmpnb_url.replace('spawn/', '') + 'stats', true);
+        invo.onerror = (function(_this) {
+          return function(e) {
+            return _this.log('aaaaaa');
+          };
+        })(this);
+        invo.onload = (function(_this) {
+          return function(e) {
+            var data;
+            try {
+              data = JSON.parse(e.target.responseText);
+              console.log(data);
+              return _this.log('bbbbb');
+            } catch (_error) {
+              return _this.log('ccccc');
+            }
           };
         })(this);
         return invo.send();
