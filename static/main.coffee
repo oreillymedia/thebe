@@ -275,7 +275,6 @@ define [
         action = button.data('action')
         if e.shiftKey
           action = 'shift-'+action
-        # cell = @cells[id]
         switch action
           when 'run'
             @run_cell(id)
@@ -292,7 +291,7 @@ define [
         id = $('.cell').index(cell.cell.element)
         @log 'exec done for codecell '+id
         button = @get_button_by_cell_id(id)
-        button.text('ran').removeClass('running').addClass('ran')
+        button.text('done').removeClass('running').addClass('ran')
 
       # set this no matter what, else we get a warning
       window.mathjax_url = ''

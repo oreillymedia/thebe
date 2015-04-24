@@ -354,7 +354,7 @@
             id = $('.cell').index(cell.cell.element);
             _this.log('exec done for codecell ' + id);
             button = _this.get_button_by_cell_id(id);
-            return button.text('ran').removeClass('running').addClass('ran');
+            return button.text('done').removeClass('running').addClass('ran');
           };
         })(this));
         window.mathjax_url = '';
