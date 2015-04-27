@@ -91,7 +91,8 @@ define [
       @log 'call spawn'
       invo = new XMLHttpRequest
       invo.open 'GET', @tmpnb_url, true
-      invo.onreadystatechange = (e)=> @spawn_handler(e, cb)
+      # invo.onreadystatechange = (e)=> @spawn_handler(e, cb)
+      invo.onload = (e)=> @spawn_handler(e, cb)
       invo.onerror = (e)=>
         @log "Cannot connect to tmpnb server", true 
         @set_state('disconnected')
@@ -135,17 +136,21 @@ define [
       if e.target.status in [0, 405]
         @log 'Cannot connect to tmpnb server, status: ' + e.target.status, true
         @set_state('disconnected')
-      # is it full up of active containers?
-      else if e.target.responseURL.indexOf('/spawn') isnt -1
-        @log 'tmpnb server full', true
-        @set_state('full')
-      # otherwise start the kernel
       else
-        @url = e.target.responseURL.replace('/tree', '/')
-        @log 'responseUrl is'
-        @log e.target.responseURL
-        @start_kernel(cb)
-        $.cookie 'thebe_url', @url
+        data = JSON.parse e.target.responseText
+        console.log data
+        # is it full up of active containers?
+        if data.status is 'full' 
+          @log 'tmpnb server full', true
+          @set_state('full')
+        # otherwise start the kernel
+        else
+          console.log e.target.responseURL
+          @url = e.target.responseURL.replace('/spawn/', '')+data.url.replace('/tree', '/')
+          @log 'tmpnb says we should use'
+          @log @url
+          @start_kernel(cb)
+          $.cookie 'thebe_url', @url
 
     build_notebook: =>
       # don't even try to save or autosave

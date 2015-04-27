@@ -61,7 +61,7 @@
         this.log('call spawn');
         invo = new XMLHttpRequest;
         invo.open('GET', this.tmpnb_url, true);
-        invo.onreadystatechange = (function(_this) {
+        invo.onload = (function(_this) {
           return function(e) {
             return _this.spawn_handler(e, cb);
           };
@@ -123,19 +123,24 @@
       };
 
       Thebe.prototype.spawn_handler = function(e, cb) {
-        var _ref;
+        var data, _ref;
         if ((_ref = e.target.status) === 0 || _ref === 405) {
           this.log('Cannot connect to tmpnb server, status: ' + e.target.status, true);
           return this.set_state('disconnected');
-        } else if (e.target.responseURL.indexOf('/spawn') !== -1) {
-          this.log('tmpnb server full', true);
-          return this.set_state('full');
         } else {
-          this.url = e.target.responseURL.replace('/tree', '/');
-          this.log('responseUrl is');
-          this.log(e.target.responseURL);
-          this.start_kernel(cb);
-          return $.cookie('thebe_url', this.url);
+          data = JSON.parse(e.target.responseText);
+          console.log(data);
+          if (data.status === 'full') {
+            this.log('tmpnb server full', true);
+            return this.set_state('full');
+          } else {
+            console.log(e.target.responseURL);
+            this.url = e.target.responseURL.replace('/spawn/', '') + data.url.replace('/tree', '/');
+            this.log('tmpnb says we should use');
+            this.log(this.url);
+            this.start_kernel(cb);
+            return $.cookie('thebe_url', this.url);
+          }
         }
       };
 
