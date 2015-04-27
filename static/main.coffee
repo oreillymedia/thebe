@@ -1,6 +1,7 @@
 define [
   'base/js/namespace'
   'jquery'
+  'components/es6-promise/promise.min'
   'thebe/dotimeout'
   'notebook/js/notebook'
   'thebe/jquery-cookie'
@@ -15,7 +16,9 @@ define [
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
   'custom/custom'
-], (IPython, $, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
+], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
+  
+  promise.polyfill()
 
   class Thebe
     default_options:
