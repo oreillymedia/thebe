@@ -35,7 +35,8 @@
   },
     name: "main",
     out: "main-built.js",
-    optimize: "none"//'uglify2',
+    optimize: 'uglify2'
+    // optimize: "none"
 })
 
 

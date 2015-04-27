@@ -4,16 +4,21 @@
 <head>
     <meta charset="utf-8">
 
-    <title>Thebe Example</title>
+    <title>Thebe - Jupyter javascript plugin for static sites</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="static/thebe/site.css" type="text/css"/>
 
-    <!-- Required for older versions of IE -->
+    <!-- Needed for older versions of IE -->
     <script src="static/components/es6-promise/promise.min.js" type="text/javascript" charset="utf-8"></script>
-    <!-- Required for dev, as is the config below -->
-    <!-- See built.html for examples of how to use this in production. -->
+    
+    <!-- This example uses requirejs to dynamically load scripts -->
+    <!-- which is good for local development, because we don't need to rebuild everything when we make a change. -->
+    
+    <!-- See examples/build.html for an example of using the compiled/built javascript -->
+    <!-- that does not require any knowledge or use of require.js -->
+
     <script src="static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
     <script>
 
@@ -49,34 +54,40 @@
           }
       });
 
-      // Require Thebe, and use it
+      // Require thebe, instantiate it
       require(['main'], function(main){
+          // To run this locally, replace this url with the url of your notebook server or tmpnb server
           thebe = new main.Thebe({url:"https://oreillyorchard.com:8000/spawn/"});
+          
+          // The default is //192.168.59.103:8000/spawn/, tmpnb running on boot2docker
+          // thebe = new main.Thebe();
       });
 
     </script>
-
-    
-    
 
 </head>
 
 <body>
 
 <noscript>
-    <div id='noscript'>
-      IPython Notebook requires JavaScript.<br>
+<div id='noscript'>
+      This page requires JavaScript.<br>
       Please enable it to proceed.
   </div>
 </noscript>
 
+<h1>Thebe</h1>
+<h2>Jupyter javascript plugin for static sites</h2>
+
+<p> A really simple example:</p>
 
 <pre data-executable='true'>
 z = "hello", 4+4
 print(z)
+
 </pre>
 
-<p>Blarg blahhh <a href="example.com">bla</a> bla.</p>
+<p>A more complicated example:</p>
 
 <pre data-executable='true'>
 %matplotlib inline
@@ -87,12 +98,7 @@ plt.plot(x, np.sin(x**2))
 plt.title('A simple chirp');
 </pre>
 
-<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-consequat. <strong>Duis</strong> aute irure dolor in reprehenderit in voluptate velit esse
-cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+<p>An interactive example:</p>
 
 <pre data-executable='true'>
 from __future__ import print_function
@@ -102,6 +108,8 @@ from IPython.html import widgets
 def g(x, y):
     print(x, y)
 </pre>
+
+<p>An example with audio:</p>
 
 <pre data-executable='true'>
 %matplotlib inline
@@ -123,17 +131,7 @@ v = interactive(beat_freq, f1=(200.0,300.0), f2=(200.0,300.0))
 display(v)
 </pre>
 
-<p> oiwejf</p>
-
-<pre data-executable='true'>
-print(v.kwargs)
-f1, f2 = v.children
-f1.value = 255
-f2.value = 260
-plt.plot(v.result[0:6000])
-</pre>
-
-<h2>Math!</h2>
+<p> Mathjax support built in:</p>
 
 <p>\begin{align}
 \dot{x} &amp; = \sigma(y-x) \
@@ -141,7 +139,6 @@ plt.plot(v.result[0:6000])
 \dot{z} &amp; = -\beta z + xy
 \end{align}</p>
 
-<p> Something else here</p>
 </body>
 
 </html>

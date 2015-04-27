@@ -4,66 +4,25 @@
 <head>
     <meta charset="utf-8">
 
-    <title>Thebe Example With RequireJs</title>
+    <title>Thebe Example With Compiled JS</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
+    <link rel="stylesheet" href="../static/thebe/site.css" type="text/css"/>
 
-    <link rel="stylesheet" href="static/thebe/site.css" type="text/css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Required for older versions of IE -->
-    <script src="static/components/es6-promise/promise.min.js" type="text/javascript" charset="utf-8"></script>
-    <!-- Required for dev, as is the config below -->
-    <!-- See built.html for examples of how to use this in production. -->
-    <script src="static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
-    <script>
-      require.config({
-          
-          baseUrl: 'static/',
-          paths: {
-            underscore : 'components/underscore/underscore-min',
-            backbone : 'components/backbone/backbone-min',
-            jquery: 'components/jquery/jquery.min',
-            bootstrap: 'components/bootstrap/js/bootstrap.min',
-            jqueryui: 'components/jquery-ui/ui/minified/jquery-ui.min',
-            moment: 'components/moment/moment',
-            codemirror: 'components/codemirror',
-            termjs: 'components/term.js/src/term',
-          },
-          shim: {
-            underscore: {
-              exports: '_'
-            },
-            backbone: {
-              deps: ["underscore", "jquery"],
-              exports: "Backbone"
-            },
-            bootstrap: {
-              deps: ["jquery"],
-              exports: "bootstrap"
-            },
-            jqueryui: {
-              deps: ["jquery"],
-              exports: "$"
-            }
-          }
-      });
+<!-- Only required for IE -->
+<script src="../static/components/es6-promise/promise.min.js" type="text/javascript" charset="utf-8"></script>
 
-      require.config({
-          map: {
-              '*':{
-                'contents': 'services/contents',
-              }
-          }
-      });
-      // And then actually require it, so Thebe runs
-      require(['main'], function(main){
-        new main.Thebe({url:"https://oreillyorchard.com:8000/spawn/"});
-      });
-    </script>
+<script src="../static/main-built.js" type="text/javascript" charset="utf-8"></script>
 
+<script>
+    $(function(){
+        new Thebe({url:"https://oreillyorchard.com:8000/spawn/"});
+    });
+</script>
 
 </head>
-
 <body>
 <h1>An illustrated introduction to the t-SNE algorithm</h1>
 
@@ -145,7 +104,7 @@ for i in range(ncols * nrows):
 plt.savefig('images/digits.png', dpi=150)
 </pre>
 
-<p><img alt="Digits" src="images/digits.png" /></p>
+<!-- <p><img alt="Digits" src="images/digits.png" /></p> -->
 <p>Now let's run the t-SNE algorithm on the dataset. It just takes one line with scikit-learn.</p>
 <pre data-code-language="python"
      data-executable="true"
@@ -203,7 +162,7 @@ scatter(digits_proj, y)
 plt.savefig('images/digits_tsne.png', dpi=120)
 </pre>
 
-<p><img alt="Transformed digits with t-SNE" src="images/digits_tsne.png" /></p>
+<!-- <p><img alt="Transformed digits with t-SNE" src="images/digits_tsne.png" /></p> -->
 <p>We observe that the images corresponding to the different digits are clearly separated into different clusters of points.</p>
 <h2>Mathematical framework</h2>
 <p>Let's explain how the algorithm works. First, a few definitions.</p>
@@ -274,7 +233,7 @@ plt.savefig('images/similarity.png', dpi=120)
 <p>The final mapping is obtained when the equilibrium is reached.</p>
 <p>Here is an illustration of a dynamic graph layout based on a similar idea. Nodes are connected via springs and the system evolves according to law of physics (example by <a href="http://bl.ocks.org/mbostock/4062045">Mike Bostock</a>).</p>
 <iframe src="http://bl.ocks.org/rossant/raw/f06184034ba66a0bd06a/"
-        style="border: 0; width: 620px; height: 440px; margin: 0; padding: 0;" /></iframe>
+        style="border: 0; width: 620px; height: 440px; padding: 0;" /></iframe>
 
 
 <h2 id="algorithm">Algorithm</h2>
@@ -379,7 +338,7 @@ animation = mpy.VideoClip(make_frame_mpl,
 animation.write_gif("images/animation.gif", fps=20)
 </pre>
 
-<p><img src="images/animation.gif" /></p>
+<!-- <p><img src="images/animation.gif" /></p> -->
 
 <p>We can clearly observe the different phases of the optimization, as described in the original paper.</p>
 
@@ -411,7 +370,7 @@ animation = mpy.VideoClip(make_frame_mpl,
 animation.write_gif("images/animation_matrix.gif", fps=20)
 </pre>
 
-<p><img src="images/animation_matrix.gif" /></p>
+<!-- <p><img src="images/animation_matrix.gif" /></p> -->
 
 <h2 id="thet-studentdistribution">The t-Student distribution</h2>
 
@@ -445,7 +404,7 @@ plt.savefig('images/spheres.png', dpi=100, bbox_inches='tight')
 </pre>
 
 <figure>
-<img src="images/spheres.png" alt="Spheres" />
+<!-- <img src="images/spheres.png" alt="Spheres" /> -->
 <figcaption>Spheres</figcaption></figure>
 
 
@@ -467,7 +426,7 @@ plt.savefig('images/distributions.png', dpi=100)
 </pre>
 
 <figure>
-<img src="images/distributions.png" alt="Gaussian and Cauchy distributions" />
+<!-- <img src="images/distributions.png" alt="Gaussian and Cauchy distributions" /> -->
 <figcaption>Gaussian and Cauchy distributions</figcaption></figure>
 
 

@@ -12,7 +12,7 @@
         inject_css: 'no_hl',
         load_css: true,
         load_mathjax: true,
-        debug: true
+        debug: false
       };
 
       function Thebe(_at_options) {
@@ -29,6 +29,7 @@
         this.call_spawn = __bind(this.call_spawn, this);
         window.thebe = this;
         this.has_kernel_connected = false;
+        this.server_error = false;
         _ref = _.defaults(this.options, this.default_options), this.selector = _ref.selector, this.url = _ref.url, this.debug = _ref.debug;
         if (this.url) {
           this.url = this.url.replace(/\/?$/, '/');
@@ -42,16 +43,20 @@
         this.events = events;
         this.setup();
         this.spawn_handler = _.once(this.spawn_handler);
+        this.call_spawn = _.once(this.call_spawn);
         thebe_url = $.cookie('thebe_url');
         if (thebe_url && this.url === '') {
           this.check_existing_container(thebe_url);
-        } else {
-          this.start_notebook();
         }
+        if (this.tmpnb_url) {
+          this.check_server();
+        }
+        this.start_notebook();
       }
 
       Thebe.prototype.call_spawn = function(cb) {
         var invo;
+        this.set_state('starting...');
         this.log('call spawn');
         invo = new XMLHttpRequest;
         invo.open('GET', this.tmpnb_url, true);
@@ -62,9 +67,29 @@
         })(this);
         invo.onerror = (function(_this) {
           return function(e) {
-            _this.log("cannot find tmpnb server");
-            console.log(e);
-            return _this.set_state('disconnected');
+            _this.log("Cannot connect to tmpnb server", true);
+            _this.set_state('disconnected');
+            return $.removeCookie('thebe_url');
+          };
+        })(this);
+        return invo.send();
+      };
+
+      Thebe.prototype.check_server = function(invo) {
+        if (invo == null) {
+          invo = new XMLHttpRequest;
+        }
+        invo.open('GET', this.tmpnb_url.replace('/spawn', '') + 'user/some_fake_user/api', true);
+        invo.onerror = (function(_this) {
+          return function(e) {
+            _this.log('Checked and cannot connect to tmpnb server!' + e.target.status, true);
+            _this.server_error = true;
+            return $('.thebe_controls').remove();
+          };
+        })(this);
+        invo.onload = (function(_this) {
+          return function(e) {
+            return _this.log('Tmpnb server seems to be up');
           };
         })(this);
         return invo.send();
@@ -77,7 +102,8 @@
         invo.open('GET', url + 'api', true);
         invo.onerror = (function(_this) {
           return function(e) {
-            return _this.set_state('disconnected');
+            $.removeCookie('thebe_url');
+            return _this.log('server error when checking existing container');
           };
         })(this);
         invo.onload = (function(_this) {
@@ -85,10 +111,8 @@
             try {
               JSON.parse(e.target.responseText);
               _this.url = url;
-              _this.start_notebook();
-              return _this.log('cookie  with notebook server url was right, use as needed');
+              return _this.log('cookie with notebook server url was right, use as needed');
             } catch (_error) {
-              _this.start_notebook();
               $.removeCookie('thebe_url');
               return _this.log('cookie was wrong/outdated, call spawn as needed');
             }
@@ -100,14 +124,14 @@
       Thebe.prototype.spawn_handler = function(e, cb) {
         var _ref;
         if ((_ref = e.target.status) === 0 || _ref === 405) {
-          this.log('cannot connect to tmpnb server: ' + e.target.status);
+          this.log('Cannot connect to tmpnb server, status: ' + e.target.status, true);
           return this.set_state('disconnected');
         } else if (e.target.responseURL.indexOf('/spawn') !== -1) {
-          this.log('tmpnb server full');
+          this.log('tmpnb server full', true);
           return this.set_state('full');
         } else {
           this.url = e.target.responseURL.replace('/tree', '/');
-          this.log('----->');
+          this.log('responseUrl is');
           this.log(e.target.responseURL);
           this.start_kernel(cb);
           return $.cookie('thebe_url', this.url);
@@ -121,12 +145,14 @@
           return function(i, el) {
             var cell, controls;
             cell = _this.notebook.insert_cell_at_bottom('code');
-            cell.set_text($(el).text());
+            cell.set_text($(el).text().trim());
             controls = $("<div class='thebe_controls' data-cell-id='" + i + "'></div>");
             controls.html(_this.controls_html());
             $(el).replaceWith(cell.element);
             _this.cells.push(cell);
-            $(cell.element).prepend(controls);
+            if (!_this.server_error) {
+              $(cell.element).prepend(controls);
+            }
             cell.element.removeAttr('tabindex');
             return cell.element.off('dblclick');
           };
@@ -170,7 +196,6 @@
 
       Thebe.prototype.before_first_run = function(cb) {
         var kernel_controls;
-        this.set_state('starting...');
         if (this.url) {
           this.start_kernel(cb);
         } else {
@@ -183,6 +208,7 @@
       };
 
       Thebe.prototype.start_kernel = function(cb) {
+        this.set_state('starting...');
         this.log('start_kernel');
         this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, "python2");
         this.kernel.start();
@@ -327,7 +353,7 @@
             id = $('.cell').index(cell.cell.element);
             _this.log('exec done for codecell ' + id);
             button = _this.get_button_by_cell_id(id);
-            return button.text('ran').removeClass('running').addClass('ran');
+            return button.text('done').removeClass('running').addClass('ran');
           };
         })(this));
         window.mathjax_url = '';
@@ -358,20 +384,15 @@
         }
       };
 
-      Thebe.prototype.log = function() {
-        var x;
+      Thebe.prototype.log = function(m, serious) {
+        if (serious == null) {
+          serious = false;
+        }
         if (this.debug) {
-          return console.log("%c" + [
-            (function() {
-              var _i, _len, _results;
-              _results = [];
-              for (_i = 0, _len = arguments.length; _i < _len; _i++) {
-                x = arguments[_i];
-                _results.push(x);
-              }
-              return _results;
-            }).apply(this, arguments)
-          ], "color: blue; font-size: 12px");
+          console.log("%c" + m, "color: blue; font-size: 12px");
+        }
+        if (serious) {
+          return console.log(m);
         }
       };
 

@@ -34,15 +34,17 @@ define [
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
-      # show messages from .log()
-      debug: true
+      # show messages from @log()
+      debug: false
 
     # Take our two basic configuration options
     constructor: (@options={})->
       # just for debugging
       window.thebe = this
-      # important flag
+      
+      # important flags
       @has_kernel_connected = false
+      @server_error = false
 
       # set options to defaults for unset keys
       # and break out some commonly used options
@@ -65,40 +67,61 @@ define [
       @setup()
       # we only ever want the first call
       @spawn_handler = _.once(@spawn_handler)
+      # and we don't want to let a user run this multiple times accidentally
+      @call_spawn = _.once(@call_spawn)
       # Does the user already have a container running
       thebe_url = $.cookie 'thebe_url'
-      # (passing a notebook url takes precedence over a cookie)
+      # passing a notebook url takes precedence over a cookie
       if thebe_url and @url is ''
         @check_existing_container(thebe_url)
-      else
-        @start_notebook()
+      
+      # check that the tmpnb server is even up
+      # before we go and add run buttons
+      if @tmpnb_url
+        @check_server()
+      @start_notebook()
     
     # CORS + redirects + are crazy, lots of things didn't work for this
     # this was from an example is on MDN
     call_spawn:(cb)=>
+      @set_state('starting...')
       @log 'call spawn'
       invo = new XMLHttpRequest
       invo.open 'GET', @tmpnb_url, true
       invo.onreadystatechange = (e)=> @spawn_handler(e, cb)
       invo.onerror = (e)=>
-        @log "cannot find tmpnb server"; console.log(e)
+        @log "Cannot connect to tmpnb server", true 
         @set_state('disconnected')
+        $.removeCookie 'thebe_url'
+      invo.send()
+
+    check_server: (invo=new XMLHttpRequest)->
+      # Hacky, the /stats endpoint would be more appropriate, but I didn't include that in my pr
+      invo.open 'GET', @tmpnb_url.replace('/spawn', '')+'user/some_fake_user/api', true
+      invo.onerror = (e)=>
+        @log 'Checked and cannot connect to tmpnb server!'+ e.target.status, true
+        # if this request completes before we add controls
+        @server_error = true
+        # otherwise, remove controls
+        $('.thebe_controls').remove()
+      invo.onload = (e)=>
+        @log 'Tmpnb server seems to be up'
       invo.send()
 
     check_existing_container: (url, invo=new XMLHttpRequest)->
       # no trailing slash for api url
       invo.open 'GET', url+'api', true
-      invo.onerror = (e)=>  @set_state('disconnected')
+      invo.onerror = (e)=>
+        $.removeCookie 'thebe_url'
+        @log 'server error when checking existing container'
       invo.onload = (e)=>
         # if we can parse the response, it's the actual api
         try
           JSON.parse e.target.responseText
           @url = url
-          @start_notebook()
-          @log 'cookie  with notebook server url was right, use as needed'
+          @log 'cookie with notebook server url was right, use as needed'
         # otherwise it's a notebook_not_found, a page that would js redirect you to /spawn
         catch
-          @start_notebook()
           $.removeCookie 'thebe_url'
           @log 'cookie was wrong/outdated, call spawn as needed'
       # Actually send the request
@@ -107,16 +130,16 @@ define [
     spawn_handler: (e, cb) =>
       # is the server up?
       if e.target.status in [0, 405]
-        @log 'cannot connect to tmpnb server: ' + e.target.status
+        @log 'Cannot connect to tmpnb server, status: ' + e.target.status, true
         @set_state('disconnected')
       # is it full up of active containers?
       else if e.target.responseURL.indexOf('/spawn') isnt -1
-        @log 'tmpnb server full'
+        @log 'tmpnb server full', true
         @set_state('full')
-      # otherwise start the notebook, passing our user's path
+      # otherwise start the kernel
       else
         @url = e.target.responseURL.replace('/tree', '/')
-        @log '----->'
+        @log 'responseUrl is'
         @log e.target.responseURL
         @start_kernel(cb)
         $.cookie 'thebe_url', @url
@@ -131,13 +154,15 @@ define [
 
       $(@selector).each (i, el) =>
         cell = @notebook.insert_cell_at_bottom('code')
-        cell.set_text $(el).text()
+        # grab text, trim it, put it in cell
+        cell.set_text $(el).text().trim()
         controls = $("<div class='thebe_controls' data-cell-id='#{i}'></div>")
         controls.html(@controls_html())
         $(el).replaceWith cell.element
         # cell.refresh()
         @cells.push cell
-        $(cell.element).prepend controls
+        unless @server_error
+          $(cell.element).prepend controls
         cell.element.removeAttr('tabindex')
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
@@ -165,7 +190,6 @@ define [
 
 
     before_first_run: (cb) =>
-      @set_state('starting...')
       if @url then @start_kernel(cb)
       else @call_spawn(cb)
 
@@ -175,6 +199,7 @@ define [
 
     
     start_kernel: (cb)=>
+      @set_state('starting...')
       @log 'start_kernel'
       @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, "python2"
       @kernel.start()
@@ -253,7 +278,6 @@ define [
         action = button.data('action')
         if e.shiftKey
           action = 'shift-'+action
-        # cell = @cells[id]
         switch action
           when 'run'
             @run_cell(id)
@@ -270,7 +294,7 @@ define [
         id = $('.cell').index(cell.cell.element)
         @log 'exec done for codecell '+id
         button = @get_button_by_cell_id(id)
-        button.text('ran').removeClass('running').addClass('ran')
+        button.text('done').removeClass('running').addClass('ran')
 
       # set this no matter what, else we get a warning
       window.mathjax_url = ''
@@ -301,9 +325,9 @@ define [
           # this only works correctly if caching is enabled in the browser
           # @log 'loaded css'
   
-    log: ->
-      if @debug
-        console.log("%c#{[x for x in arguments]}", "color: blue; font-size: 12px");
+    log: (m, serious=false)->
+      if @debug then console.log("%c#{m}", "color: blue; font-size: 12px");
+      if serious then console.log(m)
 
   # So people can access it
   window.Thebe = Thebe
