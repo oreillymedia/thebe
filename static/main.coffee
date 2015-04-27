@@ -100,8 +100,7 @@ define [
       invo.send()
 
     check_server: (invo=new XMLHttpRequest)->
-      # Hacky, the /stats endpoint would be more appropriate, but I didn't include that in my pr
-      invo.open 'GET', @tmpnb_url.replace('/spawn', '')+'user/some_fake_user/api', true
+      invo.open 'GET', @tmpnb_url.replace('/spawn/', '/stats'), true
       invo.onerror = (e)=>
         @log 'Checked and cannot connect to tmpnb server!'+ e.target.status, true
         # if this request completes before we add controls
@@ -138,14 +137,12 @@ define [
         @set_state('disconnected')
       else
         data = JSON.parse e.target.responseText
-        console.log data
         # is it full up of active containers?
         if data.status is 'full' 
           @log 'tmpnb server full', true
           @set_state('full')
         # otherwise start the kernel
         else
-          console.log e.target.responseURL
           @url = e.target.responseURL.replace('/spawn/', '')+data.url.replace('/tree', '/')
           @log 'tmpnb says we should use'
           @log @url

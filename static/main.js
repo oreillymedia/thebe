@@ -80,7 +80,7 @@
         if (invo == null) {
           invo = new XMLHttpRequest;
         }
-        invo.open('GET', this.tmpnb_url.replace('/spawn', '') + 'user/some_fake_user/api', true);
+        invo.open('GET', this.tmpnb_url.replace('/spawn/', '/stats'), true);
         invo.onerror = (function(_this) {
           return function(e) {
             _this.log('Checked and cannot connect to tmpnb server!' + e.target.status, true);
@@ -129,12 +129,10 @@
           return this.set_state('disconnected');
         } else {
           data = JSON.parse(e.target.responseText);
-          console.log(data);
           if (data.status === 'full') {
             this.log('tmpnb server full', true);
             return this.set_state('full');
           } else {
-            console.log(e.target.responseURL);
             this.url = e.target.responseURL.replace('/spawn/', '') + data.url.replace('/tree', '/');
             this.log('tmpnb says we should use');
             this.log(this.url);
