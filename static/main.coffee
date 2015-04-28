@@ -59,9 +59,10 @@ define [
       # if it contains /spawn, it's a tmpnb url, not a notebook url
       if @url.indexOf('/spawn') isnt -1
         @log @url+' is a tmpnb url'
-        @tmpnb_url = @url
+        # set the protocol to the same one we're using now
+        @tmpnb_url = @url.replace(/\/\/|https?:/, window.location.protocol+'//')
+        # we  will still need the actual url of our notebook server
         @url = ''
-
       # we break the notebook's method of tracking cells, so do it ourselves
       @cells = []
       # the jupyter global event object
@@ -70,7 +71,7 @@ define [
       @setup()
       # we only ever want the first call
       @spawn_handler = _.once(@spawn_handler)
-      # and we don't want to let a user run this multiple times accidentally
+      # we don't want to let a user run this multiple times accidentally
       @call_spawn = _.once(@call_spawn)
       # Does the user already have a container running
       thebe_url = $.cookie 'thebe_url'
@@ -91,7 +92,9 @@ define [
       @log 'call spawn'
       invo = new XMLHttpRequest
       invo.open 'GET', @tmpnb_url, true
-      invo.onreadystatechange = (e)=> @spawn_handler(e, cb)
+      invo.onreadystatechange = (e)=> 
+        # if we're done, call the spawn handler
+        if invo.readyState is 4 then  @spawn_handler(e, cb)
       invo.onerror = (e)=>
         @log "Cannot connect to tmpnb server", true 
         @set_state('disconnected')
@@ -99,8 +102,7 @@ define [
       invo.send()
 
     check_server: (invo=new XMLHttpRequest)->
-      # Hacky, the /stats endpoint would be more appropriate, but I didn't include that in my pr
-      invo.open 'GET', @tmpnb_url.replace('/spawn', '')+'user/some_fake_user/api', true
+      invo.open 'GET', @tmpnb_url.replace('/spawn/', '/stats'), true
       invo.onerror = (e)=>
         @log 'Checked and cannot connect to tmpnb server!'+ e.target.status, true
         # if this request completes before we add controls
@@ -131,21 +133,29 @@ define [
       invo.send()
 
     spawn_handler: (e, cb) =>
+      @log 'spawn handler called'
       # is the server up?
       if e.target.status in [0, 405]
         @log 'Cannot connect to tmpnb server, status: ' + e.target.status, true
         @set_state('disconnected')
-      # is it full up of active containers?
-      else if e.target.responseURL.indexOf('/spawn') isnt -1
-        @log 'tmpnb server full', true
-        @set_state('full')
-      # otherwise start the kernel
       else
-        @url = e.target.responseURL.replace('/tree', '/')
-        @log 'responseUrl is'
-        @log e.target.responseURL
-        @start_kernel(cb)
-        $.cookie 'thebe_url', @url
+        try
+          data = JSON.parse e.target.responseText
+        catch
+          @log data
+          @log "Couldn't parse spawn response"
+        # is it full up of active containers?
+        if data.status is 'full' 
+          @log 'tmpnb server full', true
+          @set_state('full')
+        # otherwise start the kernel
+        else
+          # concat the 
+          @url = @tmpnb_url.replace('/spawn/', '')+data.url.replace('/tree', '/')
+          @log 'tmpnb says we should use'
+          @log @url
+          @start_kernel(cb)
+          $.cookie 'thebe_url', @url
 
     build_notebook: =>
       # don't even try to save or autosave

@@ -37,7 +37,7 @@
         }
         if (this.url.indexOf('/spawn') !== -1) {
           this.log(this.url + ' is a tmpnb url');
-          this.tmpnb_url = this.url;
+          this.tmpnb_url = this.url.replace(/\/\/|https?:/, window.location.protocol + '//');
           this.url = '';
         }
         this.cells = [];
@@ -63,7 +63,9 @@
         invo.open('GET', this.tmpnb_url, true);
         invo.onreadystatechange = (function(_this) {
           return function(e) {
-            return _this.spawn_handler(e, cb);
+            if (invo.readyState === 4) {
+              return _this.spawn_handler(e, cb);
+            }
           };
         })(this);
         invo.onerror = (function(_this) {
@@ -80,7 +82,7 @@
         if (invo == null) {
           invo = new XMLHttpRequest;
         }
-        invo.open('GET', this.tmpnb_url.replace('/spawn', '') + 'user/some_fake_user/api', true);
+        invo.open('GET', this.tmpnb_url.replace('/spawn/', '/stats'), true);
         invo.onerror = (function(_this) {
           return function(e) {
             _this.log('Checked and cannot connect to tmpnb server!' + e.target.status, true);
@@ -123,19 +125,28 @@
       };
 
       Thebe.prototype.spawn_handler = function(e, cb) {
-        var _ref;
+        var data, _ref;
+        this.log('spawn handler called');
         if ((_ref = e.target.status) === 0 || _ref === 405) {
           this.log('Cannot connect to tmpnb server, status: ' + e.target.status, true);
           return this.set_state('disconnected');
-        } else if (e.target.responseURL.indexOf('/spawn') !== -1) {
-          this.log('tmpnb server full', true);
-          return this.set_state('full');
         } else {
-          this.url = e.target.responseURL.replace('/tree', '/');
-          this.log('responseUrl is');
-          this.log(e.target.responseURL);
-          this.start_kernel(cb);
-          return $.cookie('thebe_url', this.url);
+          try {
+            data = JSON.parse(e.target.responseText);
+          } catch (_error) {
+            this.log(data);
+            this.log("Couldn't parse spawn response");
+          }
+          if (data.status === 'full') {
+            this.log('tmpnb server full', true);
+            return this.set_state('full');
+          } else {
+            this.url = this.tmpnb_url.replace('/spawn/', '') + data.url.replace('/tree', '/');
+            this.log('tmpnb says we should use');
+            this.log(this.url);
+            this.start_kernel(cb);
+            return $.cookie('thebe_url', this.url);
+          }
         }
       };
 
