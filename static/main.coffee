@@ -60,7 +60,7 @@ define [
       if @url.indexOf('/spawn') isnt -1
         @log @url+' is a tmpnb url'
         # set the protocol to the same one we're using now
-        @tmpnb_url = @url.replace(/\/\/|https?:/, window.location.protocol+'//')
+        @tmpnb_url = @url.replace(/^(https?:)?\/\//ig, window.location.protocol+'//')
         # we  will still need the actual url of our notebook server
         @url = ''
       # we break the notebook's method of tracking cells, so do it ourselves

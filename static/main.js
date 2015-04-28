@@ -37,7 +37,7 @@
         }
         if (this.url.indexOf('/spawn') !== -1) {
           this.log(this.url + ' is a tmpnb url');
-          this.tmpnb_url = this.url.replace(/\/\/|https?:/, window.location.protocol + '//');
+          this.tmpnb_url = this.url.replace(/^(https?:)?\/\//ig, window.location.protocol + '//');
           this.url = '';
         }
         this.cells = [];
