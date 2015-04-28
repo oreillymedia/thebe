@@ -93,7 +93,7 @@ r.js -o build.js baseUrl=. name=almond include=main out=main-built.js
 
 ```
 
-## Run `tmnb` Locally
+## Run `tmpnb` Locally
 
 First, you need docker (and boot2docker if you're on a OS X) installed. 
 
