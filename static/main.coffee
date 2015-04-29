@@ -30,7 +30,7 @@ define [
       # (default url assumes user is running tmpnb via boot2docker)
       url: '//192.168.59.103:8000/spawn/'
       # set to false to prevent kernel_controls from being added
-      append_kernel_controls_to: 'body'
+      append_kernel_controls_to: false
       # Automatically inject basic default css we need, no highlighting
       inject_css: 'no_hl'
       # Automatically load other necessary css (jquery ui)
