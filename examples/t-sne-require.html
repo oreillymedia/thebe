@@ -52,7 +52,7 @@
 
       // And then actually require it, so Thebe runs
       require(['main'], function(main){
-        new main.Thebe({url:"https://oreillyorchard.com:8000/spawn/"});
+        new Thebe({url:"https://oreillyorchard.com:8000/spawn/", append_kernel_controls_to: "body"});
       });
     </script>
 

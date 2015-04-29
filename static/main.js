@@ -8,7 +8,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe.prototype.default_options = {
       selector: 'pre[data-executable]',
       url: '//192.168.59.103:8000/spawn/',
-      append_kernel_controls_to: 'body',
+      append_kernel_controls_to: false,
       inject_css: 'no_hl',
       load_css: true,
       load_mathjax: true,
