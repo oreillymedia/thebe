@@ -18,6 +18,9 @@
 
     <script src="static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
     <script>
+      // Only serve via https because that's all we have oreillyorchard.com set up for
+      if (window.location.protocol != "https:")
+          window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
 
       require.config({
           
