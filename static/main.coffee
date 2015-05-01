@@ -28,7 +28,7 @@ define [
       # if it contains "spawn/", assume it's a tmpnb server
       # otherwise assume it's a notebook url
       # (default url assumes user is running tmpnb via boot2docker)
-      url: '//192.168.59.103:8000/spawn/'
+      url: '//192.168.59.103:8000/api/spawn/'
       # set to false to prevent kernel_controls from being added
       append_kernel_controls_to: false
       # Automatically inject basic default css we need, no highlighting
@@ -42,9 +42,6 @@ define [
 
     # Take our two basic configuration options
     constructor: (@options={})->
-      # just for debugging
-      window.thebe = this
-      
       # important flags
       @has_kernel_connected = false
       @server_error = false
@@ -89,9 +86,9 @@ define [
     # this was from an example is on MDN
     call_spawn:(cb)=>
       @set_state('starting...')
-      @log 'call spawn'
+      @log 'call spawn', @tmpnb_url
       invo = new XMLHttpRequest
-      invo.open 'GET', @tmpnb_url, true
+      invo.open 'POST', @tmpnb_url, true
       invo.onreadystatechange = (e)=> 
         # if we're done, call the spawn handler
         if invo.readyState is 4 then  @spawn_handler(e, cb)
@@ -102,7 +99,7 @@ define [
       invo.send()
 
     check_server: (invo=new XMLHttpRequest)->
-      invo.open 'GET', @tmpnb_url.replace('/spawn/', '/stats'), true
+      invo.open 'GET', @tmpnb_url.replace('/api/spawn/', '/stats'), true
       invo.onerror = (e)=>
         @log 'Checked and cannot connect to tmpnb server!'+ e.target.status, true
         # if this request completes before we add controls
@@ -151,7 +148,7 @@ define [
         # otherwise start the kernel
         else
           # concat the 
-          @url = @tmpnb_url.replace('/spawn/', '')+data.url.replace('/tree', '/')
+          @url = @tmpnb_url.replace('/api/spawn/', '')+'/'+data.url+'/'
           @log 'tmpnb says we should use'
           @log @url
           @start_kernel(cb)

@@ -7,7 +7,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
   Thebe = (function() {
     Thebe.prototype.default_options = {
       selector: 'pre[data-executable]',
-      url: '//192.168.59.103:8000/spawn/',
+      url: '//192.168.59.103:8000/api/spawn/',
       append_kernel_controls_to: false,
       inject_css: 'no_hl',
       load_css: true,
@@ -27,7 +27,6 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.build_notebook = __bind(this.build_notebook, this);
       this.spawn_handler = __bind(this.spawn_handler, this);
       this.call_spawn = __bind(this.call_spawn, this);
-      window.thebe = this;
       this.has_kernel_connected = false;
       this.server_error = false;
       _ref = _.defaults(this.options, this.default_options), this.selector = _ref.selector, this.url = _ref.url, this.debug = _ref.debug;
@@ -57,9 +56,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe.prototype.call_spawn = function(cb) {
       var invo;
       this.set_state('starting...');
-      this.log('call spawn');
+      this.log('call spawn', this.tmpnb_url);
       invo = new XMLHttpRequest;
-      invo.open('GET', this.tmpnb_url, true);
+      invo.open('POST', this.tmpnb_url, true);
       invo.onreadystatechange = (function(_this) {
         return function(e) {
           if (invo.readyState === 4) {
@@ -81,7 +80,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       if (invo == null) {
         invo = new XMLHttpRequest;
       }
-      invo.open('GET', this.tmpnb_url.replace('/spawn/', '/stats'), true);
+      invo.open('GET', this.tmpnb_url.replace('/api/spawn/', '/stats'), true);
       invo.onerror = (function(_this) {
         return function(e) {
           _this.log('Checked and cannot connect to tmpnb server!' + e.target.status, true);
@@ -140,7 +139,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           this.log('tmpnb server full', true);
           return this.set_state('full');
         } else {
-          this.url = this.tmpnb_url.replace('/spawn/', '') + data.url.replace('/tree', '/');
+          this.url = this.tmpnb_url.replace('/api/spawn/', '') + '/' + data.url + '/';
           this.log('tmpnb says we should use');
           this.log(this.url);
           this.start_kernel(cb);
