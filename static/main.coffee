@@ -25,10 +25,10 @@ define [
       # jquery selector for elements we want to make runnable 
       selector: 'pre[data-executable]'
       # the url of either a tmnb server or a notebook server
-      # if it contains "spawn/", assume it's a tmpnb server
-      # otherwise assume it's a notebook url
       # (default url assumes user is running tmpnb via boot2docker)
-      url: '//192.168.59.103:8000/api/spawn/'
+      url: '//192.168.59.103:8000/'
+      # is the url for tmpnb or for a notebook
+      tmpnb_mode: true
       # set to false to prevent kernel_controls from being added
       append_kernel_controls_to: false
       # Automatically inject basic default css we need, no highlighting
@@ -39,6 +39,11 @@ define [
       load_mathjax: true
       # show messages from @log()
       debug: false
+
+    # some constants we need
+    spawn_path: "api/spawn/"
+    stats_path: "stats"
+    kernel_name: "python2"
 
     # Take our two basic configuration options
     constructor: (@options={})->
@@ -53,12 +58,10 @@ define [
       # if we've been given a non blank url, make sure it has a trailing slash
       if @url then @url = @url.replace(/\/?$/, '/')
       
-      # if it contains /spawn, it's a tmpnb url, not a notebook url
-      if @url.indexOf('/spawn') isnt -1
-        @log @url+' is a tmpnb url'
-        # set the protocol to the same one we're using now
-        @tmpnb_url = @url.replace(/^(https?:)?\/\//ig, window.location.protocol+'//')
-        # we  will still need the actual url of our notebook server
+      if @options.tmpnb_mode
+        @log 'Thebe is in tmpnb mode'
+        @tmpnb_url = @url
+        # we will still need the actual url of our notebook server
         @url = ''
       # we break the notebook's method of tracking cells, so do it ourselves
       @cells = []
@@ -78,17 +81,17 @@ define [
       
       # check that the tmpnb server is even up
       # before we go and add run buttons
-      if @tmpnb_url
-        @check_server()
+      if @tmpnb_url then @check_server()
+
       @start_notebook()
     
     # CORS + redirects + are crazy, lots of things didn't work for this
     # this was from an example is on MDN
     call_spawn:(cb)=>
       @set_state('starting...')
-      @log 'call spawn', @tmpnb_url
+      @log 'call spawn'
       invo = new XMLHttpRequest
-      invo.open 'POST', @tmpnb_url, true
+      invo.open 'POST', @tmpnb_url+@spawn_path, true
       invo.onreadystatechange = (e)=> 
         # if we're done, call the spawn handler
         if invo.readyState is 4 then  @spawn_handler(e, cb)
@@ -99,10 +102,10 @@ define [
       invo.send()
 
     check_server: (invo=new XMLHttpRequest)->
-      invo.open 'GET', @tmpnb_url.replace('/api/spawn/', '/stats'), true
+      invo.open 'GET', @tmpnb_url+@stats_path, true
       invo.onerror = (e)=>
         @log 'Checked and cannot connect to tmpnb server!'+ e.target.status, true
-        # if this request completes before we add controls
+        # if this request completes before we add controls, this will prevent them from being added
         @server_error = true
         # otherwise, remove controls
         $('.thebe_controls').remove()
@@ -206,12 +209,11 @@ define [
       if @options.append_kernel_controls_to 
         kernel_controls = $("<div class='thebe_controls kernel_controls'></div>")
         kernel_controls.html(@kernel_controls_html()).appendTo @options.append_kernel_controls_to
-
     
     start_kernel: (cb)=>
       @set_state('starting...')
       @log 'start_kernel'
-      @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, "python2"
+      @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, @kernel_name
       @kernel.start()
       @notebook.kernel = @kernel
       @events.on 'kernel_ready.Kernel', => 

@@ -58,10 +58,9 @@
           
           // The default is //192.168.59.103:8000/spawn/, tmpnb running on boot2docker
           thebe = new main.Thebe({
-            // url: "http://localhost:8888/",
-            // url: "//192.168.59.103:8000/spawn/",
-            url: "http://192.168.59.103:8000/api/spawn/",
-            debug: true
+            url: "https://192.168.59.103:8000",
+            debug: true,
+            tmpnb_mode: false
           });
       });
 

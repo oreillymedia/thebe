@@ -7,13 +7,20 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
   Thebe = (function() {
     Thebe.prototype.default_options = {
       selector: 'pre[data-executable]',
-      url: '//192.168.59.103:8000/api/spawn/',
+      url: '//192.168.59.103:8000/',
+      tmpnb_mode: true,
       append_kernel_controls_to: false,
       inject_css: 'no_hl',
       load_css: true,
       load_mathjax: true,
       debug: false
     };
+
+    Thebe.prototype.spawn_path = "api/spawn/";
+
+    Thebe.prototype.stats_path = "stats";
+
+    Thebe.prototype.kernel_name = "python2";
 
     function Thebe(_at_options) {
       var thebe_url, _ref;
@@ -33,9 +40,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       if (this.url) {
         this.url = this.url.replace(/\/?$/, '/');
       }
-      if (this.url.indexOf('/spawn') !== -1) {
-        this.log(this.url + ' is a tmpnb url');
-        this.tmpnb_url = this.url.replace(/^(https?:)?\/\//ig, window.location.protocol + '//');
+      if (this.options.tmpnb_mode) {
+        this.log('Thebe is in tmpnb mode');
+        this.tmpnb_url = this.url;
         this.url = '';
       }
       this.cells = [];
@@ -56,9 +63,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe.prototype.call_spawn = function(cb) {
       var invo;
       this.set_state('starting...');
-      this.log('call spawn', this.tmpnb_url);
+      this.log('call spawn');
       invo = new XMLHttpRequest;
-      invo.open('POST', this.tmpnb_url, true);
+      invo.open('POST', this.tmpnb_url + this.spawn_path, true);
       invo.onreadystatechange = (function(_this) {
         return function(e) {
           if (invo.readyState === 4) {
@@ -80,7 +87,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       if (invo == null) {
         invo = new XMLHttpRequest;
       }
-      invo.open('GET', this.tmpnb_url.replace('/api/spawn/', '/stats'), true);
+      invo.open('GET', this.tmpnb_url + this.stats_path, true);
       invo.onerror = (function(_this) {
         return function(e) {
           _this.log('Checked and cannot connect to tmpnb server!' + e.target.status, true);
@@ -220,7 +227,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe.prototype.start_kernel = function(cb) {
       this.set_state('starting...');
       this.log('start_kernel');
-      this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, "python2");
+      this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, this.kernel_name);
       this.kernel.start();
       this.notebook.kernel = this.kernel;
       return this.events.on('kernel_ready.Kernel', (function(_this) {
