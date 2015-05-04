@@ -387,7 +387,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       }
       if (this.options.load_css) {
         urls = ["https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css"];
-        return $.when($.each(urls, function(i, url) {
+        $.when($.each(urls, function(i, url) {
           return $.get(url, function() {
             return $('<link>', {
               rel: 'stylesheet',
@@ -399,6 +399,11 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           return function() {};
         })(this));
       }
+      return $(document).ajaxError((function(_this) {
+        return function(event, jqxhr, settings, thrownError) {
+          return _this.set_state('disconnected');
+        };
+      })(this));
     };
 
     Thebe.prototype.log = function(m, serious) {

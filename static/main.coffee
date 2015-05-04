@@ -78,9 +78,8 @@ define [
       # passing a notebook url takes precedence over a cookie
       if thebe_url and @url is ''
         @check_existing_container(thebe_url)
-      
-      # check that the tmpnb server is even up
-      # before we go and add run buttons
+
+      # check that the tmpnb server is up
       if @tmpnb_url then @check_server()
 
       @start_notebook()
@@ -336,6 +335,12 @@ define [
         )).then => 
           # this only works correctly if caching is enabled in the browser
           # @log 'loaded css'
+
+      # Sets up global ajax error handling, which is simpler than
+      # hooking into the jupyter events, especially as we don't use them
+      # all as they are intended to be used
+      $(document).ajaxError (event, jqxhr, settings, thrownError) =>
+        @set_state('disconnected')
   
     log: (m, serious=false)->
       if @debug then console.log("%c#{m}", "color: blue; font-size: 12px");
