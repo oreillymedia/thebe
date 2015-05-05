@@ -60,7 +60,8 @@
           thebe = new main.Thebe({
             url: "https://192.168.59.103:8000",
             debug: true,
-            tmpnb_mode: false
+            // inject_css: false
+            // tmpnb_mode: false
           });
       });
 
@@ -77,6 +78,11 @@
   </div>
 </noscript>
 
+
+<div class="thebe-spinner thebe-spinner-three-bounce">
+  <div></div> <div></div> <div></div>
+</div>    
+
 <h1>Thebe</h1>
 <h2>Jupyter javascript plugin for static sites</h2>
 
@@ -87,11 +93,12 @@ z = "hello", 4+4
 print(z)
 
 </pre>
-
 <p>A more complicated example:</p>
 
 <pre data-executable='true'>
 %matplotlib inline
+import time
+time.sleep(2)
 import matplotlib.pyplot as plt
 import numpy as np
 x = np.linspace(0, 3*np.pi, 500)

@@ -10,7 +10,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       url: '//192.168.59.103:8000/',
       tmpnb_mode: true,
       append_kernel_controls_to: false,
-      inject_css: 'no_hl',
+      inject_css: true,
       load_css: true,
       load_mathjax: true,
       debug: false
@@ -197,14 +197,18 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.log('state :' + this.state);
       return $.doTimeout('thebe_set_state', 500, (function(_this) {
         return function() {
-          $(".thebe_controls .state").text(_this.state);
+          if (_this.state === 'busy') {
+            $(".thebe_controls button").html('Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>');
+          } else {
+            $(".thebe_controls button").html(_this.state);
+          }
           return false;
         };
       })(this));
     };
 
     Thebe.prototype.controls_html = function() {
-      return "<button data-action='run'>run</button><span class='state'></span>";
+      return "<button data-action='run'>run</button>";
     };
 
     Thebe.prototype.kernel_controls_html = function() {
@@ -380,9 +384,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         script.src = "//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
         document.getElementsByTagName("head")[0].appendChild(script);
       }
-      if (this.options.inject_css === 'no_hl') {
-        $("<style>" + default_css.no_hl + "</style>").appendTo('head');
-      } else if (this.options.inject_css) {
+      if (this.options.inject_css) {
         $("<style>" + default_css.css + "</style>").appendTo('head');
       }
       if (this.options.load_css) {

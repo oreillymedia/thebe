@@ -32,7 +32,7 @@ define [
       # set to false to prevent kernel_controls from being added
       append_kernel_controls_to: false
       # Automatically inject basic default css we need, no highlighting
-      inject_css: 'no_hl'
+      inject_css: true
       # Automatically load other necessary css (jquery ui)
       load_css: true
       # Automatically load mathjax js
@@ -191,11 +191,14 @@ define [
     set_state: (@state) =>
       @log 'state :'+@state
       $.doTimeout 'thebe_set_state', 500, =>
-        $(".thebe_controls .state").text(@state)
+        if @state is 'busy'
+          $(".thebe_controls button").html 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
+        else
+          $(".thebe_controls button").html(@state)
         return false
 
     controls_html: ->
-      "<button data-action='run'>run</button><span class='state'></span>"
+      "<button data-action='run'>run</button>"
 
     kernel_controls_html: ->
       "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button><span class='state'></span>"
@@ -315,11 +318,8 @@ define [
         script.src  = "//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
         document.getElementsByTagName("head")[0].appendChild(script)
 
-      # inject  default styles right into the page
-      if @options.inject_css is 'no_hl'
-        $("<style>#{default_css.no_hl}</style>").appendTo('head')
-      else if @options.inject_css 
-        $("<style>#{default_css.css}</style>").appendTo('head')
+      # inject default styles directly into the page
+      if @options.inject_css then $("<style>#{default_css.css}</style>").appendTo('head')
 
       # Add some CSS links to the page
       if @options.load_css
