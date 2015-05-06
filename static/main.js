@@ -27,9 +27,13 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
 
     Thebe.prototype.busy_state = "busy";
 
+    Thebe.prototype.ran_state = "ran";
+
     Thebe.prototype.full_state = "full";
 
     Thebe.prototype.disc_state = "disconnected";
+
+    Thebe.prototype.error_state = "user_error";
 
     Thebe.prototype.ui = {};
 
@@ -37,21 +41,25 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.ui[this.start_state] = 'Starting server...';
       this.ui[this.idle_state] = 'Run';
       this.ui[this.busy_state] = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>';
+      this.ui[this.ran_state] = 'Run Again';
+      this.ui[this.error_state] = 'Run Again';
       this.ui[this.full_state] = 'Server is Full :-(';
-      return this.ui[this.disc_state] = 'Disconnected from Server :-(';
+      this.ui[this.disc_state] = 'Disconnected from Server :-(';
+      return this.ui['error_addendum'] = "<button data-action='run_above'>Run all above</button> <div>It looks like there was an error. You might need to run the code examples above for this one to work</div>";
     };
 
     function Thebe(_at_options) {
       var thebe_url, _ref;
       this.options = _at_options != null ? _at_options : {};
       this.setup = __bind(this.setup, this);
-      this.run_cell = __bind(this.run_cell, this);
       this.start_notebook = __bind(this.start_notebook, this);
       this.start_kernel = __bind(this.start_kernel, this);
       this.before_first_run = __bind(this.before_first_run, this);
+      this.run_cell = __bind(this.run_cell, this);
       this.controls_html = __bind(this.controls_html, this);
+      this.show_cell_state = __bind(this.show_cell_state, this);
       this.set_state = __bind(this.set_state, this);
-      this.build_notebook = __bind(this.build_notebook, this);
+      this.build_thebe = __bind(this.build_thebe, this);
       this.spawn_handler = __bind(this.spawn_handler, this);
       this.call_spawn = __bind(this.call_spawn, this);
       this.has_kernel_connected = false;
@@ -83,7 +91,6 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
 
     Thebe.prototype.call_spawn = function(cb) {
       var invo;
-      this.set_state(this.start_state);
       this.log('call spawn');
       invo = new XMLHttpRequest;
       invo.open('POST', this.tmpnb_url + this.spawn_path, true);
@@ -176,7 +183,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       }
     };
 
-    Thebe.prototype.build_notebook = function() {
+    Thebe.prototype.build_thebe = function() {
       this.notebook.writable = false;
       this.notebook._unsafe_delete_cell(0);
       $(this.selector).each((function(_this) {
@@ -196,8 +203,25 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       })(this));
       this.notebook_el.hide();
       this.events.on('kernel_idle.Kernel', (function(_this) {
-        return function(e, k) {
-          return _this.set_state(_this.idle_state);
+        return function() {
+          _this.set_state(_this.idle_state);
+          return $.doTimeout('thebe_idle_state', 300, function() {
+            var busy_ids, id, _i, _len;
+            if (_this.state === _this.idle_state) {
+              busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(function() {
+                return $(this).data('cell-id');
+              });
+              for (_i = 0, _len = busy_ids.length; _i < _len; _i++) {
+                id = busy_ids[_i];
+                _this.show_cell_state(_this.idle_state, id);
+              }
+              return false;
+            } else if (_this.state !== _this.disc_state) {
+              return true;
+            } else {
+              return false;
+            }
+          });
         };
       })(this));
       this.events.on('kernel_busy.Kernel', (function(_this) {
@@ -215,40 +239,87 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           var controls, id;
           controls = $(output_area.element).parents('.code_cell').find('.thebe_controls');
           id = controls.data('cell-id');
-          return console.log(controls, id);
+          if (msg_type === 'error') {
+            console.log('cancel');
+            _this.show_cell_state(_this.error_state, id);
+            return _this.log('Error executing cell #' + id);
+          }
         };
       })(this));
     };
 
-    Thebe.prototype.set_state = function(_at_state, cell_id) {
+    Thebe.prototype.set_state = function(_at_state) {
       this.state = _at_state;
+      return this.log('Thebe :' + this.state);
+    };
+
+    Thebe.prototype.show_cell_state = function(state, cell_id) {
       if (cell_id == null) {
         cell_id = false;
       }
-      this.log('Thebe :' + this.state);
-      return $.doTimeout('thebe_set_state', 400, (function(_this) {
-        return function() {
-          if (cell_id) {
-            $(".thebe_controls[data-cell-id=" + cell_id + "]").html(_this.controls_html(_this.state));
-          } else {
-            $(".thebe_controls").html(_this.controls_html(_this.state));
-          }
-          return false;
-        };
-      })(this));
+      console.log('show cell state: ' + state + ' for ' + cell_id);
+      if (this.cells[cell_id]['last_msg_id'] && state === this.idle_state) {
+        state = this.ran_state;
+      }
+      return $(".thebe_controls[data-cell-id=" + cell_id + "]").html(this.controls_html(state));
     };
 
     Thebe.prototype.controls_html = function(state) {
-      var html;
+      var html, result;
       if (state == null) {
         state = this.idle_state;
       }
       html = this.ui[state];
-      return "<button data-action='run' data-state='" + state + "'>" + html + "</button>";
+      result = "<button data-action='run' data-state='" + state + "'>" + html + "</button>";
+      if (state === this.error_state) {
+        result += this.ui["error_addendum"];
+      }
+      return result;
     };
 
     Thebe.prototype.kernel_controls_html = function() {
       return "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button>";
+    };
+
+    Thebe.prototype.run_cell = function(cell_id, end_id) {
+      var cell, i, _i, _len, _ref, _results;
+      if (end_id == null) {
+        end_id = false;
+      }
+      cell = this.cells[cell_id];
+      if (!this.has_kernel_connected) {
+        this.show_cell_state(this.start_state, cell_id);
+        return this.before_first_run((function(_this) {
+          return function() {
+            var i, _i, _len, _ref, _results;
+            _this.show_cell_state(_this.busy_state, cell_id);
+            cell.execute();
+            if (end_id) {
+              _ref = _this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
+              _results = [];
+              for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+                cell = _ref[i];
+                _this.show_cell_state(_this.busy_state, i + 1);
+                _results.push(cell.execute());
+              }
+              return _results;
+            }
+          };
+        })(this));
+      } else {
+        this.show_cell_state(this.busy_state, cell_id);
+        cell.execute();
+        if (end_id) {
+          _ref = this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
+          _results = [];
+          for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+            cell = _ref[i];
+            this.show_cell_state(this.busy_state, i + 1);
+            _results.push(cell.execute());
+          }
+          return _results;
+        }
+      }
     };
 
     Thebe.prototype.before_first_run = function(cb) {
@@ -331,48 +402,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       };
       this.events.trigger('app_initialized.NotebookApp');
       this.notebook.load_notebook(common_options.notebook_path);
-      return this.build_notebook();
-    };
-
-    Thebe.prototype.get_button_by_cell_id = function(id) {
-      return $(".thebe_controls[data-cell-id=" + id + "] button[data-action='run']");
-    };
-
-    Thebe.prototype.run_cell = function(cell_id, end_id) {
-      var button, cell, _i, _len, _ref, _results;
-      if (end_id == null) {
-        end_id = false;
-      }
-      cell = this.cells[cell_id];
-      button = this.get_button_by_cell_id(cell_id);
-      if (!this.has_kernel_connected) {
-        return this.before_first_run((function(_this) {
-          return function() {
-            var _i, _len, _ref, _results;
-            cell.execute();
-            if (end_id) {
-              _ref = _this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
-              _results = [];
-              for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-                cell = _ref[_i];
-                _results.push(cell.execute());
-              }
-              return _results;
-            }
-          };
-        })(this));
-      } else {
-        cell.execute();
-        if (end_id) {
-          _ref = this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
-          _results = [];
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            cell = _ref[_i];
-            _results.push(cell.execute());
-          }
-          return _results;
-        }
-      }
+      return this.build_thebe();
     };
 
     Thebe.prototype.setup = function() {
@@ -380,7 +410,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       $('body').on('click', 'div.thebe_controls button', (function(_this) {
         return function(e) {
           var action, button, id;
-          button = $(e.target);
+          button = $(e.currentTarget);
           id = button.parent().data('cell-id');
           action = button.data('action');
           if (e.shiftKey) {
@@ -390,6 +420,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
             case 'run':
               return _this.run_cell(id);
             case 'shift-run':
+            case 'run_above':
               _this.log('exec from top to cell #' + id);
               return _this.run_cell(0, id);
             case 'interrupt':
@@ -399,13 +430,6 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
                 return _this.kernel.restart();
               }
           }
-        };
-      })(this));
-      this.events.on('execute.CodeCell', (function(_this) {
-        return function(e, cell) {
-          var id;
-          id = $('.cell').index(cell.cell.element);
-          return _this.log('exec done for codecell ' + id);
         };
       })(this));
       window.mathjax_url = '';

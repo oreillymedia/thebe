@@ -47,25 +47,31 @@ define [
     stats_path: "stats"
     # state constants
     start_state: "start"
-    idle_state: "idle"
-    busy_state: "busy"
-    full_state: "full"
-    disc_state: "disconnected"
+    idle_state:  "idle"
+    busy_state:  "busy"
+    ran_state:   "ran"
+    full_state:  "full"
+    disc_state:  "disconnected"
+    error_state: "user_error"
     # I don't know an elegant way to use these pre instantiation
     ui: {}
     setup_ui_messages: ->
       @ui[@start_state] = 'Starting server...'
-      @ui[@idle_state] = 'Run'
-      @ui[@busy_state] = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
-      @ui[@full_state] = 'Server is Full :-('
-      @ui[@disc_state] = 'Disconnected from Server :-('
+      @ui[@idle_state]  = 'Run'
+      @ui[@busy_state]  = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
+      @ui[@ran_state]   = 'Run Again'
+      @ui[@error_state] = 'Run Again'
+      @ui[@full_state]  = 'Server is Full :-('
+      @ui[@disc_state]  = 'Disconnected from Server :-('
+      @ui['error_addendum']  = "<button data-action='run_above'>Run all above</button> <div>It looks like there was an error. You might need to run the code examples above for this one to work</div>"
 
+    # See default_options above 
     constructor: (@options={})->
       # important flags
       @has_kernel_connected = false
       @server_error = false
 
-      # set options to defaults for unset keys
+      # set options to defaults if they weren't specified
       # and break out some commonly used options
       {@selector, @url, @debug} = _.defaults(@options, @default_options)
 
@@ -103,10 +109,12 @@ define [
       # and get everything set up for when the user hits run that first time
       @start_notebook()
     
+    # NETWORKING
+    # ----------------------
     # CORS + redirects + are crazy, lots of things didn't work for this
     # this was from an example is on MDN
     call_spawn:(cb)=>
-      @set_state(@start_state)
+      # @set_state(@start_state)
       @log 'call spawn'
       invo = new XMLHttpRequest
       invo.open 'POST', @tmpnb_url+@spawn_path, true
@@ -175,7 +183,7 @@ define [
           @start_kernel(cb)
           $.cookie 'thebe_url', @url
 
-    build_notebook: =>
+    build_thebe: =>
       # don't even try to save or autosave
       @notebook.writable = false
 
@@ -201,8 +209,19 @@ define [
       # We're not using the real notebook
       @notebook_el.hide()
       
-      @events.on 'kernel_idle.Kernel', (e, k) =>
-        @set_state(@idle_state)
+      @events.on 'kernel_idle.Kernel', =>
+        @set_state @idle_state
+        $.doTimeout 'thebe_idle_state', 300, =>
+          if @state is @idle_state
+            busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(->$(this).data('cell-id'))
+            for id in busy_ids
+              @show_cell_state(@idle_state, id)
+            return false
+          else if @state isnt @disc_state
+            # keep polling
+            return true
+          else return false
+
       @events.on 'kernel_busy.Kernel', =>
         @set_state(@busy_state)
       @events.on 'kernel_disconnected.Kernel', =>
@@ -212,29 +231,57 @@ define [
       @events.on 'output_message.OutputArea', (e, msg_type, msg, output_area)=>
         controls = $(output_area.element).parents('.code_cell').find('.thebe_controls')
         id = controls.data('cell-id')
-        console.log controls, id
+        if msg_type is 'error'
+          console.log 'cancel'
+          @show_cell_state(@error_state, id)
+          # $.doTimeout 'thebe_idle_state'
+          @log 'Error executing cell #'+id
 
-    set_state: (@state, cell_id=false) =>
+
+    # This doesn't change the html, just sets the var
+    set_state: (@state) =>
       @log 'Thebe :'+@state
-      # This adds a nice debounce, because the state can change very rapidly, which gets confusing
-      # Subsequent calls override the previous, and return false prevents it from repeating
-      $.doTimeout 'thebe_set_state', 400, =>        
-        if cell_id
-          $(".thebe_controls[data-cell-id=#{cell_id}]").html @controls_html(@state)
-        else
-          $(".thebe_controls").html @controls_html(@state)
 
-        # $(".thebe_controls button").html(html)
-        return false
+    show_cell_state: (state, cell_id=false)=>
+      console.log 'show cell state: '+ state + ' for '+ cell_id
+      # has this cell already been run and we're switching it to idle
+      if @cells[cell_id]['last_msg_id'] and state is @idle_state
+        state = @ran_state
+      $(".thebe_controls[data-cell-id=#{cell_id}]").html @controls_html(state)
 
-    # Note not @state
+    # Note: not @state
     controls_html: (state=@idle_state)=>
       html = @ui[state]
-      "<button data-action='run' data-state='#{state}'>#{html}</button>"
+      result = "<button data-action='run' data-state='#{state}'>#{html}</button>"
+      if state is @error_state
+        result+=@ui["error_addendum"]
+      result
 
     kernel_controls_html: ->
       "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button>"
 
+    # User clicks a run button, end_id is for the run above feature
+    # The combo of the callback and range makes it a little awkward
+    run_cell: (cell_id, end_id=false)=>
+      cell = @cells[cell_id]
+      if not @has_kernel_connected
+        @show_cell_state(@start_state, cell_id)
+        # pass the callback to before_first_run
+        # which will pass it either to start_kernel or call_spawn
+        @before_first_run =>
+          @show_cell_state(@busy_state, cell_id)
+          cell.execute()
+          if end_id
+            for cell, i in @cells[cell_id+1..end_id]
+              @show_cell_state(@busy_state, i+1)
+              cell.execute()
+      else
+        @show_cell_state(@busy_state, cell_id)
+        cell.execute()
+        if end_id
+          for cell, i in @cells[cell_id+1..end_id]
+            @show_cell_state(@busy_state, i+1)
+            cell.execute()
 
     before_first_run: (cb) =>
       if @url then @start_kernel(cb)
@@ -245,7 +292,6 @@ define [
         kernel_controls.html(@kernel_controls_html()).appendTo @options.append_kernel_controls_to
     
     start_kernel: (cb)=>
-      # @set_state(@start_state)
       @log 'start_kernel'
       @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, @options.kernel_name
       @kernel.start()
@@ -257,8 +303,9 @@ define [
           cell.set_kernel @kernel
         cb()
 
+    # This sets up the jupyter notebook frontend
+    # Stubbing a bunch of stuff we don't care about and would throw errors
     start_notebook: =>
-      # Stub a bunch of stuff we don't want to use
       contents = 
         list_checkpoints: -> new Promise (resolve, reject) -> resolve {}
       keyboard_manager = 
@@ -293,33 +340,14 @@ define [
 
       @events.trigger 'app_initialized.NotebookApp'
       @notebook.load_notebook common_options.notebook_path
+      # And finally
+      @build_thebe()
 
-      @build_notebook()
-
-    get_button_by_cell_id: (id)->
-      $(".thebe_controls[data-cell-id=#{id}] button[data-action='run']")
-
-    run_cell: (cell_id, end_id=false)=>
-      cell = @cells[cell_id]
-      button = @get_button_by_cell_id(cell_id)
-      if not @has_kernel_connected
-        @before_first_run =>
-          # button.text('running').addClass 'running'
-          cell.execute()
-          if end_id
-            for cell in @cells[cell_id+1..end_id]
-              cell.execute()
-      else
-        # button.text('running').addClass 'running'
-        cell.execute()
-        if end_id
-          for cell in @cells[cell_id+1..end_id]
-            cell.execute()
-
+    # Sets up click events, css loading and injection, and ajax error handling
     setup: =>
       # main click handler
       $('body').on 'click', 'div.thebe_controls button', (e)=>
-        button = $(e.target)
+        button = $(e.currentTarget)
         id = button.parent().data('cell-id')
         action = button.data('action')
         if e.shiftKey
@@ -327,7 +355,7 @@ define [
         switch action
           when 'run'
             @run_cell(id)
-          when 'shift-run'
+          when 'shift-run', 'run_above'
             @log 'exec from top to cell #'+id
             @run_cell(0, id)
           when 'interrupt'
@@ -336,9 +364,9 @@ define [
             if confirm('Are you sure you want to restart the kernel? Your work will be lost.')
               @kernel.restart()
 
-      @events.on 'execute.CodeCell', (e, cell) =>
-        id = $('.cell').index(cell.cell.element)
-        @log 'exec done for codecell '+id
+      # @events.on 'execute.CodeCell', (e, cell) =>
+        # id = $('.cell').index(cell.cell.element)
+        # @log 'exec done for codecell '+id
         # button = @get_button_by_cell_id(id)
         # button.text('done').removeClass('running').addClass('ran')
 
