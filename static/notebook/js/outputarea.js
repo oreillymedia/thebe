@@ -231,6 +231,9 @@ define([
             console.log("unhandled output message", msg);
             return;
         }
+        // XXX Added by Zach
+        this.events.trigger('output_message.OutputArea', [msg_type, msg, this])
+
         this.append_output(json);
     };
     

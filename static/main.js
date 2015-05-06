@@ -9,6 +9,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       selector: 'pre[data-executable]',
       url: '//192.168.59.103:8000/',
       tmpnb_mode: true,
+      kernel_name: "python2",
       append_kernel_controls_to: false,
       inject_css: true,
       load_css: true,
@@ -20,7 +21,15 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
 
     Thebe.prototype.stats_path = "stats";
 
-    Thebe.prototype.kernel_name = "python2";
+    Thebe.prototype.start_state = "start";
+
+    Thebe.prototype.idle_state = "idle";
+
+    Thebe.prototype.busy_state = "busy";
+
+    Thebe.prototype.full_state = "full";
+
+    Thebe.prototype.disc_state = "disconnected";
 
     function Thebe(_at_options) {
       var thebe_url, _ref;
@@ -62,7 +71,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
 
     Thebe.prototype.call_spawn = function(cb) {
       var invo;
-      this.set_state('starting...');
+      this.set_state(this.start_state);
       this.log('call spawn');
       invo = new XMLHttpRequest;
       invo.open('POST', this.tmpnb_url + this.spawn_path, true);
@@ -76,7 +85,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       invo.onerror = (function(_this) {
         return function(e) {
           _this.log("Cannot connect to tmpnb server", true);
-          _this.set_state('disconnected');
+          _this.set_state(_this.disc_state);
           return $.removeCookie('thebe_url');
         };
       })(this);
@@ -144,9 +153,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         }
         if (data.status === 'full') {
           this.log('tmpnb server full', true);
-          return this.set_state('full');
+          return this.set_state(this.full_state);
         } else {
-          this.url = this.tmpnb_url.replace('/api/spawn/', '') + '/' + data.url + '/';
+          this.url = this.tmpnb_url + data.url + '/';
           this.log('tmpnb says we should use');
           this.log(this.url);
           this.start_kernel(cb);
@@ -177,31 +186,52 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.notebook_el.hide();
       this.events.on('kernel_idle.Kernel', (function(_this) {
         return function(e, k) {
-          return _this.set_state('idle');
+          return _this.set_state(_this.idle_state);
         };
       })(this));
       this.events.on('kernel_busy.Kernel', (function(_this) {
         return function() {
-          return _this.set_state('busy');
+          return _this.set_state(_this.busy_state);
         };
       })(this));
-      return this.events.on('kernel_disconnected.Kernel', (function(_this) {
+      this.events.on('kernel_disconnected.Kernel', (function(_this) {
         return function() {
-          return _this.set_state('disconnected');
+          return _this.set_state(_this.disc_state);
+        };
+      })(this));
+      return this.events.on('output_message.OutputArea', (function(_this) {
+        return function(e, msg_type, msg, output_area) {
+          var controls, id;
+          controls = $(output_area.element).parents('.code_cell').find('.thebe_controls');
+          id = controls.data('cell-id');
+          return console.log(controls, id);
         };
       })(this));
     };
 
     Thebe.prototype.set_state = function(_at_state) {
       this.state = _at_state;
-      this.log('state :' + this.state);
+      this.log('Thebe :' + this.state);
       return $.doTimeout('thebe_set_state', 500, (function(_this) {
         return function() {
-          if (_this.state === 'busy') {
-            $(".thebe_controls button").html('Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>');
-          } else {
-            $(".thebe_controls button").html(_this.state);
+          var html;
+          switch (_this.state) {
+            case _this.start_state:
+              html = 'Starting server...';
+              break;
+            case _this.idle_state:
+              html = 'Run';
+              break;
+            case _this.busy_state:
+              html = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>';
+              break;
+            case _this.full_state:
+              html = 'Server is Full :-(';
+              break;
+            case _this.disc_state:
+              html = 'Disconnected from Server :-(';
           }
+          $(".thebe_controls button").html(html);
           return false;
         };
       })(this));
@@ -212,7 +242,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     };
 
     Thebe.prototype.kernel_controls_html = function() {
-      return "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button><span class='state'></span>";
+      return "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button>";
     };
 
     Thebe.prototype.before_first_run = function(cb) {
@@ -231,7 +261,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe.prototype.start_kernel = function(cb) {
       this.set_state('starting...');
       this.log('start_kernel');
-      this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, this.kernel_name);
+      this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, this.options.kernel_name);
       this.kernel.start();
       this.notebook.kernel = this.kernel;
       return this.events.on('kernel_ready.Kernel', (function(_this) {
@@ -314,7 +344,6 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         return this.before_first_run((function(_this) {
           return function() {
             var _i, _len, _ref, _results;
-            button.text('running').addClass('running');
             cell.execute();
             if (end_id) {
               _ref = _this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
@@ -328,7 +357,6 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           };
         })(this));
       } else {
-        button.text('running').addClass('running');
         cell.execute();
         if (end_id) {
           _ref = this.cells.slice(cell_id + 1, +end_id + 1 || 9e9);
@@ -370,11 +398,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       })(this));
       this.events.on('execute.CodeCell', (function(_this) {
         return function(e, cell) {
-          var button, id;
+          var id;
           id = $('.cell').index(cell.cell.element);
-          _this.log('exec done for codecell ' + id);
-          button = _this.get_button_by_cell_id(id);
-          return button.text('done').removeClass('running').addClass('ran');
+          return _this.log('exec done for codecell ' + id);
         };
       })(this));
       window.mathjax_url = '';

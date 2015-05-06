@@ -29,6 +29,8 @@ define [
       url: '//192.168.59.103:8000/'
       # is the url for tmpnb or for a notebook
       tmpnb_mode: true
+      # the kernel name to use, must exist on notebook server
+      kernel_name: "python2"
       # set to false to prevent kernel_controls from being added
       append_kernel_controls_to: false
       # Automatically inject basic default css we need, no highlighting
@@ -43,9 +45,13 @@ define [
     # some constants we need
     spawn_path: "api/spawn/"
     stats_path: "stats"
-    kernel_name: "python2"
+    # state constants
+    start_state: "start"
+    idle_state: "idle"
+    busy_state: "busy"
+    full_state: "full"
+    disc_state: "disconnected"
 
-    # Take our two basic configuration options
     constructor: (@options={})->
       # important flags
       @has_kernel_connected = false
@@ -61,11 +67,12 @@ define [
       if @options.tmpnb_mode
         @log 'Thebe is in tmpnb mode'
         @tmpnb_url = @url
-        # we will still need the actual url of our notebook server
+        # we will still need the actual url of our notebook server, so
         @url = ''
-      # we break the notebook's method of tracking cells, so do it ourselves
+
+      # we break the notebook's method of tracking cells, so let's do it ourselves
       @cells = []
-      # the jupyter global event object
+      # the jupyter global event object, jquery based, used for everything
       @events = events
       # add some css and js dynamically, and set up some events
       @setup()
@@ -78,16 +85,18 @@ define [
       # passing a notebook url takes precedence over a cookie
       if thebe_url and @url is ''
         @check_existing_container(thebe_url)
-
+      
       # check that the tmpnb server is up
       if @tmpnb_url then @check_server()
-
+      
+      # Start the notebook front end, creating cells with codemirror instances inside
+      # and get everything set up for when the user hits run that first time
       @start_notebook()
     
     # CORS + redirects + are crazy, lots of things didn't work for this
     # this was from an example is on MDN
     call_spawn:(cb)=>
-      @set_state('starting...')
+      @set_state(@start_state)
       @log 'call spawn'
       invo = new XMLHttpRequest
       invo.open 'POST', @tmpnb_url+@spawn_path, true
@@ -96,7 +105,7 @@ define [
         if invo.readyState is 4 then  @spawn_handler(e, cb)
       invo.onerror = (e)=>
         @log "Cannot connect to tmpnb server", true 
-        @set_state('disconnected')
+        @set_state(@disc_state)
         $.removeCookie 'thebe_url'
       invo.send()
 
@@ -146,11 +155,11 @@ define [
         # is it full up of active containers?
         if data.status is 'full' 
           @log 'tmpnb server full', true
-          @set_state('full')
+          @set_state(@full_state)
         # otherwise start the kernel
         else
-          # concat the 
-          @url = @tmpnb_url.replace('/api/spawn/', '')+'/'+data.url+'/'
+          # concat the base url with the one we just got
+          @url = @tmpnb_url+data.url+'/'
           @log 'tmpnb says we should use'
           @log @url
           @start_kernel(cb)
@@ -182,26 +191,37 @@ define [
       @notebook_el.hide()
       
       @events.on 'kernel_idle.Kernel', (e, k) =>
-        @set_state('idle')
+        @set_state(@idle_state)
       @events.on 'kernel_busy.Kernel', =>
-        @set_state('busy')
+        @set_state(@busy_state)
       @events.on 'kernel_disconnected.Kernel', =>
-        @set_state('disconnected')
+        @set_state(@disc_state)
+
+      # This listens to a custom event I added in outputarea.js's handle_output function
+      @events.on 'output_message.OutputArea', (e, msg_type, msg, output_area)=>
+        controls = $(output_area.element).parents('.code_cell').find('.thebe_controls')
+        id = controls.data('cell-id')
+        console.log controls, id
 
     set_state: (@state) =>
-      @log 'state :'+@state
+      @log 'Thebe :'+@state
+      # This adds a nice debounce, because the state can change very rapidly, which gets confusing
+      # Subsequent calls override the previous, and return false prevents it from repeating
       $.doTimeout 'thebe_set_state', 500, =>
-        if @state is 'busy'
-          $(".thebe_controls button").html 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
-        else
-          $(".thebe_controls button").html(@state)
+        switch @state
+          when @start_state then html = 'Starting server...'
+          when @idle_state then html = 'Run'
+          when @busy_state  then html = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
+          when @full_state then html = 'Server is Full :-('
+          when @disc_state then html = 'Disconnected from Server :-('
+        $(".thebe_controls button").html(html)
         return false
 
     controls_html: ->
       "<button data-action='run'>run</button>"
 
     kernel_controls_html: ->
-      "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button><span class='state'></span>"
+      "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button>"
 
 
     before_first_run: (cb) =>
@@ -215,7 +235,7 @@ define [
     start_kernel: (cb)=>
       @set_state('starting...')
       @log 'start_kernel'
-      @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, @kernel_name
+      @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, @options.kernel_name
       @kernel.start()
       @notebook.kernel = @kernel
       @events.on 'kernel_ready.Kernel', => 
@@ -272,13 +292,13 @@ define [
       button = @get_button_by_cell_id(cell_id)
       if not @has_kernel_connected
         @before_first_run =>
-          button.text('running').addClass 'running'
+          # button.text('running').addClass 'running'
           cell.execute()
           if end_id
             for cell in @cells[cell_id+1..end_id]
               cell.execute()
       else
-        button.text('running').addClass 'running'
+        # button.text('running').addClass 'running'
         cell.execute()
         if end_id
           for cell in @cells[cell_id+1..end_id]
@@ -307,8 +327,8 @@ define [
       @events.on 'execute.CodeCell', (e, cell) =>
         id = $('.cell').index(cell.cell.element)
         @log 'exec done for codecell '+id
-        button = @get_button_by_cell_id(id)
-        button.text('done').removeClass('running').addClass('ran')
+        # button = @get_button_by_cell_id(id)
+        # button.text('done').removeClass('running').addClass('ran')
 
       # set this no matter what, else we get a warning
       window.mathjax_url = ''
