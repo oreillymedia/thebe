@@ -51,6 +51,14 @@ define [
     busy_state: "busy"
     full_state: "full"
     disc_state: "disconnected"
+    # I don't know an elegant way to use these pre instantiation
+    ui: {}
+    setup_ui_messages: ->
+      @ui[@start_state] = 'Starting server...'
+      @ui[@idle_state] = 'Run'
+      @ui[@busy_state] = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
+      @ui[@full_state] = 'Server is Full :-('
+      @ui[@disc_state] = 'Disconnected from Server :-('
 
     constructor: (@options={})->
       # important flags
@@ -60,6 +68,8 @@ define [
       # set options to defaults for unset keys
       # and break out some commonly used options
       {@selector, @url, @debug} = _.defaults(@options, @default_options)
+
+      @setup_ui_messages()
 
       # if we've been given a non blank url, make sure it has a trailing slash
       if @url then @url = @url.replace(/\/?$/, '/')
@@ -177,8 +187,8 @@ define [
         cell = @notebook.insert_cell_at_bottom('code')
         # grab text, trim it, put it in cell
         cell.set_text $(el).text().trim()
-        controls = $("<div class='thebe_controls' data-cell-id='#{i}'></div>")
-        controls.html(@controls_html())
+        # Add run button
+        controls = $("<div class='thebe_controls' data-cell-id='#{i}'>#{@controls_html()}</div>")
         $(el).replaceWith cell.element
         # cell.refresh()
         @cells.push cell
@@ -188,6 +198,7 @@ define [
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
 
+      # We're not using the real notebook
       @notebook_el.hide()
       
       @events.on 'kernel_idle.Kernel', (e, k) =>
@@ -203,22 +214,23 @@ define [
         id = controls.data('cell-id')
         console.log controls, id
 
-    set_state: (@state) =>
+    set_state: (@state, cell_id=false) =>
       @log 'Thebe :'+@state
       # This adds a nice debounce, because the state can change very rapidly, which gets confusing
       # Subsequent calls override the previous, and return false prevents it from repeating
-      $.doTimeout 'thebe_set_state', 500, =>
-        switch @state
-          when @start_state then html = 'Starting server...'
-          when @idle_state then html = 'Run'
-          when @busy_state  then html = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
-          when @full_state then html = 'Server is Full :-('
-          when @disc_state then html = 'Disconnected from Server :-('
-        $(".thebe_controls button").html(html)
+      $.doTimeout 'thebe_set_state', 400, =>        
+        if cell_id
+          $(".thebe_controls[data-cell-id=#{cell_id}]").html @controls_html(@state)
+        else
+          $(".thebe_controls").html @controls_html(@state)
+
+        # $(".thebe_controls button").html(html)
         return false
 
-    controls_html: ->
-      "<button data-action='run'>run</button>"
+    # Note not @state
+    controls_html: (state=@idle_state)=>
+      html = @ui[state]
+      "<button data-action='run' data-state='#{state}'>#{html}</button>"
 
     kernel_controls_html: ->
       "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button>"

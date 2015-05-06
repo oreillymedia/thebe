@@ -112,6 +112,8 @@ plt.title('A simple chirp');
 from __future__ import print_function
 from IPython.html.widgets import interact, interactive, fixed
 from IPython.html import widgets
+import time
+time.sleep(3)
 @interact(x=True, y=1.0)
 def g(x, y):
     print(x, y)

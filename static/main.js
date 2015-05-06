@@ -31,6 +31,16 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
 
     Thebe.prototype.disc_state = "disconnected";
 
+    Thebe.prototype.ui = {};
+
+    Thebe.prototype.setup_ui_messages = function() {
+      this.ui[this.start_state] = 'Starting server...';
+      this.ui[this.idle_state] = 'Run';
+      this.ui[this.busy_state] = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>';
+      this.ui[this.full_state] = 'Server is Full :-(';
+      return this.ui[this.disc_state] = 'Disconnected from Server :-(';
+    };
+
     function Thebe(_at_options) {
       var thebe_url, _ref;
       this.options = _at_options != null ? _at_options : {};
@@ -39,6 +49,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.start_notebook = __bind(this.start_notebook, this);
       this.start_kernel = __bind(this.start_kernel, this);
       this.before_first_run = __bind(this.before_first_run, this);
+      this.controls_html = __bind(this.controls_html, this);
       this.set_state = __bind(this.set_state, this);
       this.build_notebook = __bind(this.build_notebook, this);
       this.spawn_handler = __bind(this.spawn_handler, this);
@@ -46,6 +57,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.has_kernel_connected = false;
       this.server_error = false;
       _ref = _.defaults(this.options, this.default_options), this.selector = _ref.selector, this.url = _ref.url, this.debug = _ref.debug;
+      this.setup_ui_messages();
       if (this.url) {
         this.url = this.url.replace(/\/?$/, '/');
       }
@@ -172,8 +184,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           var cell, controls;
           cell = _this.notebook.insert_cell_at_bottom('code');
           cell.set_text($(el).text().trim());
-          controls = $("<div class='thebe_controls' data-cell-id='" + i + "'></div>");
-          controls.html(_this.controls_html());
+          controls = $("<div class='thebe_controls' data-cell-id='" + i + "'>" + (_this.controls_html()) + "</div>");
           $(el).replaceWith(cell.element);
           _this.cells.push(cell);
           if (!_this.server_error) {
@@ -209,36 +220,31 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       })(this));
     };
 
-    Thebe.prototype.set_state = function(_at_state) {
+    Thebe.prototype.set_state = function(_at_state, cell_id) {
       this.state = _at_state;
+      if (cell_id == null) {
+        cell_id = false;
+      }
       this.log('Thebe :' + this.state);
-      return $.doTimeout('thebe_set_state', 500, (function(_this) {
+      return $.doTimeout('thebe_set_state', 400, (function(_this) {
         return function() {
-          var html;
-          switch (_this.state) {
-            case _this.start_state:
-              html = 'Starting server...';
-              break;
-            case _this.idle_state:
-              html = 'Run';
-              break;
-            case _this.busy_state:
-              html = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>';
-              break;
-            case _this.full_state:
-              html = 'Server is Full :-(';
-              break;
-            case _this.disc_state:
-              html = 'Disconnected from Server :-(';
+          if (cell_id) {
+            $(".thebe_controls[data-cell-id=" + cell_id + "]").html(_this.controls_html(_this.state));
+          } else {
+            $(".thebe_controls").html(_this.controls_html(_this.state));
           }
-          $(".thebe_controls button").html(html);
           return false;
         };
       })(this));
     };
 
-    Thebe.prototype.controls_html = function() {
-      return "<button data-action='run'>run</button>";
+    Thebe.prototype.controls_html = function(state) {
+      var html;
+      if (state == null) {
+        state = this.idle_state;
+      }
+      html = this.ui[state];
+      return "<button data-action='run' data-state='" + state + "'>" + html + "</button>";
     };
 
     Thebe.prototype.kernel_controls_html = function() {
