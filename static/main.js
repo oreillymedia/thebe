@@ -240,24 +240,24 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           controls = $(output_area.element).parents('.code_cell').find('.thebe_controls');
           id = controls.data('cell-id');
           if (msg_type === 'error') {
-            console.log('cancel');
-            _this.show_cell_state(_this.error_state, id);
-            return _this.log('Error executing cell #' + id);
+            _this.log('Error executing cell #' + id);
+            return _this.show_cell_state(_this.error_state, id);
           }
         };
       })(this));
     };
 
     Thebe.prototype.set_state = function(_at_state) {
+      var _ref;
       this.state = _at_state;
-      return this.log('Thebe :' + this.state);
+      this.log('Thebe :' + this.state);
+      if ((_ref = this.state) === this.disc_state || _ref === this.full_state) {
+        return $(".thebe_controls").html(this.controls_html(this.state));
+      }
     };
 
     Thebe.prototype.show_cell_state = function(state, cell_id) {
-      if (cell_id == null) {
-        cell_id = false;
-      }
-      console.log('show cell state: ' + state + ' for ' + cell_id);
+      this.log('show cell state: ' + state + ' for ' + cell_id);
       if (this.cells[cell_id]['last_msg_id'] && state === this.idle_state) {
         state = this.ran_state;
       }

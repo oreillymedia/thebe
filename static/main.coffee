@@ -232,18 +232,20 @@ define [
         controls = $(output_area.element).parents('.code_cell').find('.thebe_controls')
         id = controls.data('cell-id')
         if msg_type is 'error'
-          console.log 'cancel'
-          @show_cell_state(@error_state, id)
           # $.doTimeout 'thebe_idle_state'
           @log 'Error executing cell #'+id
+          @show_cell_state(@error_state, id)
 
-
-    # This doesn't change the html, just sets the var
+    # This doesn't change the html except for disc_state and full_state
+    # Otherwise it only sets the @state variable
     set_state: (@state) =>
       @log 'Thebe :'+@state
+      if @state in [@disc_state, @full_state]
+        $(".thebe_controls").html @controls_html(@state)
 
-    show_cell_state: (state, cell_id=false)=>
-      console.log 'show cell state: '+ state + ' for '+ cell_id
+
+    show_cell_state: (state, cell_id)=>
+      @log 'show cell state: '+ state + ' for '+ cell_id
       # has this cell already been run and we're switching it to idle
       if @cells[cell_id]['last_msg_id'] and state is @idle_state
         state = @ran_state
