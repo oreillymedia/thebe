@@ -145,7 +145,7 @@ define [
       # is the server up?
       if e.target.status in [0, 405]
         @log 'Cannot connect to tmpnb server, status: ' + e.target.status, true
-        @set_state('disconnected')
+        @set_state(@disc_state)
       else
         try
           data = JSON.parse e.target.responseText
@@ -233,7 +233,7 @@ define [
         kernel_controls.html(@kernel_controls_html()).appendTo @options.append_kernel_controls_to
     
     start_kernel: (cb)=>
-      @set_state('starting...')
+      # @set_state(@start_state)
       @log 'start_kernel'
       @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, @options.kernel_name
       @kernel.start()
@@ -360,8 +360,13 @@ define [
       # hooking into the jupyter events, especially as we don't use them
       # all as they are intended to be used
       $(document).ajaxError (event, jqxhr, settings, thrownError) =>
-        @set_state('disconnected')
-  
+        # We only care about errors accessing our tmpnb or a notebook
+        # not mathjax or whatever other assets
+        server_url = if @options.tmpnb_mode then @tmpnb_url else @url
+        if settings.url.indexOf(server_url) isnt -1
+          @log "Ajax Error!"
+          @set_state(@disc_state)
+
     log: (m, serious=false)->
       if @debug then console.log("%c#{m}", "color: blue; font-size: 12px");
       if serious then console.log(m)

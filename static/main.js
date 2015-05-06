@@ -143,7 +143,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.log('spawn handler called');
       if ((_ref = e.target.status) === 0 || _ref === 405) {
         this.log('Cannot connect to tmpnb server, status: ' + e.target.status, true);
-        return this.set_state('disconnected');
+        return this.set_state(this.disc_state);
       } else {
         try {
           data = JSON.parse(e.target.responseText);
@@ -259,7 +259,6 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     };
 
     Thebe.prototype.start_kernel = function(cb) {
-      this.set_state('starting...');
       this.log('start_kernel');
       this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, this.options.kernel_name);
       this.kernel.start();
@@ -429,7 +428,12 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       }
       return $(document).ajaxError((function(_this) {
         return function(event, jqxhr, settings, thrownError) {
-          return _this.set_state('disconnected');
+          var server_url;
+          server_url = _this.options.tmpnb_mode ? _this.tmpnb_url : _this.url;
+          if (settings.url.indexOf(server_url) !== -1) {
+            _this.log("Ajax Error!");
+            return _this.set_state(_this.disc_state);
+          }
         };
       })(this));
     };
