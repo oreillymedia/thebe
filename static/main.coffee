@@ -63,7 +63,7 @@ define [
       @ui[@error_state] = 'Run Again'
       @ui[@full_state]  = 'Server is Full :-('
       @ui[@disc_state]  = 'Disconnected from Server :-('
-      @ui['error_addendum']  = "<button data-action='run_above'>Run all above</button> <div>It looks like there was an error. You might need to run the code examples above for this one to work</div>"
+      @ui['error_addendum']  = "<button data-action='run-above'>Run all above</button> <div>It looks like there was an error. You might need to run the code examples above for this one to work</div>"
 
     # See default_options above 
     constructor: (@options={})->
@@ -79,6 +79,8 @@ define [
 
       # if we've been given a non blank url, make sure it has a trailing slash
       if @url then @url = @url.replace(/\/?$/, '/')
+      # if we have a protocol relative url, add the current protocol
+      if @url[0..1] is '//' then @url=window.location.protocol+@url
       
       if @options.tmpnb_mode
         @log 'Thebe is in tmpnb mode'
@@ -90,8 +92,10 @@ define [
       @cells = []
       # the jupyter global event object, jquery based, used for everything
       @events = events
-      # add some css and js dynamically, and set up some events
-      @setup()
+      # add some css and js dynamically, and set up error handling
+      @setup_resources()
+      # click handlers
+      @setup_user_events()
       # we only ever want the first call
       @spawn_handler = _.once(@spawn_handler)
       # we don't want to let a user run this multiple times accidentally
@@ -111,6 +115,7 @@ define [
     
     # NETWORKING
     # ----------------------
+    #
     # CORS + redirects + are crazy, lots of things didn't work for this
     # this was from an example is on MDN
     call_spawn:(cb)=>
@@ -182,7 +187,10 @@ define [
           @log @url
           @start_kernel(cb)
           $.cookie 'thebe_url', @url
-
+    
+    # STARTUP & DOM MANIPULATION
+    # ----------------------
+    #
     build_thebe: =>
       # don't even try to save or autosave
       @notebook.writable = false
@@ -236,13 +244,15 @@ define [
           @log 'Error executing cell #'+id
           @show_cell_state(@error_state, id)
 
+    # USER INTERFACE
+    # ----------------------
+    #
     # This doesn't change the html except for disc_state and full_state
     # Otherwise it only sets the @state variable
     set_state: (@state) =>
       @log 'Thebe :'+@state
       if @state in [@disc_state, @full_state]
         $(".thebe_controls").html @controls_html(@state)
-
 
     show_cell_state: (state, cell_id)=>
       @log 'show cell state: '+ state + ' for '+ cell_id
@@ -251,6 +261,7 @@ define [
         state = @ran_state
       $(".thebe_controls[data-cell-id=#{cell_id}]").html @controls_html(state)
 
+    # Basically a template
     # Note: not @state
     controls_html: (state=@idle_state)=>
       html = @ui[state]
@@ -258,10 +269,14 @@ define [
       if state is @error_state
         result+=@ui["error_addendum"]
       result
-
+    
+    # Basically a template
     kernel_controls_html: ->
-      "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button>"
+      "<button data-action='run-above'>Run All</button> <button data-action='interrupt'>Interrupt</button> <button data-action='restart'>Restart</button>"
 
+    # EVENTS
+    # ----------------------
+    #
     # User clicks a run button, end_id is for the run above feature
     # The combo of the callback and range makes it a little awkward
     run_cell: (cell_id, end_id=false)=>
@@ -277,6 +292,7 @@ define [
             for cell, i in @cells[cell_id+1..end_id]
               @show_cell_state(@busy_state, i+1)
               cell.execute()
+      # if we're already connected to the kernel
       else
         @show_cell_state(@busy_state, cell_id)
         cell.execute()
@@ -285,6 +301,7 @@ define [
             @show_cell_state(@busy_state, i+1)
             cell.execute()
 
+    # Note, we don't call the callback here, just pass it on
     before_first_run: (cb) =>
       if @url then @start_kernel(cb)
       else @call_spawn(cb)
@@ -292,9 +309,30 @@ define [
       if @options.append_kernel_controls_to 
         kernel_controls = $("<div class='thebe_controls kernel_controls'></div>")
         kernel_controls.html(@kernel_controls_html()).appendTo @options.append_kernel_controls_to
-    
+
+    setup_user_events: ->
+      # main click handler
+      $('body').on 'click', 'div.thebe_controls button', (e)=>
+        button = $(e.currentTarget)
+        id = button.parent().data('cell-id')
+        action = button.data('action')
+        if e.shiftKey
+          action = 'shift-'+action
+        switch action
+          when 'run'
+            @run_cell(id)
+          when 'shift-run', 'run-above'
+            if not id then id = @cells.length
+            @log 'exec from top to cell #'+id
+            @run_cell(0, id)
+          when 'interrupt'
+            @kernel.interrupt()
+          when 'restart'
+            if confirm('Are you sure you want to restart the kernel? Your work will be lost.')
+              @kernel.restart()
+
     start_kernel: (cb)=>
-      @log 'start_kernel'
+      @log 'start_kernel with '+@url
       @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, @options.kernel_name
       @kernel.start()
       @notebook.kernel = @kernel
@@ -345,44 +383,18 @@ define [
       # And finally
       @build_thebe()
 
-    # Sets up click events, css loading and injection, and ajax error handling
-    setup: =>
-      # main click handler
-      $('body').on 'click', 'div.thebe_controls button', (e)=>
-        button = $(e.currentTarget)
-        id = button.parent().data('cell-id')
-        action = button.data('action')
-        if e.shiftKey
-          action = 'shift-'+action
-        switch action
-          when 'run'
-            @run_cell(id)
-          when 'shift-run', 'run_above'
-            @log 'exec from top to cell #'+id
-            @run_cell(0, id)
-          when 'interrupt'
-            @kernel.interrupt()
-          when 'restart'
-            if confirm('Are you sure you want to restart the kernel? Your work will be lost.')
-              @kernel.restart()
-
-      # @events.on 'execute.CodeCell', (e, cell) =>
-        # id = $('.cell').index(cell.cell.element)
-        # @log 'exec done for codecell '+id
-        # button = @get_button_by_cell_id(id)
-        # button.text('done').removeClass('running').addClass('ran')
-
+    # Sets up css loading and injection, and ajax error handling
+    setup_resources: =>
       # set this no matter what, else we get a warning
       window.mathjax_url = ''
+      # add the script tag to the page
       if @options.load_mathjax
         script = document.createElement("script")
         script.type = "text/javascript"
         script.src  = "//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
         document.getElementsByTagName("head")[0].appendChild(script)
-
       # inject default styles directly into the page
       if @options.inject_css then $("<style>#{default_css.css}</style>").appendTo('head')
-
       # Add some CSS links to the page
       if @options.load_css
         urls = [
@@ -394,10 +406,7 @@ define [
               rel: 'stylesheet'
               type: 'text/css'
               'href': url).appendTo 'head'
-        )).then => 
-          # this only works correctly if caching is enabled in the browser
-          # @log 'loaded css'
-
+        ))
       # Sets up global ajax error handling, which is simpler than
       # hooking into the jupyter events, especially as we don't use them
       # all as they are intended to be used

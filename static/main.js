@@ -45,13 +45,13 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.ui[this.error_state] = 'Run Again';
       this.ui[this.full_state] = 'Server is Full :-(';
       this.ui[this.disc_state] = 'Disconnected from Server :-(';
-      return this.ui['error_addendum'] = "<button data-action='run_above'>Run all above</button> <div>It looks like there was an error. You might need to run the code examples above for this one to work</div>";
+      return this.ui['error_addendum'] = "<button data-action='run-above'>Run all above</button> <div>It looks like there was an error. You might need to run the code examples above for this one to work</div>";
     };
 
     function Thebe(_at_options) {
       var thebe_url, _ref;
       this.options = _at_options != null ? _at_options : {};
-      this.setup = __bind(this.setup, this);
+      this.setup_resources = __bind(this.setup_resources, this);
       this.start_notebook = __bind(this.start_notebook, this);
       this.start_kernel = __bind(this.start_kernel, this);
       this.before_first_run = __bind(this.before_first_run, this);
@@ -69,6 +69,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       if (this.url) {
         this.url = this.url.replace(/\/?$/, '/');
       }
+      if (this.url.slice(0, 2) === '//') {
+        this.url = window.location.protocol + this.url;
+      }
       if (this.options.tmpnb_mode) {
         this.log('Thebe is in tmpnb mode');
         this.tmpnb_url = this.url;
@@ -76,7 +79,8 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       }
       this.cells = [];
       this.events = events;
-      this.setup();
+      this.setup_resources();
+      this.setup_user_events();
       this.spawn_handler = _.once(this.spawn_handler);
       this.call_spawn = _.once(this.call_spawn);
       thebe_url = $.cookie('thebe_url');
@@ -278,7 +282,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     };
 
     Thebe.prototype.kernel_controls_html = function() {
-      return "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button>";
+      return "<button data-action='run-above'>Run All</button> <button data-action='interrupt'>Interrupt</button> <button data-action='restart'>Restart</button>";
     };
 
     Thebe.prototype.run_cell = function(cell_id, end_id) {
@@ -335,8 +339,39 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       }
     };
 
+    Thebe.prototype.setup_user_events = function() {
+      return $('body').on('click', 'div.thebe_controls button', (function(_this) {
+        return function(e) {
+          var action, button, id;
+          button = $(e.currentTarget);
+          id = button.parent().data('cell-id');
+          action = button.data('action');
+          if (e.shiftKey) {
+            action = 'shift-' + action;
+          }
+          switch (action) {
+            case 'run':
+              return _this.run_cell(id);
+            case 'shift-run':
+            case 'run-above':
+              if (!id) {
+                id = _this.cells.length;
+              }
+              _this.log('exec from top to cell #' + id);
+              return _this.run_cell(0, id);
+            case 'interrupt':
+              return _this.kernel.interrupt();
+            case 'restart':
+              if (confirm('Are you sure you want to restart the kernel? Your work will be lost.')) {
+                return _this.kernel.restart();
+              }
+          }
+        };
+      })(this));
+    };
+
     Thebe.prototype.start_kernel = function(cb) {
-      this.log('start_kernel');
+      this.log('start_kernel with ' + this.url);
       this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, this.options.kernel_name);
       this.kernel.start();
       this.notebook.kernel = this.kernel;
@@ -405,33 +440,8 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       return this.build_thebe();
     };
 
-    Thebe.prototype.setup = function() {
+    Thebe.prototype.setup_resources = function() {
       var script, urls;
-      $('body').on('click', 'div.thebe_controls button', (function(_this) {
-        return function(e) {
-          var action, button, id;
-          button = $(e.currentTarget);
-          id = button.parent().data('cell-id');
-          action = button.data('action');
-          if (e.shiftKey) {
-            action = 'shift-' + action;
-          }
-          switch (action) {
-            case 'run':
-              return _this.run_cell(id);
-            case 'shift-run':
-            case 'run_above':
-              _this.log('exec from top to cell #' + id);
-              return _this.run_cell(0, id);
-            case 'interrupt':
-              return _this.kernel.interrupt();
-            case 'restart':
-              if (confirm('Are you sure you want to restart the kernel? Your work will be lost.')) {
-                return _this.kernel.restart();
-              }
-          }
-        };
-      })(this));
       window.mathjax_url = '';
       if (this.options.load_mathjax) {
         script = document.createElement("script");
@@ -452,9 +462,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
               'href': url
             }).appendTo('head');
           });
-        })).then((function(_this) {
-          return function() {};
-        })(this));
+        }));
       }
       return $(document).ajaxError((function(_this) {
         return function(event, jqxhr, settings, thrownError) {
