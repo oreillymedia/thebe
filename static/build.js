@@ -3,7 +3,8 @@
     paths: {
         underscore : 'components/underscore/underscore-min',
         backbone : 'components/backbone/backbone-min',
-        jquery: 'components/jquery/jquery.min',
+        // jquery: 'components/jquery/jquery.min',
+        jquery: 'empty:',
         bootstrap: 'components/bootstrap/js/bootstrap.min',
         // bootstraptour: 'components/bootstrap-tour/build/js/bootstrap-tour.min',
         jqueryui: 'components/jquery-ui/ui/minified/jquery-ui.min',
@@ -35,8 +36,9 @@
   },
     name: "main",
     out: "main-built.js",
-    optimize: 'uglify2'
-    // optimize: "none"
+    // optimize: "none",
+    optimize: 'uglify2',
+    // exclude: ['jquery']
 })
 
 

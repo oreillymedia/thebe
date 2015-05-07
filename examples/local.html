@@ -15,9 +15,17 @@
     
     <!-- See examples/build.html for an example of using the compiled/built javascript -->
     <!-- that does not require any knowledge or use of require.js -->
-
     <script src="../static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
+
+    <!-- This must be after the require.js script tag -->
+    <script src="../static/components/jquery/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+    <!-- OR -->
+    <!-- // <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script> -->
+
     <script>
+      // We need this because we're not actually including jquery with require
+      // For compiled js, the equivalent of this line is in wrap.end
+      define('jquery', [], jQuery);
 
       require.config({
           
@@ -25,7 +33,8 @@
           paths: {
             underscore : 'components/underscore/underscore-min',
             backbone : 'components/backbone/backbone-min',
-            jquery: 'components/jquery/jquery.min',
+            jquery: 'empty:',
+            // jquery: 'components/jquery/jquery.min',
             bootstrap: 'components/bootstrap/js/bootstrap.min',
             jqueryui: 'components/jquery-ui/ui/minified/jquery-ui.min',
             moment: 'components/moment/moment',
