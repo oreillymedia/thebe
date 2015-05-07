@@ -397,7 +397,10 @@ define([
             return;
         }
 
-        this.output_area.clear_output(false, true);
+        // Changed by Zach XXX
+        this.output_area.clear_output(true, true);
+        // this.output_area.clear_output(false, true);
+
 
         if (stop_on_error === undefined) {
             stop_on_error = true;
