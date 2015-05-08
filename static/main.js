@@ -51,6 +51,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     function Thebe(_at_options) {
       var thebe_url, _ref;
       this.options = _at_options != null ? _at_options : {};
+      this.track = __bind(this.track, this);
       this.setup_resources = __bind(this.setup_resources, this);
       this.start_notebook = __bind(this.start_notebook, this);
       this.start_kernel = __bind(this.start_kernel, this);
@@ -96,6 +97,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe.prototype.call_spawn = function(cb) {
       var invo;
       this.log('call spawn');
+      this.track('call_spawn');
       invo = new XMLHttpRequest;
       invo.open('POST', this.tmpnb_url + this.spawn_path, true);
       invo.onreadystatechange = (function(_this) {
@@ -109,7 +111,8 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         return function(e) {
           _this.log("Cannot connect to tmpnb server", true);
           _this.set_state(_this.disc_state);
-          return $.removeCookie('thebe_url');
+          $.removeCookie('thebe_url');
+          return _this.track('call_spawn_fail');
         };
       })(this);
       return invo.send();
@@ -122,6 +125,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       invo.open('GET', this.tmpnb_url + this.stats_path, true);
       invo.onerror = (function(_this) {
         return function(e) {
+          _this.track('check_server_error');
           _this.log('Checked and cannot connect to tmpnb server!' + e.target.status, true);
           _this.server_error = true;
           return $('.thebe_controls').remove();
@@ -173,16 +177,19 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         } catch (_error) {
           this.log(data);
           this.log("Couldn't parse spawn response");
+          this.track('call_spawn_error');
         }
         if (data.status === 'full') {
           this.log('tmpnb server full', true);
-          return this.set_state(this.full_state);
+          this.set_state(this.full_state);
+          return this.track('call_spawn_full');
         } else {
           this.url = this.tmpnb_url + data.url + '/';
           this.log('tmpnb says we should use');
           this.log(this.url);
           this.start_kernel(cb);
-          return $.cookie('thebe_url', this.url);
+          $.cookie('thebe_url', this.url);
+          return this.track('call_spawn_success');
         }
       }
     };
@@ -206,6 +213,13 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         };
       })(this));
       this.notebook_el.hide();
+      this.events.on('edit_mode.Cell', (function(_this) {
+        return function(e, c) {
+          return _this.track('cell_edit', {
+            cell_id: c.cell.element.find('.thebe_controls').data('cell-id')
+          });
+        };
+      })(this));
       this.events.on('kernel_idle.Kernel', (function(_this) {
         return function() {
           _this.set_state(_this.idle_state);
@@ -254,13 +268,14 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe.prototype.set_state = function(_at_state) {
       var _ref;
       this.state = _at_state;
-      this.log('Thebe :' + this.state);
+      this.log('Thebe: ' + this.state);
       if ((_ref = this.state) === this.disc_state || _ref === this.full_state) {
         return $(".thebe_controls").html(this.controls_html(this.state));
       }
     };
 
     Thebe.prototype.show_cell_state = function(state, cell_id) {
+      this.set_state(state);
       this.log('show cell state: ' + state + ' for ' + cell_id);
       if (this.cells[cell_id]['last_msg_id'] && state === this.idle_state) {
         state = this.ran_state;
@@ -290,6 +305,10 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       if (end_id == null) {
         end_id = false;
       }
+      this.track('run_cell', {
+        cell_id: cell_id,
+        end_id: end_id
+      });
       cell = this.cells[cell_id];
       if (!this.has_kernel_connected) {
         this.show_cell_state(this.start_state, cell_id);
@@ -486,6 +505,21 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       if (serious) {
         return console.log(m);
       }
+    };
+
+    Thebe.prototype.track = function(name, data) {
+      if (data == null) {
+        data = {};
+      }
+      data['name'] = name;
+      data['kernel'] = this.options.kernel_name;
+      if (this.server_error) {
+        data['server_error'] = true;
+      }
+      if (this.has_kernel_connected) {
+        data['has_kernel_connected'] = true;
+      }
+      return $(window.document).trigger('thebe_tracking_event', data);
     };
 
     return Thebe;

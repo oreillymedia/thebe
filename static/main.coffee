@@ -119,8 +119,8 @@ define [
     # CORS + redirects + are crazy, lots of things didn't work for this
     # this was from an example is on MDN
     call_spawn:(cb)=>
-      # @set_state(@start_state)
       @log 'call spawn'
+      @track 'call_spawn'
       invo = new XMLHttpRequest
       invo.open 'POST', @tmpnb_url+@spawn_path, true
       invo.onreadystatechange = (e)=> 
@@ -130,11 +130,13 @@ define [
         @log "Cannot connect to tmpnb server", true 
         @set_state(@disc_state)
         $.removeCookie 'thebe_url'
+        @track 'call_spawn_fail'
       invo.send()
 
     check_server: (invo=new XMLHttpRequest)->
       invo.open 'GET', @tmpnb_url+@stats_path, true
       invo.onerror = (e)=>
+        @track 'check_server_error'
         @log 'Checked and cannot connect to tmpnb server!'+ e.target.status, true
         # if this request completes before we add controls, this will prevent them from being added
         @server_error = true
@@ -175,10 +177,12 @@ define [
         catch
           @log data
           @log "Couldn't parse spawn response"
+          @track 'call_spawn_error'
         # is it full up of active containers?
         if data.status is 'full' 
           @log 'tmpnb server full', true
           @set_state(@full_state)
+          @track 'call_spawn_full'
         # otherwise start the kernel
         else
           # concat the base url with the one we just got
@@ -187,6 +191,8 @@ define [
           @log @url
           @start_kernel(cb)
           $.cookie 'thebe_url', @url
+          @track 'call_spawn_success'
+
     
     # STARTUP & DOM MANIPULATION
     # ----------------------
@@ -217,6 +223,10 @@ define [
       # We're not using the real notebook
       @notebook_el.hide()
       
+      # Triggered when a cell is focused on
+      @events.on 'edit_mode.Cell', (e, c)=>
+        @track 'cell_edit', {cell_id: c.cell.element.find('.thebe_controls').data('cell-id')}
+
       @events.on 'kernel_idle.Kernel', =>
         @set_state @idle_state
         $.doTimeout 'thebe_idle_state', 300, =>
@@ -250,11 +260,12 @@ define [
     # This doesn't change the html except for disc_state and full_state
     # Otherwise it only sets the @state variable
     set_state: (@state) =>
-      @log 'Thebe :'+@state
+      @log 'Thebe: '+@state
       if @state in [@disc_state, @full_state]
         $(".thebe_controls").html @controls_html(@state)
 
     show_cell_state: (state, cell_id)=>
+      @set_state(state)
       @log 'show cell state: '+ state + ' for '+ cell_id
       # has this cell already been run and we're switching it to idle
       if @cells[cell_id]['last_msg_id'] and state is @idle_state
@@ -280,6 +291,7 @@ define [
     # User clicks a run button, end_id is for the run above feature
     # The combo of the callback and range makes it a little awkward
     run_cell: (cell_id, end_id=false)=>
+      @track 'run_cell', {cell_id: cell_id, end_id: end_id}
       cell = @cells[cell_id]
       if not @has_kernel_connected
         @show_cell_state(@start_state, cell_id)
@@ -421,6 +433,13 @@ define [
     log: (m, serious=false)->
       if @debug then console.log("%c#{m}", "color: blue; font-size: 12px");
       if serious then console.log(m)
+
+    track: (name, data={})=>
+      data['name'] = name
+      data['kernel'] = @options.kernel_name
+      if @server_error then data['server_error'] = true
+      if @has_kernel_connected then data['has_kernel_connected'] = true
+      $(window.document).trigger 'thebe_tracking_event', data
 
   # So people can access it
   window.Thebe = Thebe
