@@ -9,18 +9,24 @@
 
 
     <link rel="stylesheet" href="../static/thebe/site.css" type="text/css"/>
-
     <!-- Required for dev, as is the config below -->
     <!-- See built.html for examples of how to use this in production. -->
     <script src="../static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
     <script>
+      
+      define('jquery', [], jQuery);
+      
       require.config({
           
           baseUrl: '../static/',
           paths: {
             underscore : 'components/underscore/underscore-min',
             backbone : 'components/backbone/backbone-min',
-            jquery: 'components/jquery/jquery.min',
+            jquery: 'empty:',
+            // jquery: 'components/jquery/jquery.min',
             bootstrap: 'components/bootstrap/js/bootstrap.min',
             jqueryui: 'components/jquery-ui/ui/minified/jquery-ui.min',
             moment: 'components/moment/moment',
