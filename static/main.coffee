@@ -25,14 +25,16 @@ define [
       # jquery selector for elements we want to make runnable 
       selector: 'pre[data-executable]'
       # the url of either a tmnb server or a notebook server
-      # if it contains "spawn/", assume it's a tmpnb server
-      # otherwise assume it's a notebook url
       # (default url assumes user is running tmpnb via boot2docker)
-      url: '//192.168.59.103:8000/spawn/'
+      url: '//192.168.59.103:8000/'
+      # is the url for tmpnb or for a notebook
+      tmpnb_mode: true
+      # the kernel name to use, must exist on notebook server
+      kernel_name: "python2"
       # set to false to prevent kernel_controls from being added
       append_kernel_controls_to: false
       # Automatically inject basic default css we need, no highlighting
-      inject_css: 'no_hl'
+      inject_css: true
       # Automatically load other necessary css (jquery ui)
       load_css: true
       # Automatically load mathjax js
@@ -40,35 +42,60 @@ define [
       # show messages from @log()
       debug: false
 
-    # Take our two basic configuration options
+    # some constants we need
+    spawn_path: "api/spawn/"
+    stats_path: "stats"
+    # state constants
+    start_state: "start"
+    idle_state:  "idle"
+    busy_state:  "busy"
+    ran_state:   "ran"
+    full_state:  "full"
+    disc_state:  "disconnected"
+    error_state: "user_error"
+    # I don't know an elegant way to use these pre instantiation
+    ui: {}
+    setup_ui_messages: ->
+      @ui[@start_state] = 'Starting server...'
+      @ui[@idle_state]  = 'Run'
+      @ui[@busy_state]  = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
+      @ui[@ran_state]   = 'Run Again'
+      @ui[@error_state] = 'Run Again'
+      @ui[@full_state]  = 'Server is Full :-('
+      @ui[@disc_state]  = 'Disconnected from Server :-('
+      @ui['error_addendum']  = "<button data-action='run-above'>Run all above</button> <div>It looks like there was an error. You might need to run the code examples above for this one to work</div>"
+
+    # See default_options above 
     constructor: (@options={})->
-      # just for debugging
-      window.thebe = this
-      
       # important flags
       @has_kernel_connected = false
       @server_error = false
 
-      # set options to defaults for unset keys
+      # set options to defaults if they weren't specified
       # and break out some commonly used options
       {@selector, @url, @debug} = _.defaults(@options, @default_options)
 
+      @setup_ui_messages()
+
       # if we've been given a non blank url, make sure it has a trailing slash
       if @url then @url = @url.replace(/\/?$/, '/')
+      # if we have a protocol relative url, add the current protocol
+      if @url[0..1] is '//' then @url=window.location.protocol+@url
       
-      # if it contains /spawn, it's a tmpnb url, not a notebook url
-      if @url.indexOf('/spawn') isnt -1
-        @log @url+' is a tmpnb url'
-        # set the protocol to the same one we're using now
-        @tmpnb_url = @url.replace(/^(https?:)?\/\//ig, window.location.protocol+'//')
-        # we  will still need the actual url of our notebook server
+      if @options.tmpnb_mode
+        @log 'Thebe is in tmpnb mode'
+        @tmpnb_url = @url
+        # we will still need the actual url of our notebook server, so
         @url = ''
-      # we break the notebook's method of tracking cells, so do it ourselves
+
+      # we break the notebook's method of tracking cells, so let's do it ourselves
       @cells = []
-      # the jupyter global event object
+      # the jupyter global event object, jquery based, used for everything
       @events = events
-      # add some css and js dynamically, and set up some events
-      @setup()
+      # add some css and js dynamically, and set up error handling
+      @setup_resources()
+      # click handlers
+      @setup_user_events()
       # we only ever want the first call
       @spawn_handler = _.once(@spawn_handler)
       # we don't want to let a user run this multiple times accidentally
@@ -79,33 +106,39 @@ define [
       if thebe_url and @url is ''
         @check_existing_container(thebe_url)
       
-      # check that the tmpnb server is even up
-      # before we go and add run buttons
-      if @tmpnb_url
-        @check_server()
+      # check that the tmpnb server is up
+      if @tmpnb_url then @check_server()
+      
+      # Start the notebook front end, creating cells with codemirror instances inside
+      # and get everything set up for when the user hits run that first time
       @start_notebook()
     
+    # NETWORKING
+    # ----------------------
+    #
     # CORS + redirects + are crazy, lots of things didn't work for this
     # this was from an example is on MDN
     call_spawn:(cb)=>
-      @set_state('starting...')
       @log 'call spawn'
+      @track 'call_spawn'
       invo = new XMLHttpRequest
-      invo.open 'GET', @tmpnb_url, true
+      invo.open 'POST', @tmpnb_url+@spawn_path, true
       invo.onreadystatechange = (e)=> 
         # if we're done, call the spawn handler
         if invo.readyState is 4 then  @spawn_handler(e, cb)
       invo.onerror = (e)=>
         @log "Cannot connect to tmpnb server", true 
-        @set_state('disconnected')
+        @set_state(@disc_state)
         $.removeCookie 'thebe_url'
+        @track 'call_spawn_fail'
       invo.send()
 
     check_server: (invo=new XMLHttpRequest)->
-      invo.open 'GET', @tmpnb_url.replace('/spawn/', '/stats'), true
+      invo.open 'GET', @tmpnb_url+@stats_path, true
       invo.onerror = (e)=>
+        @track 'check_server_error'
         @log 'Checked and cannot connect to tmpnb server!'+ e.target.status, true
-        # if this request completes before we add controls
+        # if this request completes before we add controls, this will prevent them from being added
         @server_error = true
         # otherwise, remove controls
         $('.thebe_controls').remove()
@@ -137,27 +170,34 @@ define [
       # is the server up?
       if e.target.status in [0, 405]
         @log 'Cannot connect to tmpnb server, status: ' + e.target.status, true
-        @set_state('disconnected')
+        @set_state(@disc_state)
       else
         try
           data = JSON.parse e.target.responseText
         catch
           @log data
           @log "Couldn't parse spawn response"
+          @track 'call_spawn_error'
         # is it full up of active containers?
         if data.status is 'full' 
           @log 'tmpnb server full', true
-          @set_state('full')
+          @set_state(@full_state)
+          @track 'call_spawn_full'
         # otherwise start the kernel
         else
-          # concat the 
-          @url = @tmpnb_url.replace('/spawn/', '')+data.url.replace('/tree', '/')
+          # concat the base url with the one we just got
+          @url = @tmpnb_url+data.url+'/'
           @log 'tmpnb says we should use'
           @log @url
           @start_kernel(cb)
           $.cookie 'thebe_url', @url
+          @track 'call_spawn_success'
 
-    build_notebook: =>
+    
+    # STARTUP & DOM MANIPULATION
+    # ----------------------
+    #
+    build_thebe: =>
       # don't even try to save or autosave
       @notebook.writable = false
 
@@ -169,8 +209,8 @@ define [
         cell = @notebook.insert_cell_at_bottom('code')
         # grab text, trim it, put it in cell
         cell.set_text $(el).text().trim()
-        controls = $("<div class='thebe_controls' data-cell-id='#{i}'></div>")
-        controls.html(@controls_html())
+        # Add run button
+        controls = $("<div class='thebe_controls' data-cell-id='#{i}'>#{@controls_html()}</div>")
         $(el).replaceWith cell.element
         # cell.refresh()
         @cells.push cell
@@ -180,28 +220,100 @@ define [
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
 
+      # We're not using the real notebook
       @notebook_el.hide()
       
-      @events.on 'kernel_idle.Kernel', (e, k) =>
-        @set_state('idle')
+      # Triggered when a cell is focused on
+      @events.on 'edit_mode.Cell', (e, c)=>
+        @track 'cell_edit', {cell_id: c.cell.element.find('.thebe_controls').data('cell-id')}
+
+      @events.on 'kernel_idle.Kernel', =>
+        @set_state @idle_state
+        $.doTimeout 'thebe_idle_state', 300, =>
+          if @state is @idle_state
+            busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(->$(this).data('cell-id'))
+            for id in busy_ids
+              @show_cell_state(@idle_state, id)
+            return false
+          else if @state isnt @disc_state
+            # keep polling
+            return true
+          else return false
+
       @events.on 'kernel_busy.Kernel', =>
-        @set_state('busy')
+        @set_state(@busy_state)
       @events.on 'kernel_disconnected.Kernel', =>
-        @set_state('disconnected')
+        @set_state(@disc_state)
 
+      # This listens to a custom event I added in outputarea.js's handle_output function
+      @events.on 'output_message.OutputArea', (e, msg_type, msg, output_area)=>
+        controls = $(output_area.element).parents('.code_cell').find('.thebe_controls')
+        id = controls.data('cell-id')
+        if msg_type is 'error'
+          # $.doTimeout 'thebe_idle_state'
+          @log 'Error executing cell #'+id
+          @show_cell_state(@error_state, id)
+
+    # USER INTERFACE
+    # ----------------------
+    #
+    # This doesn't change the html except for disc_state and full_state
+    # Otherwise it only sets the @state variable
     set_state: (@state) =>
-      @log 'state :'+@state
-      $.doTimeout 'thebe_set_state', 500, =>
-        $(".thebe_controls .state").text(@state)
-        return false
+      @log 'Thebe: '+@state
+      if @state in [@disc_state, @full_state]
+        $(".thebe_controls").html @controls_html(@state)
 
-    controls_html: ->
-      "<button data-action='run'>run</button><span class='state'></span>"
+    show_cell_state: (state, cell_id)=>
+      @set_state(state)
+      @log 'show cell state: '+ state + ' for '+ cell_id
+      # has this cell already been run and we're switching it to idle
+      if @cells[cell_id]['last_msg_id'] and state is @idle_state
+        state = @ran_state
+      $(".thebe_controls[data-cell-id=#{cell_id}]").html @controls_html(state)
 
+    # Basically a template
+    # Note: not @state
+    controls_html: (state=@idle_state)=>
+      html = @ui[state]
+      result = "<button data-action='run' data-state='#{state}'>#{html}</button>"
+      if state is @error_state
+        result+=@ui["error_addendum"]
+      result
+    
+    # Basically a template
     kernel_controls_html: ->
-      "<button data-action='interrupt'>interrupt kernel</button><button data-action='restart'>restart kernel</button><span class='state'></span>"
+      "<button data-action='run-above'>Run All</button> <button data-action='interrupt'>Interrupt</button> <button data-action='restart'>Restart</button>"
 
+    # EVENTS
+    # ----------------------
+    #
+    # User clicks a run button, end_id is for the run above feature
+    # The combo of the callback and range makes it a little awkward
+    run_cell: (cell_id, end_id=false)=>
+      @track 'run_cell', {cell_id: cell_id, end_id: end_id}
+      cell = @cells[cell_id]
+      if not @has_kernel_connected
+        @show_cell_state(@start_state, cell_id)
+        # pass the callback to before_first_run
+        # which will pass it either to start_kernel or call_spawn
+        @before_first_run =>
+          @show_cell_state(@busy_state, cell_id)
+          cell.execute()
+          if end_id
+            for cell, i in @cells[cell_id+1..end_id]
+              @show_cell_state(@busy_state, i+1)
+              cell.execute()
+      # if we're already connected to the kernel
+      else
+        @show_cell_state(@busy_state, cell_id)
+        cell.execute()
+        if end_id
+          for cell, i in @cells[cell_id+1..end_id]
+            @show_cell_state(@busy_state, i+1)
+            cell.execute()
 
+    # Note, we don't call the callback here, just pass it on
     before_first_run: (cb) =>
       if @url then @start_kernel(cb)
       else @call_spawn(cb)
@@ -210,11 +322,30 @@ define [
         kernel_controls = $("<div class='thebe_controls kernel_controls'></div>")
         kernel_controls.html(@kernel_controls_html()).appendTo @options.append_kernel_controls_to
 
-    
+    setup_user_events: ->
+      # main click handler
+      $('body').on 'click', 'div.thebe_controls button', (e)=>
+        button = $(e.currentTarget)
+        id = button.parent().data('cell-id')
+        action = button.data('action')
+        if e.shiftKey
+          action = 'shift-'+action
+        switch action
+          when 'run'
+            @run_cell(id)
+          when 'shift-run', 'run-above'
+            if not id then id = @cells.length
+            @log 'exec from top to cell #'+id
+            @run_cell(0, id)
+          when 'interrupt'
+            @kernel.interrupt()
+          when 'restart'
+            if confirm('Are you sure you want to restart the kernel? Your work will be lost.')
+              @kernel.restart()
+
     start_kernel: (cb)=>
-      @set_state('starting...')
-      @log 'start_kernel'
-      @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, "python2"
+      @log 'start_kernel with '+@url
+      @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, @options.kernel_name
       @kernel.start()
       @notebook.kernel = @kernel
       @events.on 'kernel_ready.Kernel', => 
@@ -224,8 +355,9 @@ define [
           cell.set_kernel @kernel
         cb()
 
+    # This sets up the jupyter notebook frontend
+    # Stubbing a bunch of stuff we don't care about and would throw errors
     start_notebook: =>
-      # Stub a bunch of stuff we don't want to use
       contents = 
         list_checkpoints: -> new Promise (resolve, reject) -> resolve {}
       keyboard_manager = 
@@ -260,69 +392,21 @@ define [
 
       @events.trigger 'app_initialized.NotebookApp'
       @notebook.load_notebook common_options.notebook_path
+      # And finally
+      @build_thebe()
 
-      @build_notebook()
-
-    get_button_by_cell_id: (id)->
-      $(".thebe_controls[data-cell-id=#{id}] button[data-action='run']")
-
-    run_cell: (cell_id, end_id=false)=>
-      cell = @cells[cell_id]
-      button = @get_button_by_cell_id(cell_id)
-      if not @has_kernel_connected
-        @before_first_run =>
-          button.text('running').addClass 'running'
-          cell.execute()
-          if end_id
-            for cell in @cells[cell_id+1..end_id]
-              cell.execute()
-      else
-        button.text('running').addClass 'running'
-        cell.execute()
-        if end_id
-          for cell in @cells[cell_id+1..end_id]
-            cell.execute()
-
-    setup: =>
-      # main click handler
-      $('body').on 'click', 'div.thebe_controls button', (e)=>
-        button = $(e.target)
-        id = button.parent().data('cell-id')
-        action = button.data('action')
-        if e.shiftKey
-          action = 'shift-'+action
-        switch action
-          when 'run'
-            @run_cell(id)
-          when 'shift-run'
-            @log 'exec from top to cell #'+id
-            @run_cell(0, id)
-          when 'interrupt'
-            @kernel.interrupt()
-          when 'restart'
-            if confirm('Are you sure you want to restart the kernel? Your work will be lost.')
-              @kernel.restart()
-
-      @events.on 'execute.CodeCell', (e, cell) =>
-        id = $('.cell').index(cell.cell.element)
-        @log 'exec done for codecell '+id
-        button = @get_button_by_cell_id(id)
-        button.text('done').removeClass('running').addClass('ran')
-
+    # Sets up css loading and injection, and ajax error handling
+    setup_resources: =>
       # set this no matter what, else we get a warning
       window.mathjax_url = ''
+      # add the script tag to the page
       if @options.load_mathjax
         script = document.createElement("script")
         script.type = "text/javascript"
         script.src  = "//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
         document.getElementsByTagName("head")[0].appendChild(script)
-
-      # inject  default styles right into the page
-      if @options.inject_css is 'no_hl'
-        $("<style>#{default_css.no_hl}</style>").appendTo('head')
-      else if @options.inject_css 
-        $("<style>#{default_css.css}</style>").appendTo('head')
-
+      # inject default styles directly into the page
+      if @options.inject_css then $("<style>#{default_css.css}</style>").appendTo('head')
       # Add some CSS links to the page
       if @options.load_css
         urls = [
@@ -334,13 +418,28 @@ define [
               rel: 'stylesheet'
               type: 'text/css'
               'href': url).appendTo 'head'
-        )).then => 
-          # this only works correctly if caching is enabled in the browser
-          # @log 'loaded css'
-  
+        ))
+      # Sets up global ajax error handling, which is simpler than
+      # hooking into the jupyter events, especially as we don't use them
+      # all as they are intended to be used
+      $(document).ajaxError (event, jqxhr, settings, thrownError) =>
+        # We only care about errors accessing our tmpnb or a notebook
+        # not mathjax or whatever other assets
+        server_url = if @options.tmpnb_mode then @tmpnb_url else @url
+        if settings.url.indexOf(server_url) isnt -1
+          @log "Ajax Error!"
+          @set_state(@disc_state)
+
     log: (m, serious=false)->
       if @debug then console.log("%c#{m}", "color: blue; font-size: 12px");
       if serious then console.log(m)
+
+    track: (name, data={})=>
+      data['name'] = name
+      data['kernel'] = @options.kernel_name
+      if @server_error then data['server_error'] = true
+      if @has_kernel_connected then data['has_kernel_connected'] = true
+      $(window.document).trigger 'thebe_tracking_event', data
 
   # So people can access it
   window.Thebe = Thebe

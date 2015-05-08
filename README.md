@@ -5,11 +5,12 @@ In short, this is an easy way to let users on a web page run code examples on a 
 
 Here are a [some](https://oreillymedia.github.io/thebe/matplotlib-3d.html) relatively simple [examples](https://oreillymedia.github.io/thebe/matplotlib.html) and a more [complicated](https://oreillymedia.github.io/thebe/built_sans_runnable_attr.html) one.
 
-Three things are required:
+Four things are required:
 
 1. A server, either a [tmpnb](https://github.com/zischwartz/tmpnb) server, for lots of users, or simple an [ipython notebook server](http://ipython.org/notebook.html).
 1. A web page with some code examples
 1. A script tag in the page that includes the compiled javascript of `Thebe`, which is in this repo at `static/main-built.js`
+1. jQuery, already included in the page
 
 Also, [Thebe is a moon of Jupiter](http://en.wikipedia.org/wiki/Thebe_%28moon%29) in case you were wondering. Naming things is hard.
 
@@ -25,7 +26,7 @@ and then
 ```
 <script>
     $(function(){
-        new Thebe({url:"http://some.tmpnb.server.com:8000/spawn/"});
+        new Thebe({url:"http://some.tmpnb.server.com:8000"});
     });
 </script>
 ```
@@ -45,18 +46,21 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       # jquery selector for elements we want to make runnable 
       selector: 'pre[data-executable]'
       # the url of either a tmnb server or a notebook server
-      # if it contains "spawn/", assume it's a tmpnb server
-      # otherwise assume it's a notebook url
-      url: 'http://192.168.59.103:8000/spawn/'
+      # (default url assumes user is running tmpnb via boot2docker)
+      url: '//192.168.59.103:8000/'
+      # is the url for tmpnb or for a notebook server
+      tmpnb_mode: true
+      # the kernel name to use, must exist on notebook server
+      kernel_name: "python2"
       # set to false to prevent kernel_controls from being added
-      append_kernel_controls_to: 'body'
-      # Automatically inject basic default css we need
+      append_kernel_controls_to: false
+      # Automatically inject basic default css we need, no highlighting
       inject_css: true
       # Automatically load other necessary css (jquery ui)
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
-      # show messages from .log()
+      # show messages from @log()
       debug: false
 
 For example, 
@@ -97,7 +101,7 @@ r.js -o build.js baseUrl=. name=almond include=main out=main-built.js
 
 First, you need docker (and boot2docker if you're on a OS X) installed. 
 
-Pull the images. [This version](https://github.com/zischwartz/tmpnb) is a slightly different fork of the [main repo](https://github.com/jupyter/tmpnb), which adds an options for `cors`, which we need for this to work.
+Pull the images. [This version](https://github.com/zischwartz/tmpnb) is a slightly different fork of the [main repo](https://github.com/jupyter/tmpnb), which adds a API route for `/spawn` ( `/api/spawn`).
 
 ```
 docker pull jupyter/configurable-http-proxy

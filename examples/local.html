@@ -15,12 +15,20 @@
     
     <!-- See examples/build.html for an example of using the compiled/built javascript -->
     <!-- that does not require any knowledge or use of require.js -->
-
     <script src="../static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
+
+    <!-- This must be after the require.js script tag -->
+    <script src="../static/components/jquery/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+    <!-- OR -->
+    <!-- // <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script> -->
+
     <script>
       // Only serve via https because that's all we have oreillyorchard.com set up for
       if (window.location.protocol != "https:")
           window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
+      // We need this because we're not actually including jquery with require
+      // For compiled js, the equivalent of this line is in wrap.end
+      define('jquery', [], jQuery);
 
       require.config({
           
@@ -28,7 +36,8 @@
           paths: {
             underscore : 'components/underscore/underscore-min',
             backbone : 'components/backbone/backbone-min',
-            jquery: 'components/jquery/jquery.min',
+            jquery: 'empty:',
+            // jquery: 'components/jquery/jquery.min',
             bootstrap: 'components/bootstrap/js/bootstrap.min',
             jqueryui: 'components/jquery-ui/ui/minified/jquery-ui.min',
             moment: 'components/moment/moment',
@@ -61,10 +70,11 @@
           
           // The default is //192.168.59.103:8000/spawn/, tmpnb running on boot2docker
           thebe = new main.Thebe({
-            // url: "http://localhost:8888/",
-            // url: "//192.168.59.103:8000/spawn/",
-            url: "http://192.168.59.103:8000/spawn/",
-            debug: true
+            // url: "https://192.168.59.103:8000",
+            debug: true,
+            append_kernel_controls_to: 'body'
+            // inject_css: false
+            // tmpnb_mode: false
           });
       });
 
@@ -79,7 +89,7 @@
       This page requires JavaScript.<br>
       Please enable it to proceed.
   </div>
-</noscript>
+</noscript>   
 
 <h1>Thebe</h1>
 <h2>Jupyter javascript plugin for static sites</h2>
@@ -91,11 +101,15 @@ z = "hello", 4+4
 print(z)
 
 </pre>
-
+<pre data-executable='true'>
+z = 2
+</pre>
 <p>A more complicated example:</p>
 
 <pre data-executable='true'>
 %matplotlib inline
+import time
+time.sleep(2)
 import matplotlib.pyplot as plt
 import numpy as np
 x = np.linspace(0, 3*np.pi, 500)
@@ -109,6 +123,8 @@ plt.title('A simple chirp');
 from __future__ import print_function
 from IPython.html.widgets import interact, interactive, fixed
 from IPython.html import widgets
+import time
+time.sleep(3)
 @interact(x=True, y=1.0)
 def g(x, y):
     print(x, y)

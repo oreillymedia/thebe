@@ -3,5 +3,9 @@
     //module value for 'main' here and return it as the
     //value to use for the public API for the built file.
     
+    // Add this so we can use jquery internally, but not have
+    // it included and overriding plugins from elsewhere
+    define( "jquery", [], function () { return jQuery; } );
+
     return require('main');
 }));
