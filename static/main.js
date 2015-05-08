@@ -45,7 +45,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.ui[this.error_state] = 'Run Again';
       this.ui[this.full_state] = 'Server is Full :-(';
       this.ui[this.disc_state] = 'Disconnected from Server :-(';
-      return this.ui['error_addendum'] = "<button data-action='run-above'>Run all above</button> <div>It looks like there was an error. You might need to run the code examples above for this one to work</div>";
+      return this.ui['error_addendum'] = "<button data-action='run-above'>Run all above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>";
     };
 
     function Thebe(_at_options) {

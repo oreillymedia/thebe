@@ -63,7 +63,7 @@ define [
       @ui[@error_state] = 'Run Again'
       @ui[@full_state]  = 'Server is Full :-('
       @ui[@disc_state]  = 'Disconnected from Server :-('
-      @ui['error_addendum']  = "<button data-action='run-above'>Run all above</button> <div>It looks like there was an error. You might need to run the code examples above for this one to work</div>"
+      @ui['error_addendum']  = "<button data-action='run-above'>Run all above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>"
 
     # See default_options above 
     constructor: (@options={})->
