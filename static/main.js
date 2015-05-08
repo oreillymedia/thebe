@@ -206,7 +206,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           $(el).replaceWith(cell.element);
           _this.cells.push(cell);
           if (!_this.server_error) {
-            $(cell.element).prepend(controls);
+            $(cell.element).append(controls);
           }
           cell.element.removeAttr('tabindex');
           return cell.element.off('dblclick');

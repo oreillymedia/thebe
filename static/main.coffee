@@ -215,7 +215,7 @@ define [
         # cell.refresh()
         @cells.push cell
         unless @server_error
-          $(cell.element).prepend controls
+          $(cell.element).append controls
         cell.element.removeAttr('tabindex')
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
