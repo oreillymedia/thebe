@@ -45,7 +45,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.ui[this.error_state] = 'Run Again';
       this.ui[this.full_state] = 'Server is Full :-(';
       this.ui[this.disc_state] = 'Disconnected from Server :-(';
-      return this.ui['error_addendum'] = "<button data-action='run-above'>Run all above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>";
+      return this.ui['error_addendum'] = "<button data-action='run-above'>Run All Above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>";
     };
 
     function Thebe(_at_options) {
@@ -199,14 +199,16 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.notebook._unsafe_delete_cell(0);
       $(this.selector).each((function(_this) {
         return function(i, el) {
-          var cell, controls;
+          var cell, controls, wrap;
           cell = _this.notebook.insert_cell_at_bottom('code');
           cell.set_text($(el).text().trim());
+          wrap = $("<div class='thebe_wrap'></div>");
           controls = $("<div class='thebe_controls' data-cell-id='" + i + "'>" + (_this.controls_html()) + "</div>");
-          $(el).replaceWith(cell.element);
+          wrap.append(cell.element.children());
+          $(el).replaceWith(cell.element.empty().append(wrap));
           _this.cells.push(cell);
           if (!_this.server_error) {
-            $(cell.element).append(controls);
+            $(wrap).append(controls);
           }
           cell.element.removeAttr('tabindex');
           return cell.element.off('dblclick');
@@ -500,7 +502,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         serious = false;
       }
       if (this.debug) {
-        console.log("%c" + m, "color: blue; font-size: 12px");
+        console.log(m);
       }
       if (serious) {
         return console.log(m);

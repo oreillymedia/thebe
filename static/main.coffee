@@ -63,7 +63,7 @@ define [
       @ui[@error_state] = 'Run Again'
       @ui[@full_state]  = 'Server is Full :-('
       @ui[@disc_state]  = 'Disconnected from Server :-('
-      @ui['error_addendum']  = "<button data-action='run-above'>Run all above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>"
+      @ui['error_addendum']  = "<button data-action='run-above'>Run All Above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>"
 
     # See default_options above 
     constructor: (@options={})->
@@ -209,13 +209,15 @@ define [
         cell = @notebook.insert_cell_at_bottom('code')
         # grab text, trim it, put it in cell
         cell.set_text $(el).text().trim()
-        # Add run button
+        # Add run button, wrap it all up, and replace the pre's
+        wrap = $("<div class='thebe_wrap'></div>")
         controls = $("<div class='thebe_controls' data-cell-id='#{i}'>#{@controls_html()}</div>")
-        $(el).replaceWith cell.element
+        wrap.append cell.element.children()
+        $(el).replaceWith(cell.element.empty().append(wrap))
         # cell.refresh()
         @cells.push cell
         unless @server_error
-          $(cell.element).append controls
+          $(wrap).append controls
         cell.element.removeAttr('tabindex')
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
@@ -431,7 +433,8 @@ define [
           @set_state(@disc_state)
 
     log: (m, serious=false)->
-      if @debug then console.log("%c#{m}", "color: blue; font-size: 12px");
+      if @debug then console.log(m);
+      # if @debug then console.log("%c#{m}", "color: blue; font-size: 12px");
       if serious then console.log(m)
 
     track: (name, data={})=>
