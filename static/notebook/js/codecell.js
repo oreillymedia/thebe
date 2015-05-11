@@ -132,6 +132,8 @@ define([
             // XXX Changed by Zach
             theme: 'oreilly', // "ipython"
             viewportMargin: Infinity,
+            scrollPastEnd: true,
+            lineNumbers: true,
             matchBrackets: true
         }
     };
