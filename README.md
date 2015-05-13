@@ -137,4 +137,4 @@ Run the proxy like so
 docker run --net=host -d -e CONFIGPROXY_AUTH_TOKEN=$TOKEN --name=proxy zischwartz/configurable-http-proxy configurable-http-proxy --default-target=http://127.0.0.1:9999 --ssl-key=key.pem --ssl-cert=cert.pem
 ```
 
-And run the tmpnb image as above/usual. Then start up a local server that supports `https`, like [this one](https://github.com/indexzero/http-server) with the `-S` option.
+And run the tmpnb image as above/usual. Then start up a local server that supports `https`, like [this one](https://github.com/indexzero/http-server) with the `-S` option. It still won't work until you visit both the local server and the proxy address in your browser and say that you understand that the certs aren't valid and you want to proceed anyway.
