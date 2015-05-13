@@ -225,9 +225,18 @@ define [
       # We're not using the real notebook
       @notebook_el.hide()
       
+      # Just for metric 
+      focus_edit_flag = false
       # Triggered when a cell is focused on
       @events.on 'edit_mode.Cell', (e, c)=>
-        @track 'cell_edit', {cell_id: c.cell.element.find('.thebe_controls').data('cell-id')}
+        focus_edit_flag = true
+
+      $('div.code_cell').on 'keypress', (e)=>
+        if focus_edit_flag
+          cell_id = $(e.currentTarget).find('.thebe_controls').data('cell-id')
+          @track 'cell_edit', {cell_id: cell_id} 
+          focus_edit_flag = false
+        return true
 
       @events.on 'kernel_idle.Kernel', =>
         @set_state @idle_state
