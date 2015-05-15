@@ -259,19 +259,35 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           return true;
         };
       })(this));
+      this.events.on('kernel_connected.Kernel', (function(_this) {
+        return function() {
+          var cell, id, j, len, ref, results;
+          if (_this.has_kernel_connected === '') {
+            ref = _this.cells;
+            results = [];
+            for (id = j = 0, len = ref.length; j < len; id = ++j) {
+              cell = ref[id];
+              results.push(_this.show_cell_state(_this.idle_state, id));
+            }
+            return results;
+          }
+        };
+      })(this));
       this.events.on('kernel_idle.Kernel', (function(_this) {
         return function() {
           _this.set_state(_this.idle_state);
           return $.doTimeout('thebe_idle_state', 300, function() {
-            var cell, id, j, len, ref, ref1;
+            var busy_ids, id, j, len, ref;
             if (_this.state === _this.idle_state) {
-              ref = _this.cells;
-              for (id = j = 0, len = ref.length; j < len; id = ++j) {
-                cell = ref[id];
+              busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(function() {
+                return $(this).data('cell-id');
+              });
+              for (j = 0, len = busy_ids.length; j < len; j++) {
+                id = busy_ids[j];
                 _this.show_cell_state(_this.idle_state, id);
               }
               return false;
-            } else if (ref1 = _this.state, indexOf.call(_this.error_states, ref1) < 0) {
+            } else if (ref = _this.state, indexOf.call(_this.error_states, ref) < 0) {
               return true;
             } else {
               return false;
@@ -287,7 +303,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.events.on('kernel_reconnecting.Kernel', (function(_this) {
         return function(e, data) {
           var time;
-          _this.log('Reconnect attempt #' + data, true);
+          _this.log('Reconnect attempt #' + data.attempt);
           if (data.attempt < 5) {
             time = Math.pow(2, data.attempt);
             return _this.set_state(_this.disc_state, time);
@@ -370,7 +386,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       });
       if ((ref = this.state) === this.gaveup_state || ref === this.cant_state) {
         this.log('Lets reconnect thebe to the server');
-        this.has_kernel_connected = false;
+        this.has_kernel_connected = '';
         this.url = '';
       } else if (ref1 = this.state, indexOf.call(this.error_states.concat(this.start_state), ref1) >= 0) {
         this.log('Not attempting to reconnect thebe to server, state: ' + this.state);
@@ -567,9 +583,12 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         serious = false;
       }
       if (this.debug) {
-        console.log(m);
-      }
-      if (serious) {
+        if (!serious) {
+          return console.log(m);
+        } else {
+          return console.log("%c" + m, "color: blue; font-size: 12px");
+        }
+      } else if (serious) {
         return console.log(m);
       }
     };

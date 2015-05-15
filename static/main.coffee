@@ -102,10 +102,6 @@ define [
       @setup_resources()
       # click handlers
       @setup_user_events()
-      # we only ever want the first call
-      # @spawn_handler = _.once(@spawn_handler)
-      # we don't want to let a user run this multiple times accidentally
-      # @call_spawn = _.once(@call_spawn)
       # Does the user already have a container running
       thebe_url = $.cookie 'thebe_url'
       # passing a notebook url takes precedence over a cookie
@@ -266,13 +262,24 @@ define [
         # XXX otherwise code will be uneditable!
         return true
 
+      # Used for a successful reconnection
+      @events.on 'kernel_connected.Kernel', =>
+        # Empty string = already connected but lost it
+        if @has_kernel_connected is ''
+          for cell, id in @cells
+            # Reset all the buttons to run or run again
+            @show_cell_state(@idle_state, id)
+
       @events.on 'kernel_idle.Kernel', =>
+        # set idle state outside of poll, doesn't effect ui
         @set_state @idle_state
+        # then poll to make sure we're still idle before changing ui
         $.doTimeout 'thebe_idle_state', 300, =>
           if @state is @idle_state
-            # busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(->$(this).data('cell-id'))
-            # for id in busy_ids
-            for cell, id in @cells
+            busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(->$(this).data('cell-id'))
+            # just the busy ones, doesn't do it on reconnect
+            for id in busy_ids
+            # for cell, id in @cells
               @show_cell_state(@idle_state, id)
             return false
           else if @state not in @error_states
@@ -284,8 +291,9 @@ define [
         @set_state(@busy_state)
 
       # We use this instead of 'kernel_disconnected.Kernel'
+      # because the kernel always tries to reconnect
       @events.on 'kernel_reconnecting.Kernel', (e, data)=>
-        @log 'Reconnect attempt #'+ data, true
+        @log 'Reconnect attempt #'+ data.attempt
         if data.attempt < 5
           time = Math.pow 2, data.attempt
           @set_state(@disc_state, time)
@@ -352,9 +360,10 @@ define [
       # starting over after a disconnect
       if @state in [@gaveup_state, @cant_state]
         @log 'Lets reconnect thebe to the server'
-        # Reset these flags to their initial values
-        @has_kernel_connected = false
-        # This will cause us to call_spawn
+        # Reset flags, using blank string to be falsy 
+        # but different from the initial value of @has_kernel_connected
+        @has_kernel_connected = ''
+        # and this will cause us to call_spawn
         @url = ''
 
       # If we're still trying to reconnect to the same url
@@ -503,9 +512,10 @@ define [
           @set_state(@disc_state)
 
     log: (m, serious=false)->
-      if @debug then console.log(m);
-      # if @debug then console.log("%c#{m}", "color: blue; font-size: 12px");
-      if serious then console.log(m)
+      if @debug
+        if not serious then console.log(m);
+        else console.log("%c#{m}", "color: blue; font-size: 12px");
+      else if serious then console.log(m)
 
     track: (name, data={})=>
       data['name'] = name
