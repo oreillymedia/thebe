@@ -204,7 +204,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     };
 
     Thebe.prototype.build_thebe = function() {
-      var focus_edit_flag;
+      var focus_edit_flag, get_cell_id_from_event;
       this.notebook.writable = false;
       this.notebook._unsafe_delete_cell(0);
       $(this.selector).each((function(_this) {
@@ -231,11 +231,26 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           return focus_edit_flag = true;
         };
       })(this));
-      $('div.code_cell').on('keypress', (function(_this) {
+      get_cell_id_from_event = function(e) {
+        return $(e.currentTarget).find('.thebe_controls').data('cell-id');
+      };
+      $('div.code_cell').on('keydown', (function(_this) {
         return function(e) {
-          var cell_id;
-          if (focus_edit_flag) {
-            cell_id = $(e.currentTarget).find('.thebe_controls').data('cell-id');
+          var cell_id, next;
+          if (e.which === 32 && e.shiftKey === true) {
+            cell_id = get_cell_id_from_event(e);
+            if (cell_id === _this.cells.length - 1) {
+              cell_id = -1;
+            }
+            next = _this.cells[cell_id + 1];
+            next.focus_editor();
+            return false;
+          } else if (e.which === 13 && e.shiftKey === true) {
+            cell_id = get_cell_id_from_event(e);
+            _this.run_cell(cell_id);
+            return false;
+          } else if (focus_edit_flag) {
+            cell_id = get_cell_id_from_event(e);
             _this.track('cell_edit', {
               cell_id: cell_id
             });

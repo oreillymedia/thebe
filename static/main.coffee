@@ -240,12 +240,30 @@ define [
       @events.on 'edit_mode.Cell', (e, c)=>
         focus_edit_flag = true
 
-      $('div.code_cell').on 'keypress', (e)=>
-        if focus_edit_flag
-          cell_id = $(e.currentTarget).find('.thebe_controls').data('cell-id')
+      # Helper for below
+      get_cell_id_from_event = (e)-> $(e.currentTarget).find('.thebe_controls').data('cell-id')
+
+      # Keyboard events
+      $('div.code_cell').on 'keydown', (e)=>
+        if e.which is 32 and e.shiftKey is true
+          cell_id = get_cell_id_from_event(e)
+          # at the end? wrap around
+          if cell_id is @cells.length-1 then cell_id = -1
+          next = @cells[cell_id+1]
+          next.focus_editor()
+          # don't insert space
+          return false
+        else if e.which is 13 and e.shiftKey is true
+          cell_id = get_cell_id_from_event(e)
+          @run_cell(cell_id)
+          # don't insert a CR
+          return false
+        # finally, this is just for metrics
+        else if focus_edit_flag
+          cell_id = get_cell_id_from_event(e)
           @track 'cell_edit', {cell_id: cell_id} 
           focus_edit_flag = false
-        # XXX otherwise code will be uneditable
+        # XXX otherwise code will be uneditable!
         return true
 
       @events.on 'kernel_idle.Kernel', =>
