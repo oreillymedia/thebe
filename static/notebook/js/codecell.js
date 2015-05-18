@@ -373,7 +373,8 @@ define([
             } else {
                 event.codemirrorIgnore = true;
                 event.preventDefault();
-                this.completer.startCompletion();
+                // Removed by Zach, XXX
+                // this.completer.startCompletion();
                 return true;
             }
         } 
