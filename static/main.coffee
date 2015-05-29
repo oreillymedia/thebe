@@ -39,6 +39,12 @@ define [
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
+      # Default keyboard shortcut for focusing next cell, shift+ this keycode, defaults (32) is spacebar
+      # Set to false to disable
+      next_cell_shortcut: 32
+      # Default keyboard shortcut for executing cell, shift+ this keycode, defaults (13) is return
+      # Set to false to disable
+      run_cell_shortcut: 13
       # show messages from @log()
       debug: false
 
@@ -241,18 +247,18 @@ define [
 
       # Keyboard events
       $('div.code_cell').on 'keydown', (e)=>
-        if e.which is 32 and e.shiftKey is true
+        if e.which is @options.next_cell_shortcut and e.shiftKey is true
           cell_id = get_cell_id_from_event(e)
           # at the end? wrap around
           if cell_id is @cells.length-1 then cell_id = -1
           next = @cells[cell_id+1]
           next.focus_editor()
-          # don't insert space
+          # don't insert space or whatever
           return false
-        else if e.which is 13 and e.shiftKey is true
+        else if e.which is @options.run_cell_shortcut and e.shiftKey is true
           cell_id = get_cell_id_from_event(e)
           @run_cell(cell_id)
-          # don't insert a CR
+          # don't insert a CR or whatever
           return false
         # finally, this is just for metrics
         else if focus_edit_flag

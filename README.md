@@ -14,11 +14,12 @@ Four things are required:
 
 Also, [Thebe is a moon of Jupiter](http://en.wikipedia.org/wiki/Thebe_%28moon%29) in case you were wondering. Naming things is hard.
 
-## Tips and Shortcuts
+## Tips and Default Shortcuts
 `shift`+`return` executes the example that is currently focused 
 `shift`+`space`  moves the focus to the next example
 `shift`+`click`ing a run button will execute all preceding code examples as well as the current one
 
+You can change the first two by passing options to Thebe when you instantiate it (see below)
 
 ## Front End Use
 Include the `Thebe` script like so:
@@ -47,13 +48,13 @@ If `append_kernel_controls_to` is set to a dom selector, clicking run will also 
 ## Options
 You can override the below default options when you instantiate Thebe: `Thebe(options)`
 
-    options:
+    default_options:
       # jquery selector for elements we want to make runnable 
       selector: 'pre[data-executable]'
       # the url of either a tmnb server or a notebook server
-      # (default url assumes user is running tmpnb and with configurable-http-proxy via boot2docker)
+      # (default url assumes user is running tmpnb via boot2docker)
       url: '//192.168.59.103:8000/'
-      # is the url for tmpnb or for a notebook server
+      # is the url for tmpnb or for a notebook
       tmpnb_mode: true
       # the kernel name to use, must exist on notebook server
       kernel_name: "python2"
@@ -65,6 +66,12 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
+      # Default keyboard shortcut focusing next cell, shift+ this keycode, defaults (32) is spacebar
+      # Set to false to disable
+      next_cell_shortcut: 32
+      # Default keyboard shortcut for executing cell, shift+ this keycode, defaults (13) is return
+      # Set to false to disable
+      run_cell_shortcut: 13
       # show messages from @log()
       debug: false
 
