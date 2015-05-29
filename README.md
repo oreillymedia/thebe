@@ -79,12 +79,15 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
 
 For example, 
 
-    $(function(){
-        var thebe = new Thebe({
-          selector:"pre.cool",
-          url: 'http://localhost:8888/'
-        });
+```javascript
+$(function(){
+    var thebe = new Thebe({
+      selector:"pre.cool",
+      url: 'http://localhost:8888/'
     });
+});
+```
+
 
 will make each `pre` tag with class `cool` runnable, and will try to connect with an ipython notebook server running locally at the ipython notebook default address and port.
 
