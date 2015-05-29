@@ -48,7 +48,8 @@ If `append_kernel_controls_to` is set to a dom selector, clicking run will also 
 ## Options
 You can override the below default options when you instantiate Thebe: `Thebe(options)`
 
-    default_options:
+```coffee
+    default_options =
       # jquery selector for elements we want to make runnable 
       selector: 'pre[data-executable]'
       # the url of either a tmnb server or a notebook server
@@ -74,6 +75,7 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       run_cell_shortcut: 13
       # show messages from @log()
       debug: false
+````
 
 For example, 
 

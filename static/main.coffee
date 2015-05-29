@@ -39,10 +39,10 @@ define [
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
-      # Default keyboard shortcut for focusing next cell, shift+ this keycode, defaults (32) is spacebar
+      # Default keyboard shortcut for focusing next cell, shift+ this keycode, default (32) is spacebar
       # Set to false to disable
       next_cell_shortcut: 32
-      # Default keyboard shortcut for executing cell, shift+ this keycode, defaults (13) is return
+      # Default keyboard shortcut for executing cell, shift+ this keycode, default (13) is return
       # Set to false to disable
       run_cell_shortcut: 13
       # show messages from @log()
