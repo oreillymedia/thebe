@@ -24,13 +24,13 @@ You can change the first two by passing options to Thebe when you instantiate it
 ## Front End Use
 Include the `Thebe` script like so:
 
-```
+```html
 <script src="https://rawgit.com/oreillymedia/thebe/master/static/main-built.js" type="text/javascript" charset="utf-8"></script>
 ```
 
 and then 
 
-```
+```javascript
 <script>
     $(function(){
         new Thebe({url:"http://some.tmpnb.server.com:8000"});
@@ -102,7 +102,7 @@ Most of the actual development takes place in `static/main.coffee`. I've tried t
 
 After making a change to the javascript in `static/`, you'll need to recompile it to see your changes in `built.html` or to use it in production. `index.html` will reflect your changes that last `r.js` step.
 
-```
+```javascript
 npm install -g requirejs
 npm install -g coffee-script
 coffee -cbm .
