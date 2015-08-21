@@ -49,6 +49,8 @@ define [
       not_executable_selector: "pre[data-not-executable]"
       # For when you want a pre to become a CM instance, but not be writable
       read_only_selector: "pre[data-read-only]"
+      # if set to false, no addendum added, if a string, use that instead
+      error_addendum: true
       # show messages from @log()
       debug: false
 
@@ -79,8 +81,12 @@ define [
       @ui[@cant_state]  = 'Can\'t connect to server'
       @ui[@disc_state]  = 'Disconnected from Server<br>Attempting to reconnect'
       @ui[@gaveup_state]  = 'Disconnected!<br>Click to try again'
-      @ui['error_addendum']  = "<button data-action='run-above'>Run All Above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>"
 
+      if @options.error_addendum is false then @ui['error_addendum']  = ""
+      else if @options.error_addendum is true
+        @ui['error_addendum']  = "<button data-action='run-above'>Run All Above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>"
+      else @ui['error_addendum'] = @options.error_addendum 
+   
     # See default_options above 
     constructor: (@options={})->
       # important flags

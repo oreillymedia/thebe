@@ -73,6 +73,12 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       # Default keyboard shortcut for executing cell, shift+ this keycode, defaults (13) is return
       # Set to false to disable
       run_cell_shortcut: 13
+      # For when you want a pre to become a CM instance, but not be runnable
+      not_executable_selector: "pre[data-not-executable]"
+      # For when you want a pre to become a CM instance, but not be writable
+      read_only_selector: "pre[data-read-only]"
+      # if set to false, no addendum added, if a string, use that instead
+      error_addendum: true
       # show messages from @log()
       debug: false
 ````

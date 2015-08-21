@@ -19,6 +19,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       run_cell_shortcut: 13,
       not_executable_selector: "pre[data-not-executable]",
       read_only_selector: "pre[data-read-only]",
+      error_addendum: true,
       debug: false
     };
 
@@ -57,7 +58,13 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.ui[this.cant_state] = 'Can\'t connect to server';
       this.ui[this.disc_state] = 'Disconnected from Server<br>Attempting to reconnect';
       this.ui[this.gaveup_state] = 'Disconnected!<br>Click to try again';
-      return this.ui['error_addendum'] = "<button data-action='run-above'>Run All Above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>";
+      if (this.options.error_addendum === false) {
+        return this.ui['error_addendum'] = "";
+      } else if (this.options.error_addendum === true) {
+        return this.ui['error_addendum'] = "<button data-action='run-above'>Run All Above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>";
+      } else {
+        return this.ui['error_addendum'] = this.options.error_addendum;
+      }
     };
 
     function Thebe(_at_options) {
