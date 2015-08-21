@@ -45,8 +45,12 @@ define [
       # Default keyboard shortcut for executing cell, shift+ this keycode, default (13) is return
       # Set to false to disable
       run_cell_shortcut: 13
+      # For when you want a pre to become a CM instance, but not be runnable
+      not_executable_selector: "pre[data-not-executable]"
+      # For when you want a pre to become a CM instance, but not be writable
+      read_only_selector: "pre[data-read-only]"
       # show messages from @log()
-      debug: false
+      debug: true
 
     # some constants we need
     spawn_path: "api/spawn/"

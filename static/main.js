@@ -17,7 +17,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       load_mathjax: true,
       next_cell_shortcut: 32,
       run_cell_shortcut: 13,
-      debug: false
+      not_executable_selector: "pre[data-not-executable]",
+      read_only_selector: "pre[data-read-only]",
+      debug: true
     };
 
     Thebe.prototype.spawn_path = "api/spawn/";
@@ -624,3 +626,5 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe: Thebe
   };
 });
+
+//# sourceMappingURL=main.js.map
