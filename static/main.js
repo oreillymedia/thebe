@@ -19,7 +19,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       run_cell_shortcut: 13,
       not_executable_selector: "pre[data-not-executable]",
       read_only_selector: "pre[data-read-only]",
-      debug: true
+      debug: false
     };
 
     Thebe.prototype.spawn_path = "api/spawn/";
@@ -69,6 +69,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.start_kernel = __bind(this.start_kernel, this);
       this.before_first_run = __bind(this.before_first_run, this);
       this.run_cell = __bind(this.run_cell, this);
+      this.get_controls_html = __bind(this.get_controls_html, this);
       this.controls_html = __bind(this.controls_html, this);
       this.show_cell_state = __bind(this.show_cell_state, this);
       this.set_state = __bind(this.set_state, this);
@@ -211,11 +212,15 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       var focus_edit_flag, get_cell_id_from_event;
       this.notebook.writable = false;
       this.notebook._unsafe_delete_cell(0);
-      $(this.selector).each((function(_this) {
+      $(this.selector).add(this.options.not_executable_selector).each((function(_this) {
         return function(i, el) {
           var cell, controls, wrap;
           cell = _this.notebook.insert_cell_at_bottom('code');
           cell.set_text($(el).text().trim());
+          if ($(el).is(_this.options.read_only_selector)) {
+            cell.read_only = true;
+            cell.code_mirror.setOption("readOnly", true);
+          }
           wrap = $("<div class='thebe_wrap'></div>");
           controls = $("<div class='thebe_controls' data-cell-id='" + i + "'>" + (_this.controls_html()) + "</div>");
           wrap.append(cell.element.children());
@@ -223,6 +228,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           _this.cells.push(cell);
           if (!_this.server_error) {
             $(wrap).append(controls);
+          }
+          if ($(el).is(_this.options.not_executable_selector)) {
+            controls.html("");
           }
           cell.element.removeAttr('tabindex');
           return cell.element.off('dblclick');
@@ -375,6 +383,10 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       return result;
     };
 
+    Thebe.prototype.get_controls_html = function(cell) {
+      return $(cell.element).find(".thebe_controls").html();
+    };
+
     Thebe.prototype.kernel_controls_html = function() {
       return "<button data-action='run-above'>Run All</button> <button data-action='interrupt'>Interrupt</button> <button data-action='restart'>Restart</button>";
     };
@@ -397,6 +409,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         return;
       }
       cell = this.cells[cell_id];
+      if (!this.get_controls_html(cell)) {
+        return;
+      }
       if (!this.has_kernel_connected) {
         this.show_cell_state(this.start_state, cell_id);
         return this.before_first_run((function(_this) {
@@ -409,6 +424,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
               _results = [];
               for (i = _i = 0, _len = _ref2.length; _i < _len; i = ++_i) {
                 cell = _ref2[i];
+                if (!_this.get_controls_html(cell)) {
+                  continue;
+                }
                 _this.show_cell_state(_this.busy_state, i + 1);
                 _results.push(cell.execute());
               }
@@ -424,6 +442,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           _results = [];
           for (i = _i = 0, _len = _ref2.length; _i < _len; i = ++_i) {
             cell = _ref2[i];
+            if (!this.get_controls_html(cell)) {
+              continue;
+            }
             this.show_cell_state(this.busy_state, i + 1);
             _results.push(cell.execute());
           }

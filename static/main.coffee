@@ -50,7 +50,7 @@ define [
       # For when you want a pre to become a CM instance, but not be writable
       read_only_selector: "pre[data-read-only]"
       # show messages from @log()
-      debug: true
+      debug: false
 
     # some constants we need
     spawn_path: "api/spawn/"
@@ -219,19 +219,30 @@ define [
       # otherwise this will mess up our index
       @notebook._unsafe_delete_cell(0)
 
-      $(@selector).each (i, el) =>
+
+      $(@selector).add(@options.not_executable_selector).each (i, el) =>
         cell = @notebook.insert_cell_at_bottom('code')
         # grab text, trim it, put it in cell
         cell.set_text $(el).text().trim()
+        # is this a read only cell
+        if $(el).is(@options.read_only_selector)
+          # not really used by the notebooks it seems, but is present in cell.js
+          cell.read_only = true
+          # this actually sets cm to read only mode
+          cell.code_mirror.setOption("readOnly", true) # or "nocursor", though that prevents focus
         # Add run button, wrap it all up, and replace the pre's
         wrap = $("<div class='thebe_wrap'></div>")
         controls = $("<div class='thebe_controls' data-cell-id='#{i}'>#{@controls_html()}</div>")
         wrap.append cell.element.children()
         $(el).replaceWith(cell.element.empty().append(wrap))
-        # cell.refresh()
+        # cell.refresh() # not needed currently, but useful 
         @cells.push cell
         unless @server_error
           $(wrap).append controls
+        # Not executable? Remove the contents of controls div
+        if $(el).is(@options.not_executable_selector)
+          controls.html("")
+
         cell.element.removeAttr('tabindex')
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
@@ -352,6 +363,9 @@ define [
         result+=@ui["error_addendum"]
       result
     
+    get_controls_html: (cell)=>
+      $(cell.element).find(".thebe_controls").html()
+
     # Basically a template
     kernel_controls_html: ->
       "<button data-action='run-above'>Run All</button> <button data-action='interrupt'>Interrupt</button> <button data-action='restart'>Restart</button>"
@@ -384,6 +398,10 @@ define [
 
       # The actual run cell logic, depends on if we've already connected or not
       cell = @cells[cell_id]
+      
+      #
+      if not @get_controls_html(cell) then return
+
       if not @has_kernel_connected
         @show_cell_state(@start_state, cell_id)
         # pass the callback to before_first_run
@@ -393,6 +411,7 @@ define [
           cell.execute()
           if end_id
             for cell, i in @cells[cell_id+1..end_id]
+              if not @get_controls_html(cell) then continue
               @show_cell_state(@busy_state, i+1)
               cell.execute()
       # if we're already connected to the kernel
@@ -401,6 +420,7 @@ define [
         cell.execute()
         if end_id
           for cell, i in @cells[cell_id+1..end_id]
+            if not @get_controls_html(cell) then continue
             @show_cell_state(@busy_state, i+1)
             cell.execute()
 
