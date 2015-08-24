@@ -39,6 +39,18 @@ define [
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
+      # Default keyboard shortcut for focusing next cell, shift+ this keycode, default (32) is spacebar
+      # Set to false to disable
+      next_cell_shortcut: 32
+      # Default keyboard shortcut for executing cell, shift+ this keycode, default (13) is return
+      # Set to false to disable
+      run_cell_shortcut: 13
+      # For when you want a pre to become a CM instance, but not be runnable
+      not_executable_selector: "pre[data-not-executable]"
+      # For when you want a pre to become a CM instance, but not be writable
+      read_only_selector: "pre[data-read-only]"
+      # if set to false, no addendum added, if a string, use that instead
+      error_addendum: true
       # show messages from @log()
       debug: false
 
@@ -46,25 +58,35 @@ define [
     spawn_path: "api/spawn/"
     stats_path: "stats"
     # state constants
-    start_state: "start"
-    idle_state:  "idle"
-    busy_state:  "busy"
-    ran_state:   "ran"
-    full_state:  "full"
-    disc_state:  "disconnected"
-    error_state: "user_error"
+    start_state:   "start"
+    idle_state:    "idle"
+    busy_state:    "busy"
+    ran_state:     "ran"
+    full_state:    "full"
+    cant_state:    "cant"
+    disc_state:    "disconnected"
+    gaveup_state:  "gaveup"
+    user_error:    "user_error"
     # I don't know an elegant way to use these pre instantiation
     ui: {}
-    setup_ui_messages: ->
+    setup_constants: ->
+      @error_states = [@disc_state, @full_state, @cant_state, @gaveup_state]
       @ui[@start_state] = 'Starting server...'
       @ui[@idle_state]  = 'Run'
       @ui[@busy_state]  = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
       @ui[@ran_state]   = 'Run Again'
-      @ui[@error_state] = 'Run Again'
+      # Button stays the same, but we add the addendum for a user error
+      @ui[@user_error] = 'Run Again'
       @ui[@full_state]  = 'Server is Full :-('
-      @ui[@disc_state]  = 'Disconnected from Server :-('
-      @ui['error_addendum']  = "<button data-action='run-above'>Run all above</button> <div>It looks like there was an error. You might need to run the code examples above for this one to work</div>"
+      @ui[@cant_state]  = 'Can\'t connect to server'
+      @ui[@disc_state]  = 'Disconnected from Server<br>Attempting to reconnect'
+      @ui[@gaveup_state]  = 'Disconnected!<br>Click to try again'
 
+      if @options.error_addendum is false then @ui['error_addendum']  = ""
+      else if @options.error_addendum is true
+        @ui['error_addendum']  = "<button data-action='run-above'>Run All Above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>"
+      else @ui['error_addendum'] = @options.error_addendum 
+   
     # See default_options above 
     constructor: (@options={})->
       # important flags
@@ -75,7 +97,7 @@ define [
       # and break out some commonly used options
       {@selector, @url, @debug} = _.defaults(@options, @default_options)
 
-      @setup_ui_messages()
+      @setup_constants()
 
       # if we've been given a non blank url, make sure it has a trailing slash
       if @url then @url = @url.replace(/\/?$/, '/')
@@ -96,10 +118,6 @@ define [
       @setup_resources()
       # click handlers
       @setup_user_events()
-      # we only ever want the first call
-      @spawn_handler = _.once(@spawn_handler)
-      # we don't want to let a user run this multiple times accidentally
-      @call_spawn = _.once(@call_spawn)
       # Does the user already have a container running
       thebe_url = $.cookie 'thebe_url'
       # passing a notebook url takes precedence over a cookie
@@ -121,6 +139,8 @@ define [
     call_spawn:(cb)=>
       @log 'call spawn'
       @track 'call_spawn'
+      # this should never happen
+      if @kernel?.ws then @log 'HAZ WEBSOCKET?'
       invo = new XMLHttpRequest
       invo.open 'POST', @tmpnb_url+@spawn_path, true
       invo.onreadystatechange = (e)=> 
@@ -128,7 +148,7 @@ define [
         if invo.readyState is 4 then  @spawn_handler(e, cb)
       invo.onerror = (e)=>
         @log "Cannot connect to tmpnb server", true 
-        @set_state(@disc_state)
+        @set_state(@cant_state)
         $.removeCookie 'thebe_url'
         @track 'call_spawn_fail'
       invo.send()
@@ -170,7 +190,7 @@ define [
       # is the server up?
       if e.target.status in [0, 405]
         @log 'Cannot connect to tmpnb server, status: ' + e.target.status, true
-        @set_state(@disc_state)
+        @set_state(@cant_state)
       else
         try
           data = JSON.parse e.target.responseText
@@ -205,17 +225,30 @@ define [
       # otherwise this will mess up our index
       @notebook._unsafe_delete_cell(0)
 
-      $(@selector).each (i, el) =>
+
+      $(@selector).add(@options.not_executable_selector).each (i, el) =>
         cell = @notebook.insert_cell_at_bottom('code')
         # grab text, trim it, put it in cell
         cell.set_text $(el).text().trim()
-        # Add run button
+        # is this a read only cell
+        if $(el).is(@options.read_only_selector)
+          # not really used by the notebooks it seems, but is present in cell.js
+          cell.read_only = true
+          # this actually sets cm to read only mode
+          cell.code_mirror.setOption("readOnly", true) # or "nocursor", though that prevents focus
+        # Add run button, wrap it all up, and replace the pre's
+        wrap = $("<div class='thebe_wrap'></div>")
         controls = $("<div class='thebe_controls' data-cell-id='#{i}'>#{@controls_html()}</div>")
-        $(el).replaceWith cell.element
-        # cell.refresh()
+        wrap.append cell.element.children()
+        $(el).replaceWith(cell.element.empty().append(wrap))
+        # cell.refresh() # not needed currently, but useful 
         @cells.push cell
         unless @server_error
-          $(cell.element).prepend controls
+          $(wrap).append controls
+        # Not executable? Remove the contents of controls div
+        if $(el).is(@options.not_executable_selector)
+          controls.html("")
+
         cell.element.removeAttr('tabindex')
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
@@ -223,27 +256,77 @@ define [
       # We're not using the real notebook
       @notebook_el.hide()
       
+      # Just to get metric on which cells are being edited
+      # The flag ensures we only send once per focus, but only on edit
+      focus_edit_flag = false
       # Triggered when a cell is focused on
       @events.on 'edit_mode.Cell', (e, c)=>
-        @track 'cell_edit', {cell_id: c.cell.element.find('.thebe_controls').data('cell-id')}
+        focus_edit_flag = true
+
+      # Helper for below
+      get_cell_id_from_event = (e)-> $(e.currentTarget).find('.thebe_controls').data('cell-id')
+
+      # Keyboard events
+      $('div.code_cell').on 'keydown', (e)=>
+        if e.which is @options.next_cell_shortcut and e.shiftKey is true
+          cell_id = get_cell_id_from_event(e)
+          # at the end? wrap around
+          if cell_id is @cells.length-1 then cell_id = -1
+          next = @cells[cell_id+1]
+          next.focus_editor()
+          # don't insert space or whatever
+          return false
+        else if e.which is @options.run_cell_shortcut and e.shiftKey is true
+          cell_id = get_cell_id_from_event(e)
+          @run_cell(cell_id)
+          # don't insert a CR or whatever
+          return false
+        # finally, this is just for metrics
+        else if focus_edit_flag
+          cell_id = get_cell_id_from_event(e)
+          @track 'cell_edit', {cell_id: cell_id} 
+          focus_edit_flag = false
+        # XXX otherwise code will be uneditable!
+        return true
+
+      # Used for a successful reconnection
+      @events.on 'kernel_connected.Kernel', =>
+        # Empty string = already connected but lost it
+        if @has_kernel_connected is ''
+          for cell, id in @cells
+            # Reset all the buttons to run or run again
+            @show_cell_state(@idle_state, id)
 
       @events.on 'kernel_idle.Kernel', =>
+        # set idle state outside of poll, doesn't effect ui
         @set_state @idle_state
+        # then poll to make sure we're still idle before changing ui
         $.doTimeout 'thebe_idle_state', 300, =>
           if @state is @idle_state
             busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(->$(this).data('cell-id'))
+            # just the busy ones, doesn't do it on reconnect
             for id in busy_ids
+            # for cell, id in @cells
               @show_cell_state(@idle_state, id)
             return false
-          else if @state isnt @disc_state
+          else if @state not in @error_states
             # keep polling
             return true
           else return false
 
       @events.on 'kernel_busy.Kernel', =>
         @set_state(@busy_state)
-      @events.on 'kernel_disconnected.Kernel', =>
-        @set_state(@disc_state)
+
+      # We use this instead of 'kernel_disconnected.Kernel'
+      # because the kernel always tries to reconnect
+      @events.on 'kernel_reconnecting.Kernel', (e, data)=>
+        @log 'Reconnect attempt #'+ data.attempt
+        if data.attempt < 5
+          time = Math.pow 2, data.attempt
+          @set_state(@disc_state, time)
+        else
+          @set_state(@gaveup_state)
+
 
       # This listens to a custom event I added in outputarea.js's handle_output function
       @events.on 'output_message.OutputArea', (e, msg_type, msg, output_area)=>
@@ -252,17 +335,22 @@ define [
         if msg_type is 'error'
           # $.doTimeout 'thebe_idle_state'
           @log 'Error executing cell #'+id
-          @show_cell_state(@error_state, id)
+          @show_cell_state(@user_error, id)
 
     # USER INTERFACE
     # ----------------------
     #
-    # This doesn't change the html except for disc_state and full_state
+    # This doesn't change the html except for the error states
     # Otherwise it only sets the @state variable
-    set_state: (@state) =>
+    set_state: (@state, reconnect_time='') =>
       @log 'Thebe: '+@state
-      if @state in [@disc_state, @full_state]
-        $(".thebe_controls").html @controls_html(@state)
+      if @state in @error_states
+        html = @ui[@state]
+        if reconnect_time then html += " in #{reconnect_time} seconds"
+        $(".thebe_controls").html @controls_html(@state, html)
+        
+        if @state is @disc_state
+          $(".thebe_controls button").prop('disabled', true)
 
     show_cell_state: (state, cell_id)=>
       @set_state(state)
@@ -274,13 +362,16 @@ define [
 
     # Basically a template
     # Note: not @state
-    controls_html: (state=@idle_state)=>
-      html = @ui[state]
+    controls_html: (state=@idle_state, html=false)=>
+      if not html then html = @ui[state]
       result = "<button data-action='run' data-state='#{state}'>#{html}</button>"
-      if state is @error_state
+      if state is @user_error
         result+=@ui["error_addendum"]
       result
     
+    get_controls_html: (cell)=>
+      $(cell.element).find(".thebe_controls").html()
+
     # Basically a template
     kernel_controls_html: ->
       "<button data-action='run-above'>Run All</button> <button data-action='interrupt'>Interrupt</button> <button data-action='restart'>Restart</button>"
@@ -292,7 +383,31 @@ define [
     # The combo of the callback and range makes it a little awkward
     run_cell: (cell_id, end_id=false)=>
       @track 'run_cell', {cell_id: cell_id, end_id: end_id}
+      
+      # This deals with when we allow a user to try to call spawn again after a disconnect
+      # A bit confusing, because @error_states contains gaveup and cant
+      # but we don't want it to count in this special case, because we're
+      # starting over after a disconnect
+      if @state in [@gaveup_state, @cant_state]
+        @log 'Lets reconnect thebe to the server'
+        # Reset flags, using blank string to be falsy 
+        # but different from the initial value of @has_kernel_connected
+        @has_kernel_connected = ''
+        # and this will cause us to call_spawn
+        @url = ''
+
+      # If we're still trying to reconnect to the same url
+      # or we're already starting up, just return
+      else if @state in @error_states.concat(@start_state)
+        @log 'Not attempting to reconnect thebe to server, state: '+ @state
+        return
+
+      # The actual run cell logic, depends on if we've already connected or not
       cell = @cells[cell_id]
+      
+      #
+      if not @get_controls_html(cell) then return
+
       if not @has_kernel_connected
         @show_cell_state(@start_state, cell_id)
         # pass the callback to before_first_run
@@ -302,6 +417,7 @@ define [
           cell.execute()
           if end_id
             for cell, i in @cells[cell_id+1..end_id]
+              if not @get_controls_html(cell) then continue
               @show_cell_state(@busy_state, i+1)
               cell.execute()
       # if we're already connected to the kernel
@@ -310,6 +426,7 @@ define [
         cell.execute()
         if end_id
           for cell, i in @cells[cell_id+1..end_id]
+            if not @get_controls_html(cell) then continue
             @show_cell_state(@busy_state, i+1)
             cell.execute()
 
@@ -318,13 +435,13 @@ define [
       if @url then @start_kernel(cb)
       else @call_spawn(cb)
 
-      if @options.append_kernel_controls_to 
-        kernel_controls = $("<div class='thebe_controls kernel_controls'></div>")
+      if @options.append_kernel_controls_to and not $('.kernel_controls').length
+        kernel_controls = $("<div class='kernel_controls'></div>")
         kernel_controls.html(@kernel_controls_html()).appendTo @options.append_kernel_controls_to
 
     setup_user_events: ->
       # main click handler
-      $('body').on 'click', 'div.thebe_controls button', (e)=>
+      $('body').on 'click', 'div.thebe_controls button, div.kernel_controls button', (e)=>
         button = $(e.currentTarget)
         id = button.parent().data('cell-id')
         action = button.data('action')
@@ -348,10 +465,10 @@ define [
       @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, @options.kernel_name
       @kernel.start()
       @notebook.kernel = @kernel
-      @events.on 'kernel_ready.Kernel', => 
+      @events.on 'kernel_ready.Kernel', =>
         @has_kernel_connected = true
         @log 'kernel ready'
-        for cell in @cells
+        for cell, i in @cells
           cell.set_kernel @kernel
         cb()
 
@@ -431,8 +548,10 @@ define [
           @set_state(@disc_state)
 
     log: (m, serious=false)->
-      if @debug then console.log("%c#{m}", "color: blue; font-size: 12px");
-      if serious then console.log(m)
+      if @debug
+        if not serious then console.log(m);
+        else console.log("%c#{m}", "color: blue; font-size: 12px");
+      else if serious then console.log(m)
 
     track: (name, data={})=>
       data['name'] = name

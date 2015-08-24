@@ -132,6 +132,8 @@ define([
             // XXX Changed by Zach
             theme: 'oreilly', // "ipython"
             viewportMargin: Infinity,
+            scrollPastEnd: true,
+            lineNumbers: true,
             matchBrackets: true
         }
     };
@@ -371,7 +373,8 @@ define([
             } else {
                 event.codemirrorIgnore = true;
                 event.preventDefault();
-                this.completer.startCompletion();
+                // Removed by Zach, XXX
+                // this.completer.startCompletion();
                 return true;
             }
         } 

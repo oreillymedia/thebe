@@ -61,7 +61,8 @@ define([
 
         this._autorestart_attempt = 0;
         this._reconnect_attempt = 0;
-        this.reconnect_limit = 7;
+        // Changed By Zach XXX
+        this.reconnect_limit = 5;
     };
 
     /**

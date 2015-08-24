@@ -1,29 +1,36 @@
 `Thebe` takes the [Jupyter](https://github.com/jupyter/) (formerly [ipython](https://github.com/ipython/ipython)) front end, and make it work outside of the notebook context.
 
 ## What? Why?
-In short, this is an easy way to let users on a web page run code examples on a server. 
+In short, this is an easy way to let users on a web page run code examples on a server.
 
-Here are a [some](https://oreillymedia.github.io/thebe/matplotlib-3d.html) relatively simple [examples](https://oreillymedia.github.io/thebe/matplotlib.html) and a more [complicated](https://oreillymedia.github.io/thebe/built_sans_runnable_attr.html) one.
+Here are a [some](https://oreillymedia.github.io/thebe/examples/matplotlib-3d.html) relatively simple [examples](https://oreillymedia.github.io/thebe/examples/matplotlib.html) and a more [complicated](https://oreillymedia.github.io/thebe/examples/t-sne-build.html) one.
 
 Four things are required:
 
-1. A server, either a [tmpnb](https://github.com/zischwartz/tmpnb) server, for lots of users, or simple an [ipython notebook server](http://ipython.org/notebook.html).
+1. A server, either a [tmpnb](https://github.com/zischwartz/tmpnb) server, for lots of users, or simply an [ipython notebook server](http://ipython.org/notebook.html).
 1. A web page with some code examples
 1. A script tag in the page that includes the compiled javascript of `Thebe`, which is in this repo at `static/main-built.js`
 1. jQuery, already included in the page
 
 Also, [Thebe is a moon of Jupiter](http://en.wikipedia.org/wiki/Thebe_%28moon%29) in case you were wondering. Naming things is hard.
 
+## Tips and Default Shortcuts
+`shift`+`return` executes the example that is currently focused 
+`shift`+`space`  moves the focus to the next example
+`shift`+`click`ing a run button will execute all preceding code examples as well as the current one
+
+You can change the first two by passing options to Thebe when you instantiate it (see below)
+
 ## Front End Use
 Include the `Thebe` script like so:
 
-```
+```html
 <script src="https://rawgit.com/oreillymedia/thebe/master/static/main-built.js" type="text/javascript" charset="utf-8"></script>
 ```
 
 and then 
 
-```
+```javascript
 <script>
     $(function(){
         new Thebe({url:"http://some.tmpnb.server.com:8000"});
@@ -33,22 +40,22 @@ and then
 
 Any `pre` tags with the `data-executable` attribute will be turned into editable, executable examples, and a run button will be added for each. Once run is clicked, `Thebe` will try to connect to the notebook server url you supplied, start the kernel, and execute the code in that example.
 
-`shift`+`click`ing a run button will execute every preceding code example and then execute the current one.
 
-Clicking run the first time will also add kernel controls to the bottom of the page, which will allow users to interrupt and restart the kernel. (Interrupting is equivalent to a keyboard interrupt, whereas restarting will lose all the user's variables and data.)
+If `append_kernel_controls_to` is set to a dom selector, clicking run will also add kernel controls to that element, which will allow users to interrupt and restart the kernel. (Interrupting is equivalent to a keyboard interrupt, whereas restarting will lose all the user's variables and data.)
 
 **Opt-in auto instantiation:** When loaded, the script will automatically start `Thebe` with the default options *if* the `body` has a `data-runnable` attribute that is set to true. 
 
 ## Options
 You can override the below default options when you instantiate Thebe: `Thebe(options)`
 
-    options:
+```coffee
+    default_options =
       # jquery selector for elements we want to make runnable 
       selector: 'pre[data-executable]'
       # the url of either a tmnb server or a notebook server
       # (default url assumes user is running tmpnb via boot2docker)
       url: '//192.168.59.103:8000/'
-      # is the url for tmpnb or for a notebook server
+      # is the url for tmpnb or for a notebook
       tmpnb_mode: true
       # the kernel name to use, must exist on notebook server
       kernel_name: "python2"
@@ -60,17 +67,33 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
+      # Default keyboard shortcut focusing next cell, shift+ this keycode, defaults (32) is spacebar
+      # Set to false to disable
+      next_cell_shortcut: 32
+      # Default keyboard shortcut for executing cell, shift+ this keycode, defaults (13) is return
+      # Set to false to disable
+      run_cell_shortcut: 13
+      # For when you want a pre to become a CM instance, but not be runnable
+      not_executable_selector: "pre[data-not-executable]"
+      # For when you want a pre to become a CM instance, but not be writable
+      read_only_selector: "pre[data-read-only]"
+      # if set to false, no addendum added, if a string, use that instead
+      error_addendum: true
       # show messages from @log()
       debug: false
+````
 
 For example, 
 
-    $(function(){
-        var thebe = new Thebe({
-          selector:"pre.cool",
-          url: 'http://localhost:8888/'
-        });
+```javascript
+$(function(){
+    var thebe = new Thebe({
+      selector:"pre.cool",
+      url: 'http://localhost:8888/'
     });
+});
+```
+
 
 will make each `pre` tag with class `cool` runnable, and will try to connect with an ipython notebook server running locally at the ipython notebook default address and port.
 
@@ -88,7 +111,7 @@ Most of the actual development takes place in `static/main.coffee`. I've tried t
 
 After making a change to the javascript in `static/`, you'll need to recompile it to see your changes in `built.html` or to use it in production. `index.html` will reflect your changes that last `r.js` step.
 
-```
+```javascript
 npm install -g requirejs
 npm install -g coffee-script
 coffee -cbm .
@@ -114,7 +137,7 @@ Then startup the docker containers for the proxy and tmpnb like so:
 ```
 export TOKEN=$( head -c 30 /dev/urandom | xxd -p )
 
-docker run --net=host -d -e CONFIGPROXY_AUTH_TOKEN=$TOKEN --name=proxy jupyter/configurable-http-proxy --default-target http://127.0.0.1:9999
+docker run --net=host -d -e CONFIGPROXY_AUTH_TOKEN=$TOKEN jupyter/configurable-http-proxy --default-target http://127.0.0.1:9999
 
 docker run --net=host -d -e CONFIGPROXY_AUTH_TOKEN=$TOKEN -v /var/run/docker.sock:/docker.sock zischwartz/tmpnb python orchestrate.py --image="zischwartz/scipyserver" --allow_origin="*" --command="ipython3 notebook --no-browser --port {port} --ip=* --NotebookApp.allow_origin=* --NotebookApp.base_url={base_path}" --cull-timeout=300 --cull_period=60
 ```
@@ -134,7 +157,7 @@ and visit it at [localhost:8000](http://localhost:8000) and [localhost:8000/buil
 Run the proxy like so 
 
 ```
-docker run --net=host -d -e CONFIGPROXY_AUTH_TOKEN=$TOKEN --name=proxy zischwartz/configurable-http-proxy configurable-http-proxy --default-target=http://127.0.0.1:9999 --ssl-key=key.pem --ssl-cert=cert.pem
+docker run --net=host -d -e CONFIGPROXY_AUTH_TOKEN=$TOKEN zischwartz/configurable-http-proxy configurable-http-proxy --default-target=http://127.0.0.1:9999 --ssl-key=key.pem --ssl-cert=cert.pem
 ```
 
-And run the tmpnb image as above/usual. Then start up a local server that supports `https`, like [this one](https://github.com/indexzero/http-server) with the `-S` option.
+And run the tmpnb image as above/usual. Then start up a local server that supports `https`, like [this one](https://github.com/indexzero/http-server) with the `-S` option. It still won't work until you visit both the local server and the proxy address in your browser and say that you understand that the certs aren't valid and you want to proceed anyway.
