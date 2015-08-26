@@ -22,7 +22,7 @@
 
 <script>
     $(function(){
-        new Thebe({selector:"pre[data-executable]"});
+        window.thebe = new Thebe({selector:"pre[data-executable]", add_interrupt_button: true, url:"//192.168.99.101:8000/"});
     });
 </script>
 

@@ -18,6 +18,7 @@ Also, [Thebe is a moon of Jupiter](http://en.wikipedia.org/wiki/Thebe_%28moon%29
 `shift`+`return` executes the example that is currently focused 
 `shift`+`space`  moves the focus to the next example
 `shift`+`click`ing a run button will execute all preceding code examples as well as the current one
+`ctrl`+`c` works like a keyboard interrupt (in case of infinite loops and such)
 
 You can change the first two by passing options to Thebe when you instantiate it (see below)
 
@@ -79,6 +80,8 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       read_only_selector: "pre[data-read-only]"
       # if set to false, no addendum added, if a string, use that instead
       error_addendum: true
+      # adds interrupt to every cell control, when it's running
+      add_interrupt_button: false
       # show messages from @log()
       debug: false
 ````

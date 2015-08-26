@@ -20,6 +20,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       not_executable_selector: "pre[data-not-executable]",
       read_only_selector: "pre[data-read-only]",
       error_addendum: true,
+      add_interrupt_button: false,
       debug: false
     };
 
@@ -282,6 +283,13 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           return true;
         };
       })(this));
+      $(window).on('keydown', (function(_this) {
+        return function(e) {
+          if (e.which === 67 && e.ctrlKey) {
+            return _this.kernel.interrupt();
+          }
+        };
+      })(this));
       this.events.on('kernel_connected.Kernel', (function(_this) {
         return function() {
           var cell, id, _i, _len, _ref, _results;
@@ -388,6 +396,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         html = this.ui[state];
       }
       result = "<button data-action='run' data-state='" + state + "'>" + html + "</button>";
+      if (this.options.add_interrupt_button && state === this.busy_state) {
+        result += "<button data-action='interrupt'>Interrupt</button>";
+      }
       if (state === this.user_error) {
         result += this.ui["error_addendum"];
       }
