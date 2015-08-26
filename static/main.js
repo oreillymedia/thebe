@@ -279,6 +279,13 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           return true;
         };
       })(this));
+      $(window).on('keydown', (function(_this) {
+        return function(e) {
+          if (e.which === 67 && e.ctrlKey) {
+            return _this.kernel.interrupt();
+          }
+        };
+      })(this));
       this.events.on('kernel_connected.Kernel', (function(_this) {
         return function() {
           var cell, id, _i, _len, _ref, _results;

@@ -51,7 +51,7 @@ define [
       read_only_selector: "pre[data-read-only]"
       # if set to false, no addendum added, if a string, use that instead
       error_addendum: true
-      # adds interrupt to every cell control
+      # adds interrupt to every cell control, when it's running
       add_interrupt_button: false
       # show messages from @log()
       debug: false
@@ -290,7 +290,11 @@ define [
           focus_edit_flag = false
         # XXX otherwise code will be uneditable!
         return true
-
+      
+      # Interrupt on ctrl-c, because terminal
+      $(window).on 'keydown', (e)=>
+        if e.which is 67 and e.ctrlKey then @kernel.interrupt()
+      
       # Used for a successful reconnection
       @events.on 'kernel_connected.Kernel', =>
         # Empty string = already connected but lost it
