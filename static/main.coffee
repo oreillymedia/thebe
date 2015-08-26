@@ -228,6 +228,7 @@ define [
 
       $(@selector).add(@options.not_executable_selector).each (i, el) =>
         cell = @notebook.insert_cell_at_bottom('code')
+        original_id = $(el).attr('id')
         # grab text, trim it, put it in cell
         cell.set_text $(el).text().trim()
         # is this a read only cell
@@ -249,6 +250,7 @@ define [
         if $(el).is(@options.not_executable_selector)
           controls.html("")
 
+        cell.element.attr('id', original_id) if original_id
         cell.element.removeAttr('tabindex')
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'

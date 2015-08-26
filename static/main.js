@@ -221,8 +221,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.notebook._unsafe_delete_cell(0);
       $(this.selector).add(this.options.not_executable_selector).each((function(_this) {
         return function(i, el) {
-          var cell, controls, wrap;
+          var cell, controls, original_id, wrap;
           cell = _this.notebook.insert_cell_at_bottom('code');
+          original_id = $(el).attr('id');
           cell.set_text($(el).text().trim());
           if ($(el).is(_this.options.read_only_selector)) {
             cell.read_only = true;
@@ -238,6 +239,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           }
           if ($(el).is(_this.options.not_executable_selector)) {
             controls.html("");
+          }
+          if (original_id) {
+            cell.element.attr('id', original_id);
           }
           cell.element.removeAttr('tabindex');
           return cell.element.off('dblclick');
@@ -654,5 +658,3 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe: Thebe
   };
 });
-
-//# sourceMappingURL=main.js.map
