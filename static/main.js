@@ -20,6 +20,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       not_executable_selector: "pre[data-not-executable]",
       read_only_selector: "pre[data-read-only]",
       error_addendum: true,
+      add_interrupt_button: false,
       debug: false
     };
 
@@ -384,6 +385,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         html = this.ui[state];
       }
       result = "<button data-action='run' data-state='" + state + "'>" + html + "</button>";
+      if (this.options.add_interrupt_button && state === this.busy_state) {
+        result += "<button data-action='interrupt'>Interrupt</button>";
+      }
       if (state === this.user_error) {
         result += this.ui["error_addendum"];
       }
@@ -654,5 +658,3 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe: Thebe
   };
 });
-
-//# sourceMappingURL=main.js.map
