@@ -46,6 +46,8 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
 
     Thebe.prototype.user_error = "user_error";
 
+    Thebe.prototype.interrupt_state = "interrupt";
+
     Thebe.prototype.ui = {};
 
     Thebe.prototype.setup_constants = function() {
@@ -55,6 +57,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.ui[this.busy_state] = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>';
       this.ui[this.ran_state] = 'Run Again';
       this.ui[this.user_error] = 'Run Again';
+      this.ui[this.interrupt_state] = 'Interrupted. Run Again?';
       this.ui[this.full_state] = 'Server is Full :-(';
       this.ui[this.cant_state] = 'Can\'t connect to server';
       this.ui[this.disc_state] = 'Disconnected from Server<br>Attempting to reconnect';
@@ -308,7 +311,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         return function() {
           _this.set_state(_this.idle_state);
           return $.doTimeout('thebe_idle_state', 300, function() {
-            var busy_ids, id, _i, _len, _ref;
+            var busy_ids, id, interrupt_ids, _i, _j, _len, _len1, _ref;
             if (_this.state === _this.idle_state) {
               busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(function() {
                 return $(this).data('cell-id');
@@ -316,6 +319,13 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
               for (_i = 0, _len = busy_ids.length; _i < _len; _i++) {
                 id = busy_ids[_i];
                 _this.show_cell_state(_this.idle_state, id);
+              }
+              interrupt_ids = $(".thebe_controls button[data-state='interrupt']").parent().map(function() {
+                return $(this).data('cell-id');
+              });
+              for (_j = 0, _len1 = interrupt_ids.length; _j < _len1; _j++) {
+                id = interrupt_ids[_j];
+                _this.cells[id]["output_area"].clear_output(false);
               }
               return false;
             } else if (_ref = _this.state, __indexOf.call(_this.error_states, _ref) < 0) {
@@ -350,7 +360,12 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           id = controls.data('cell-id');
           if (msg_type === 'error') {
             _this.log('Error executing cell #' + id);
-            return _this.show_cell_state(_this.user_error, id);
+            if (msg.content.ename === "KeyboardInterrupt") {
+              _this.log("KeyboardInterrupt by User");
+              return _this.show_cell_state(_this.interrupt_state, id);
+            } else {
+              return _this.show_cell_state(_this.user_error, id);
+            }
           }
         };
       })(this));
