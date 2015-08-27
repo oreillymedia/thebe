@@ -101,7 +101,12 @@ print(z)
 
 </pre>
 <pre data-executable='true'>
-z = 2
+# A long running loop you might want to interrupt
+x = 0
+for i in range(1, 10000000):
+    x+=i
+
+print(x)
 </pre>
 <p>A more complicated example:</p>
 

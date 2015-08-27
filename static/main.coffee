@@ -60,29 +60,31 @@ define [
     spawn_path: "api/spawn/"
     stats_path: "stats"
     # state constants
-    start_state:   "start"
-    idle_state:    "idle"
-    busy_state:    "busy"
-    ran_state:     "ran"
-    full_state:    "full"
-    cant_state:    "cant"
-    disc_state:    "disconnected"
-    gaveup_state:  "gaveup"
-    user_error:    "user_error"
+    start_state:     "start"
+    idle_state:      "idle"
+    busy_state:      "busy"
+    ran_state:       "ran"
+    full_state:      "full"
+    cant_state:      "cant"
+    disc_state:      "disconnected"
+    gaveup_state:    "gaveup"
+    user_error:      "user_error"
+    interrupt_state: "interrupt"
     # I don't know an elegant way to use these pre instantiation
     ui: {}
     setup_constants: ->
-      @error_states = [@disc_state, @full_state, @cant_state, @gaveup_state]
+      @error_states     = [@disc_state, @full_state, @cant_state, @gaveup_state]
       @ui[@start_state] = 'Starting server...'
       @ui[@idle_state]  = 'Run'
       @ui[@busy_state]  = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
       @ui[@ran_state]   = 'Run Again'
       # Button stays the same, but we add the addendum for a user error
-      @ui[@user_error] = 'Run Again'
+      @ui[@user_error]  = 'Run Again'
+      @ui[@interrupt_state]   = 'Interrupted. Run Again?'
       @ui[@full_state]  = 'Server is Full :-('
       @ui[@cant_state]  = 'Can\'t connect to server'
       @ui[@disc_state]  = 'Disconnected from Server<br>Attempting to reconnect'
-      @ui[@gaveup_state]  = 'Disconnected!<br>Click to try again'
+      @ui[@gaveup_state]= 'Disconnected!<br>Click to try again'
 
       if @options.error_addendum is false then @ui['error_addendum']  = ""
       else if @options.error_addendum is true
@@ -314,8 +316,13 @@ define [
             busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(->$(this).data('cell-id'))
             # just the busy ones, doesn't do it on reconnect
             for id in busy_ids
-            # for cell, id in @cells
               @show_cell_state(@idle_state, id)
+
+            # Get rid of the traceback output generated for user interrupt
+            interrupt_ids = $(".thebe_controls button[data-state='interrupt']").parent().map(->$(this).data('cell-id'))
+            for id in interrupt_ids
+              @cells[id]["output_area"].clear_output(false)
+
             return false
           else if @state not in @error_states
             # keep polling
@@ -343,7 +350,11 @@ define [
         if msg_type is 'error'
           # $.doTimeout 'thebe_idle_state'
           @log 'Error executing cell #'+id
-          @show_cell_state(@user_error, id)
+          if msg.content.ename is "KeyboardInterrupt"
+            @log "KeyboardInterrupt by User"
+            @show_cell_state(@interrupt_state, id)
+          else
+            @show_cell_state(@user_error, id)
 
     # USER INTERFACE
     # ----------------------
@@ -366,7 +377,11 @@ define [
       # has this cell already been run and we're switching it to idle
       if @cells[cell_id]['last_msg_id'] and state is @idle_state
         state = @ran_state
+      # console.log @cells[cell_id]
+      # if state is @interrupt
+        # @cells[cell_id]["output_area"].clear_output(true)
       $(".thebe_controls[data-cell-id=#{cell_id}]").html @controls_html(state)
+
 
     # Basically a template
     # Note: not @state
