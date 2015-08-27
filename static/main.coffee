@@ -377,9 +377,6 @@ define [
       # has this cell already been run and we're switching it to idle
       if @cells[cell_id]['last_msg_id'] and state is @idle_state
         state = @ran_state
-      # console.log @cells[cell_id]
-      # if state is @interrupt
-        # @cells[cell_id]["output_area"].clear_output(true)
       $(".thebe_controls[data-cell-id=#{cell_id}]").html @controls_html(state)
 
 
