@@ -625,7 +625,7 @@ define([
          * require and callback with the resolveable mode string: mime or
          * custom name
          */
-         console.log(CodeMirror.modeURL)
+
         var modename = (typeof mode == "string") ? mode :
             mode.mode || mode.name;
 
