@@ -67,9 +67,11 @@
           
           // The default is //192.168.59.103:8000/spawn/, tmpnb running on boot2docker
           thebe = new main.Thebe({
-            // url: "https://192.168.59.103:8000",
+            url: "https://192.168.99.101:8000",
             debug: true,
-            append_kernel_controls_to: 'body'
+            append_kernel_controls_to: 'body',
+            next_cell_shortcut: false,
+            add_interrupt_button: true
             // inject_css: false
             // tmpnb_mode: false
           });
@@ -99,7 +101,12 @@ print(z)
 
 </pre>
 <pre data-executable='true'>
-z = 2
+# A long running loop you might want to interrupt
+x = 0
+for i in range(1, 10000000):
+    x+=i
+
+print(x)
 </pre>
 <p>A more complicated example:</p>
 

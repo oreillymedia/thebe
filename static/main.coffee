@@ -39,6 +39,20 @@ define [
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
+      # Default keyboard shortcut for focusing next cell, shift+ this keycode, default (32) is spacebar
+      # Set to false to disable
+      next_cell_shortcut: 32
+      # Default keyboard shortcut for executing cell, shift+ this keycode, default (13) is return
+      # Set to false to disable
+      run_cell_shortcut: 13
+      # For when you want a pre to become a CM instance, but not be runnable
+      not_executable_selector: "pre[data-not-executable]"
+      # For when you want a pre to become a CM instance, but not be writable
+      read_only_selector: "pre[data-read-only]"
+      # if set to false, no addendum added, if a string, use that instead
+      error_addendum: true
+      # adds interrupt to every cell control, when it's running
+      add_interrupt_button: false
       # show messages from @log()
       debug: false
 
@@ -46,31 +60,37 @@ define [
     spawn_path: "api/spawn/"
     stats_path: "stats"
     # state constants
-    start_state:   "start"
-    idle_state:    "idle"
-    busy_state:    "busy"
-    ran_state:     "ran"
-    full_state:    "full"
-    cant_state:    "cant"
-    disc_state:    "disconnected"
-    gaveup_state:  "gaveup"
-    user_error:    "user_error"
+    start_state:     "start"
+    idle_state:      "idle"
+    busy_state:      "busy"
+    ran_state:       "ran"
+    full_state:      "full"
+    cant_state:      "cant"
+    disc_state:      "disconnected"
+    gaveup_state:    "gaveup"
+    user_error:      "user_error"
+    interrupt_state: "interrupt"
     # I don't know an elegant way to use these pre instantiation
     ui: {}
     setup_constants: ->
-      @error_states = [@disc_state, @full_state, @cant_state, @gaveup_state]
+      @error_states     = [@disc_state, @full_state, @cant_state, @gaveup_state]
       @ui[@start_state] = 'Starting server...'
       @ui[@idle_state]  = 'Run'
       @ui[@busy_state]  = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
       @ui[@ran_state]   = 'Run Again'
       # Button stays the same, but we add the addendum for a user error
-      @ui[@user_error] = 'Run Again'
+      @ui[@user_error]  = 'Run Again'
+      @ui[@interrupt_state]   = 'Interrupted. Run Again?'
       @ui[@full_state]  = 'Server is Full :-('
       @ui[@cant_state]  = 'Can\'t connect to server'
       @ui[@disc_state]  = 'Disconnected from Server<br>Attempting to reconnect'
-      @ui[@gaveup_state]  = 'Disconnected!<br>Click to try again'
-      @ui['error_addendum']  = "<button data-action='run-above'>Run All Above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>"
+      @ui[@gaveup_state]= 'Disconnected!<br>Click to try again'
 
+      if @options.error_addendum is false then @ui['error_addendum']  = ""
+      else if @options.error_addendum is true
+        @ui['error_addendum']  = "<button data-action='run-above'>Run All Above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>"
+      else @ui['error_addendum'] = @options.error_addendum 
+   
     # See default_options above 
     constructor: (@options={})->
       # important flags
@@ -209,19 +229,32 @@ define [
       # otherwise this will mess up our index
       @notebook._unsafe_delete_cell(0)
 
-      $(@selector).each (i, el) =>
+
+      $(@selector).add(@options.not_executable_selector).each (i, el) =>
         cell = @notebook.insert_cell_at_bottom('code')
+        original_id = $(el).attr('id')
         # grab text, trim it, put it in cell
         cell.set_text $(el).text().trim()
+        # is this a read only cell
+        if $(el).is(@options.read_only_selector)
+          # not really used by the notebooks it seems, but is present in cell.js
+          cell.read_only = true
+          # this actually sets cm to read only mode
+          cell.code_mirror.setOption("readOnly", true) # or "nocursor", though that prevents focus
         # Add run button, wrap it all up, and replace the pre's
         wrap = $("<div class='thebe_wrap'></div>")
         controls = $("<div class='thebe_controls' data-cell-id='#{i}'>#{@controls_html()}</div>")
         wrap.append cell.element.children()
         $(el).replaceWith(cell.element.empty().append(wrap))
-        # cell.refresh()
+        # cell.refresh() # not needed currently, but useful 
         @cells.push cell
         unless @server_error
           $(wrap).append controls
+        # Not executable? Remove the contents of controls div
+        if $(el).is(@options.not_executable_selector)
+          controls.html("")
+
+        cell.element.attr('id', original_id) if original_id
         cell.element.removeAttr('tabindex')
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
@@ -241,18 +274,18 @@ define [
 
       # Keyboard events
       $('div.code_cell').on 'keydown', (e)=>
-        if e.which is 32 and e.shiftKey is true
+        if e.which is @options.next_cell_shortcut and e.shiftKey is true
           cell_id = get_cell_id_from_event(e)
           # at the end? wrap around
           if cell_id is @cells.length-1 then cell_id = -1
           next = @cells[cell_id+1]
           next.focus_editor()
-          # don't insert space
+          # don't insert space or whatever
           return false
-        else if e.which is 13 and e.shiftKey is true
+        else if e.which is @options.run_cell_shortcut and e.shiftKey is true
           cell_id = get_cell_id_from_event(e)
           @run_cell(cell_id)
-          # don't insert a CR
+          # don't insert a CR or whatever
           return false
         # finally, this is just for metrics
         else if focus_edit_flag
@@ -261,7 +294,11 @@ define [
           focus_edit_flag = false
         # XXX otherwise code will be uneditable!
         return true
-
+      
+      # Interrupt on ctrl-c, because terminal
+      $(window).on 'keydown', (e)=>
+        if e.which is 67 and e.ctrlKey then @kernel.interrupt()
+      
       # Used for a successful reconnection
       @events.on 'kernel_connected.Kernel', =>
         # Empty string = already connected but lost it
@@ -279,8 +316,13 @@ define [
             busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(->$(this).data('cell-id'))
             # just the busy ones, doesn't do it on reconnect
             for id in busy_ids
-            # for cell, id in @cells
               @show_cell_state(@idle_state, id)
+
+            # Get rid of the traceback output generated for user interrupt
+            interrupt_ids = $(".thebe_controls button[data-state='interrupt']").parent().map(->$(this).data('cell-id'))
+            for id in interrupt_ids
+              @cells[id]["output_area"].clear_output(false)
+
             return false
           else if @state not in @error_states
             # keep polling
@@ -308,7 +350,11 @@ define [
         if msg_type is 'error'
           # $.doTimeout 'thebe_idle_state'
           @log 'Error executing cell #'+id
-          @show_cell_state(@user_error, id)
+          if msg.content.ename is "KeyboardInterrupt"
+            @log "KeyboardInterrupt by User"
+            @show_cell_state(@interrupt_state, id)
+          else
+            @show_cell_state(@user_error, id)
 
     # USER INTERFACE
     # ----------------------
@@ -333,15 +379,21 @@ define [
         state = @ran_state
       $(".thebe_controls[data-cell-id=#{cell_id}]").html @controls_html(state)
 
+
     # Basically a template
     # Note: not @state
     controls_html: (state=@idle_state, html=false)=>
       if not html then html = @ui[state]
       result = "<button data-action='run' data-state='#{state}'>#{html}</button>"
+      if @options.add_interrupt_button and state is @busy_state # and state is running??
+        result+="<button data-action='interrupt'>Interrupt</button>"
       if state is @user_error
         result+=@ui["error_addendum"]
       result
     
+    get_controls_html: (cell)=>
+      $(cell.element).find(".thebe_controls").html()
+
     # Basically a template
     kernel_controls_html: ->
       "<button data-action='run-above'>Run All</button> <button data-action='interrupt'>Interrupt</button> <button data-action='restart'>Restart</button>"
@@ -374,6 +426,10 @@ define [
 
       # The actual run cell logic, depends on if we've already connected or not
       cell = @cells[cell_id]
+      
+      #
+      if not @get_controls_html(cell) then return
+
       if not @has_kernel_connected
         @show_cell_state(@start_state, cell_id)
         # pass the callback to before_first_run
@@ -383,6 +439,7 @@ define [
           cell.execute()
           if end_id
             for cell, i in @cells[cell_id+1..end_id]
+              if not @get_controls_html(cell) then continue
               @show_cell_state(@busy_state, i+1)
               cell.execute()
       # if we're already connected to the kernel
@@ -391,6 +448,7 @@ define [
         cell.execute()
         if end_id
           for cell, i in @cells[cell_id+1..end_id]
+            if not @get_controls_html(cell) then continue
             @show_cell_state(@busy_state, i+1)
             cell.execute()
 
