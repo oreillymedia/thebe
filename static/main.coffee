@@ -15,6 +15,7 @@ define [
   'notebook/js/kernelselector'
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
+  'codemirror/mode/ruby/ruby'
   'custom/custom'
 ], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
   
