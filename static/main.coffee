@@ -54,6 +54,8 @@ define [
       error_addendum: true
       # adds interrupt to every cell control, when it's running
       add_interrupt_button: false
+      # hack to set the codemirror mode where it actually matters
+      codemirror_mode_name: "ipython"
       # show messages from @log()
       debug: false
 
@@ -531,7 +533,7 @@ define [
         set_kernel : -> 
 
       @events.trigger 'app_initialized.NotebookApp'
-      @notebook.load_notebook common_options.notebook_path
+      @notebook.load_notebook common_options.notebook_path, @options.codemirror_mode_name
       # And finally
       @build_thebe()
 

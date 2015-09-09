@@ -2091,15 +2091,22 @@ define(function (require) {
      * 
      * @param {string} notebook_path - A notebook to load
      */
-    Notebook.prototype.load_notebook = function (notebook_path) {
+     // CHANGED BY ZACH XXX, added mode
+    Notebook.prototype.load_notebook = function (notebook_path, mode) {
         var that = this;
         this.notebook_path = notebook_path;
         this.notebook_name = utils.url_path_split(this.notebook_path)[1];
         this.events.trigger('notebook_loading.Notebook');
         
+        if (!mode) {
+            mode = "ipython"
+        }
+        
         //Zach XXX TODO
         //FAKE STUB
-        var data = {"mimetype": null, "writable": true, "name": "blank.ipynb", "format": "json", "created": "2015-03-31T18:35:40.310440+00:00", "content": {"nbformat_minor": 0, "cells": [], "nbformat": 4, "metadata": {"kernelspec": {"display_name": "Python 2", "name": "python2", "language": "python"}, "language_info": {"mimetype": "text/x-python", "nbconvert_exporter": "python", "version": "2.7.6", "name": "python", "file_extension": ".py", "pygments_lexer": "ipython2", "codemirror_mode": {"version": 2, "name": "ipython"}}}}, "last_modified": "2015-03-26T20:44:44+00:00", "path": "blank.ipynb", "type": "notebook"};
+        // var data = {"mimetype": null, "writable": true, "name": "blank.ipynb", "format": "json", "created": "2015-03-31T18:35:40.310440+00:00", "content": {"nbformat_minor": 0, "cells": [], "nbformat": 4, "metadata": {"kernelspec": {"display_name": "Python 2", "name": "python2", "language": "python"}, "language_info": {"mimetype": "text/x-python", "nbconvert_exporter": "python", "version": "2.7.6", "name": "python", "file_extension": ".py", "pygments_lexer": "ipython2", "codemirror_mode": {"version": 2, "name": "ipython"}}}}, "last_modified": "2015-03-26T20:44:44+00:00", "path": "blank.ipynb", "type": "notebook"};
+        // This one includes the mode
+        var data = {"mimetype": null, "writable": true, "name": "blank.ipynb", "format": "json", "created": "2015-03-31T18:35:40.310440+00:00", "content": {"nbformat_minor": 0, "cells": [], "nbformat": 4, "metadata": {"kernelspec": {"display_name": "Python 2", "name": "python2", "language": "python"}, "language_info": {"mimetype": "text/x-python", "nbconvert_exporter": "python", "version": "2.7.6", "name": "python", "file_extension": ".py", "pygments_lexer": "ipython2", "codemirror_mode": {"name": mode}}}}, "last_modified": "2015-03-26T20:44:44+00:00", "path": "blank.ipynb", "type": "notebook"};
         this.load_notebook_success(data);
         // this.contents.get(notebook_path, {type: 'notebook'}).then(
         //     $.proxy(this.load_notebook_success, this),

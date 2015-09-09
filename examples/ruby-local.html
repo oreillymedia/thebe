@@ -9,7 +9,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="../static/thebe/site.css" type="text/css"/>
-    
+          <!-- <link rel="stylesheet" type="text/css" href="https://d3jfhgzw11e2kt.cloudfront.net/assets/application-8f2545d2.css"> -->
+
     <!-- This example uses requirejs to dynamically load scripts -->
     <!-- which is good for local development, because we don't need to rebuild everything when we make a change. -->
     
@@ -70,6 +71,7 @@
             url: "https://tmp35.tmpnb.org",
             debug: true,
             kernel_name: 'ruby',
+            codemirror_mode_name: 'ruby',
             append_kernel_controls_to: 'body'
             // inject_css: false
             // tmpnb_mode: false
@@ -98,6 +100,28 @@
 puts 'Hello, world!'
 
 </pre>
+
+<pre data-type="programlisting" data-code-language="ruby" data-executable="true">require 'set' # Deals with a collection of unordered values with no duplicates
+
+# Include this module to make your class taggable. The names of the
+# instance variable and the setup method are prefixed with "taggable_"
+# to reduce the risk of namespace collision. You must call
+# taggable_setup before you can use any of this module's methods.
+module Taggable
+  attr_accessor :tags
+
+  def taggable_setup
+    @tags = Set.new
+  end
+
+  def add_tag(tag)
+    @tags &lt;&lt; tag
+  end
+
+  def remove_tag(tag)
+    @tags.delete(tag)
+  end
+end</pre>
 
 <pre data-executable='true'>
 IRuby.display IRuby.table({a:[11,12,13,14],b:[21,22,23],c:[31,32,33,34]})

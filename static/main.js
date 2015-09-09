@@ -21,6 +21,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       read_only_selector: "pre[data-read-only]",
       error_addendum: true,
       add_interrupt_button: false,
+      codemirror_mode_name: "ipython",
       debug: false
     };
 
@@ -600,7 +601,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         set_kernel: function() {}
       };
       this.events.trigger('app_initialized.NotebookApp');
-      this.notebook.load_notebook(common_options.notebook_path);
+      this.notebook.load_notebook(common_options.notebook_path, this.options.codemirror_mode_name);
       return this.build_thebe();
     };
 
