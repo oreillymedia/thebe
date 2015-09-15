@@ -2,7 +2,7 @@
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'custom/custom'], function(IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) {
+define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'terminal/js/terminado', 'components/term.js/src/term', 'custom/custom'], function(IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) {
   var Thebe;
   promise.polyfill();
   Thebe = (function() {
@@ -21,6 +21,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       read_only_selector: "pre[data-read-only]",
       error_addendum: true,
       add_interrupt_button: false,
+      terminal_mode: false,
       debug: false
     };
 
@@ -76,6 +77,8 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.options = _at_options != null ? _at_options : {};
       this.track = __bind(this.track, this);
       this.setup_resources = __bind(this.setup_resources, this);
+      this.start_terminal_backend = __bind(this.start_terminal_backend, this);
+      this.start_terminal = __bind(this.start_terminal, this);
       this.start_notebook = __bind(this.start_notebook, this);
       this.start_kernel = __bind(this.start_kernel, this);
       this.before_first_run = __bind(this.before_first_run, this);
@@ -113,7 +116,11 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       if (this.tmpnb_url) {
         this.check_server();
       }
-      this.start_notebook();
+      if (!this.options.terminal_mode) {
+        this.start_notebook();
+      } else {
+        this.start_terminal();
+      }
     }
 
     Thebe.prototype.call_spawn = function(cb) {
@@ -212,7 +219,11 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           this.url = this.tmpnb_url + data.url + '/';
           this.log('tmpnb says we should use');
           this.log(this.url);
-          this.start_kernel(cb);
+          if (!this.options.terminal_mode) {
+            this.start_kernel(cb);
+          } else {
+            this.start_terminal_backend(cb);
+          }
           $.cookie('thebe_url', this.url);
           return this.track('call_spawn_success');
         }
@@ -602,6 +613,81 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.events.trigger('app_initialized.NotebookApp');
       this.notebook.load_notebook(common_options.notebook_path);
       return this.build_thebe();
+    };
+
+    Thebe.prototype.start_terminal = function() {
+      return $(this.selector).one('click', (function(_this) {
+        return function(e) {
+          if (_this.options.tmpnb_mode) {
+            return _this.call_spawn(function() {});
+          } else {
+            return _this.start_terminal_backend();
+          }
+        };
+      })(this));
+    };
+
+    Thebe.prototype.start_terminal_backend = function() {
+      var invo;
+      console.log(this.url);
+      invo = new XMLHttpRequest;
+      invo.open("POST", this.url + "api/terminals", true);
+      invo.onreadystatechange = (function(_this) {
+        return function(e) {
+          if (invo.readyState === 4) {
+            return _this.terminal_start_handler(e);
+          }
+        };
+      })(this);
+      invo.onerror = (function(_this) {
+        return function(e) {
+          _this.log("Cannot connect to jupyter server to start terminal", true);
+          _this.set_state(_this.cant_state);
+          $.removeCookie('thebe_url');
+          return _this.track('start_terminal_fail');
+        };
+      })(this);
+      return invo.send();
+    };
+
+    Thebe.prototype.terminal_start_handler = function(e) {
+      var calculate_size, name, res, size, termColWidth, termRowHeight, terminal, ws_url;
+      console.log("terminal_start_handler");
+      console.log(e);
+      res = JSON.parse(e.target.responseText);
+      name = res["name"];
+      ws_url = this.url.replace('http', 'ws') + ("terminals/websocket/" + name);
+      console.log("ws_url:");
+      console.log(ws_url);
+      this.log("Thebe is in TERMINAL MODE, i.e. not running as a notebook", true);
+      termRowHeight = function() {
+        return 1.00 * $('#dummy-screen')[0].offsetHeight / 25;
+      };
+      termColWidth = function() {
+        return 1.02 * $('#dummy-screen-rows')[0].offsetWidth / 80;
+      };
+      calculate_size = (function(_this) {
+        return function() {
+          var cols, height, rows, width;
+          height = window.innerHeight;
+          width = $(_this.selector).width();
+          console.log(width);
+          rows = Math.min(1000, Math.max(20, Math.floor(height / termRowHeight()) - 1));
+          cols = Math.min(1000, Math.max(40, Math.floor(width / termColWidth()) - 1));
+          return {
+            rows: rows,
+            cols: cols
+          };
+        };
+      })(this);
+      size = calculate_size();
+      terminal = terminado.make_terminal($(this.selector)[0], size, ws_url);
+      return window.onresize = function() {
+        var geom;
+        geom = calculate_size();
+        terminal.term.resize(geom.cols, geom.rows);
+        return terminal.socket.send(JSON.stringify(['set_size', geom.rows, geom.cols, window.innerHeight, window.innerWidth]));
+      };
     };
 
     Thebe.prototype.setup_resources = function() {
