@@ -9,7 +9,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="../static/thebe/site.css" type="text/css"/>
-    
+    <style>
+      pre[data-executable] {
+        width: 500px;
+        height: 700px;
+      }
+    </style>
     <!-- This example uses requirejs to dynamically load scripts -->
     <!-- which is good for local development, because we don't need to rebuild everything when we make a change. -->
     
@@ -69,8 +74,8 @@
           thebe = new main.Thebe({
             // url: "https://tmp35.tmpnb.org",
             // url: "https://tmp37.tmpnb.org/",
-            // url: "https://192.168.99.100:8000",
-            url: "http://192.168.99.100",
+            url: "https://192.168.99.100:8000",
+            // url: "http://192.168.99.100",
             debug: true,
             terminal_mode: true,
             debug: true,
@@ -79,7 +84,7 @@
             // next_cell_shortcut: false,
             // add_interrupt_button: true
             // inject_css: false
-            tmpnb_mode: false
+            // tmpnb_mode: false
           });
       });
 
@@ -97,7 +102,7 @@
 </noscript>   
 
 <!-- REQUIRED CURRENTLY XXX -->
-<div id = "header">Header</div>
+<!-- <div id = "header">Header</div> -->
 
 <h1>Thebe</h1>
 <h2>Jupyter javascript plugin for static sites</h2>
@@ -107,46 +112,6 @@
 <pre data-executable='true'>
 echo "hello world"
 </pre>
-
-
-
-
-
-
-
-<!-- Hack: this needs to be outside the display:none block, so we can measure
-     its size in JS in setting up the page. It is still invisible. Putting in
-     the script block gets it outside the initially undisplayed region. -->
-<!-- test size: 25x80 -->
-<div style='position:absolute; left:-1000em'>
-<pre id="dummy-screen" style="border: solid 5px white;" class="terminal">0
-1
-2
-3
-4
-5
-6
-7
-8
-9
-0
-1
-2
-3
-4
-5
-6
-7
-8
-9
-0
-1
-2
-3
-<span id="dummy-screen-rows" style="">01234567890123456789012345678901234567890123456789012345678901234567890123456789</span>
-</pre>
-</div>
-
     
 
 </body>
