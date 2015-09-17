@@ -621,10 +621,10 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe.prototype.start_terminal = function() {
       return $(this.selector).one('click', (function(_this) {
         return function(e) {
-          if (_this.options.tmpnb_mode) {
-            return _this.call_spawn(function() {});
-          } else {
+          if (_this.url) {
             return _this.start_terminal_backend();
+          } else {
+            return _this.call_spawn(function() {});
           }
         };
       })(this));

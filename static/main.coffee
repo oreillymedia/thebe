@@ -552,10 +552,9 @@ define [
     # (but sets up call_spawn and start_terminal_backend on click, for now)
     start_terminal: =>
       $(@selector).one 'click', (e)=>
-        if @options.tmpnb_mode
-          @call_spawn =>
-        else 
-          @start_terminal_backend()
+        # basically the same as before_first_run
+        if @url then @start_terminal_backend()
+        else @call_spawn(->)
 
     # equivalent to @start_kernel 
     # i.e. actually starts terminal on the server (after spawn if needed)
