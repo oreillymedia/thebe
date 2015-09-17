@@ -593,10 +593,8 @@ define [
       calculate_size = =>
         height = $(@selector).height()
         width = $(@selector).width()
-        console.log "height, width",  height, width
-        rows = Math.min(1000, Math.max(20, Math.floor(height / termRowHeight()) - 1))
+        rows = Math.min(1000, Math.max(20, Math.floor(height / termRowHeight()) )) # was also - 1, but that seemed to be a line short
         cols = Math.min(1000, Math.max(40, Math.floor(width / termColWidth()) - 1))
-        # console.log {rows: rows, cols: cols}
         {rows: rows, cols: cols}
 
       size = calculate_size()

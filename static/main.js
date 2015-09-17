@@ -671,8 +671,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           var cols, height, rows, width;
           height = $(_this.selector).height();
           width = $(_this.selector).width();
-          console.log("height, width", height, width);
-          rows = Math.min(1000, Math.max(20, Math.floor(height / termRowHeight()) - 1));
+          rows = Math.min(1000, Math.max(20, Math.floor(height / termRowHeight())));
           cols = Math.min(1000, Math.max(40, Math.floor(width / termColWidth()) - 1));
           return {
             rows: rows,
