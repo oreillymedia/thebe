@@ -130,7 +130,7 @@ define([
             },
             mode: 'ipython',
             // XXX Changed by Zach
-            theme: 'oreilly', // "ipython"
+            // theme: 'oreilly', // "ipython"
             viewportMargin: Infinity,
             scrollPastEnd: true,
             lineNumbers: true,
