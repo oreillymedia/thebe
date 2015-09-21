@@ -23,10 +23,14 @@ define [
   'codemirror/mode/javascript/javascript'
   'codemirror/mode/julia/julia'
   'codemirror/mode/python/python'
-  'codemirror/mode/python/python'
+  'codemirror/mode/haskell/haskell'
   'codemirror/mode/r/r'
   'codemirror/mode/shell/shell'
   'codemirror/mode/clike/clike'
+  'codemirror/mode/jinja2/jinja2'
+  'codemirror/mode/php/php'
+  'codemirror/mode/sql/sql'
+  'codemirror/mode/ngnix/ngnix'
   'custom/custom'
 ], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
   
