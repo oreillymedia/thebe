@@ -16,6 +16,17 @@ define [
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
   'codemirror/mode/ruby/ruby'
+  'codemirror/mode/css/css'
+  'codemirror/mode/coffeescript/coffeescript'
+  'codemirror/mode/dockerfile/dockerfile'
+  'codemirror/mode/go/go'
+  'codemirror/mode/javascript/javascript'
+  'codemirror/mode/julia/julia'
+  'codemirror/mode/python/python'
+  'codemirror/mode/python/python'
+  'codemirror/mode/r/r'
+  'codemirror/mode/shell/shell'
+  'codemirror/mode/clike/clike'
   'custom/custom'
 ], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
   
