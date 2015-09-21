@@ -684,7 +684,6 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       return window.onresize = (function(_this) {
         return function() {
           var geom;
-          console.log('resize!');
           geom = calculate_size();
           terminal.term.resize(geom.cols, geom.rows);
           return terminal.socket.send(JSON.stringify(['set_size', geom.rows, geom.cols, $(_this.selector).height(), $(_this.selector).width()]));

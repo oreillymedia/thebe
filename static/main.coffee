@@ -602,7 +602,6 @@ define [
       terminal = terminado.make_terminal($(@selector)[0], size, ws_url)
 
       window.onresize = =>
-        console.log 'resize!'
         geom = calculate_size()
         terminal.term.resize geom.cols, geom.rows
         terminal.socket.send JSON.stringify([
