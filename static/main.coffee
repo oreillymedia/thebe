@@ -15,6 +15,8 @@ define [
   'notebook/js/kernelselector'
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
+  'terminal/js/terminado',
+  'components/term.js/src/term'
   'codemirror/mode/ruby/ruby'
   'codemirror/mode/css/css'
   'codemirror/mode/coffeescript/coffeescript'
@@ -30,9 +32,9 @@ define [
   'codemirror/mode/jinja2/jinja2'
   'codemirror/mode/php/php'
   'codemirror/mode/sql/sql'
-  'codemirror/mode/ngnix/ngnix'
+
   'custom/custom'
-], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
+], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) ->
   
   promise.polyfill()
 
@@ -69,14 +71,16 @@ define [
       error_addendum: true
       # adds interrupt to every cell control, when it's running
       add_interrupt_button: false
-      # hack to set the codemirror mode where it actually matters
+      # hack to set the codemirror mode correctly
       codemirror_mode_name: "ipython"
+      # totally different mode for running a terminal instead of a notebook
+      terminal_mode: false
       # show messages from @log()
       debug: false
 
     # some constants we need
     spawn_path: "api/spawn/"
-    stats_path: "stats"
+    stats_path: "api/stats"
     # state constants
     start_state:     "start"
     idle_state:      "idle"
@@ -149,9 +153,15 @@ define [
       # check that the tmpnb server is up
       if @tmpnb_url then @check_server()
       
-      # Start the notebook front end, creating cells with codemirror instances inside
-      # and get everything set up for when the user hits run that first time
-      @start_notebook()
+      if not @options.terminal_mode
+        # Start the notebook front end, creating cells with codemirror instances inside
+        # and get everything set up for when the user hits run that first time
+        @start_notebook()
+      else
+        if $(@selector).length isnt 1
+          throw new Error "You should have one, and only one #{@selector} element in terminal mode. Change the selector option or change your html."
+        @start_terminal()
+
     
     # NETWORKING
     # ----------------------
@@ -231,7 +241,10 @@ define [
           @url = @tmpnb_url+data.url+'/'
           @log 'tmpnb says we should use'
           @log @url
-          @start_kernel(cb)
+          if not @options.terminal_mode
+            @start_kernel(cb)
+          else
+            @start_terminal_backend(cb)
           $.cookie 'thebe_url', @url
           @track 'call_spawn_success'
 
@@ -445,7 +458,6 @@ define [
       # The actual run cell logic, depends on if we've already connected or not
       cell = @cells[cell_id]
       
-      #
       if not @get_controls_html(cell) then return
 
       if not @has_kernel_connected
@@ -551,6 +563,70 @@ define [
       @notebook.load_notebook common_options.notebook_path, @options.codemirror_mode_name
       # And finally
       @build_thebe()
+
+    # equivalent to @start_notebook/build_thebe, i.e. doesn't do anything on the server
+    # (but sets up call_spawn and start_terminal_backend on click, for now)
+    start_terminal: =>
+      $(@selector).one 'click', (e)=>
+        # basically the same as before_first_run
+        if @url then @start_terminal_backend()
+        else @call_spawn(->)
+
+    # equivalent to @start_kernel 
+    # i.e. actually starts terminal on the server (after spawn if needed)
+    start_terminal_backend: =>
+      invo = new XMLHttpRequest
+      invo.open "POST", @url+"api/terminals", true
+      invo.onreadystatechange = (e)=> 
+        if invo.readyState is 4
+          @terminal_start_handler(e)
+      invo.onerror = (e)=>
+        @log "Cannot connect to jupyter server to start terminal", true 
+        @set_state(@cant_state)
+        $.removeCookie 'thebe_url'
+        @track 'start_terminal_fail'
+      invo.send()
+
+
+    terminal_start_handler: (e)->
+      res = JSON.parse e.target.responseText
+      terminal_name = res["name"]
+      ws_url = @url.replace('http', 'ws')+"terminals/websocket/#{terminal_name}"
+      @log "Thebe is in terminal mode, i.e. not running as a notebook", true
+      
+      # remove any content in our element
+      $(@selector).html("")
+
+      # The below is copeied from terminal/main.js
+      # with some changes because we want to contain the terminal
+      # in al element, not the whole page
+      @setup_dummy_term_div()
+      # Test size: 25x80
+      termRowHeight = ->  1.00 * $('#dummy-screen')[0].offsetHeight / 25
+      #  # 1.02 here arrived at by trial and error to make the spacing look right
+      termColWidth = ->   1.02 * $('#dummy-screen-rows')[0].offsetWidth / 80
+
+      calculate_size = =>
+        height = $(@selector).height()
+        width = $(@selector).width()
+        rows = Math.min(1000, Math.max(20, Math.floor(height / termRowHeight()) )) # was also - 1, but that seemed to be a line short
+        cols = Math.min(1000, Math.max(40, Math.floor(width / termColWidth()) - 1))
+        {rows: rows, cols: cols}
+
+      size = calculate_size()
+      # start it up
+      terminal = terminado.make_terminal($(@selector)[0], size, ws_url)
+
+      window.onresize = =>
+        geom = calculate_size()
+        terminal.term.resize geom.cols, geom.rows
+        terminal.socket.send JSON.stringify([
+          'set_size', geom.rows, geom.cols, $(@selector).height(), $(@selector).width()
+        ])
+
+    setup_dummy_term_div: ->
+      fake = '<div style="position:absolute; left:-1000em">\n<pre id="dummy-screen" style="border: solid 5px white;" class="terminal">0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n<span id="dummy-screen-rows" style="">01234567890123456789012345678901234567890123456789012345678901234567890123456789</span>\n</pre>\n</div>'
+      $("body").append fake
 
     # Sets up css loading and injection, and ajax error handling
     setup_resources: =>

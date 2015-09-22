@@ -2,7 +2,7 @@
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'codemirror/mode/ruby/ruby', 'codemirror/mode/css/css', 'codemirror/mode/coffeescript/coffeescript', 'codemirror/mode/dockerfile/dockerfile', 'codemirror/mode/go/go', 'codemirror/mode/javascript/javascript', 'codemirror/mode/julia/julia', 'codemirror/mode/python/python', 'codemirror/mode/python/python', 'codemirror/mode/r/r', 'codemirror/mode/shell/shell', 'codemirror/mode/clike/clike', 'custom/custom'], function(IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) {
+define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'terminal/js/terminado', 'components/term.js/src/term', 'codemirror/mode/ruby/ruby', 'codemirror/mode/css/css', 'codemirror/mode/coffeescript/coffeescript', 'codemirror/mode/dockerfile/dockerfile', 'codemirror/mode/go/go', 'codemirror/mode/javascript/javascript', 'codemirror/mode/julia/julia', 'codemirror/mode/python/python', 'codemirror/mode/haskell/haskell', 'codemirror/mode/r/r', 'codemirror/mode/shell/shell', 'codemirror/mode/clike/clike', 'codemirror/mode/jinja2/jinja2', 'codemirror/mode/php/php', 'codemirror/mode/sql/sql', 'custom/custom'], function(IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) {
   var Thebe;
   promise.polyfill();
   Thebe = (function() {
@@ -22,12 +22,13 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       error_addendum: true,
       add_interrupt_button: false,
       codemirror_mode_name: "ipython",
+      terminal_mode: false,
       debug: false
     };
 
     Thebe.prototype.spawn_path = "api/spawn/";
 
-    Thebe.prototype.stats_path = "stats";
+    Thebe.prototype.stats_path = "api/stats";
 
     Thebe.prototype.start_state = "start";
 
@@ -77,6 +78,8 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.options = _at_options != null ? _at_options : {};
       this.track = __bind(this.track, this);
       this.setup_resources = __bind(this.setup_resources, this);
+      this.start_terminal_backend = __bind(this.start_terminal_backend, this);
+      this.start_terminal = __bind(this.start_terminal, this);
       this.start_notebook = __bind(this.start_notebook, this);
       this.start_kernel = __bind(this.start_kernel, this);
       this.before_first_run = __bind(this.before_first_run, this);
@@ -114,7 +117,14 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       if (this.tmpnb_url) {
         this.check_server();
       }
-      this.start_notebook();
+      if (!this.options.terminal_mode) {
+        this.start_notebook();
+      } else {
+        if ($(this.selector).length !== 1) {
+          throw new Error("You should have one, and only one " + this.selector + " element in terminal mode. Change the selector option or change your html.");
+        }
+        this.start_terminal();
+      }
     }
 
     Thebe.prototype.call_spawn = function(cb) {
@@ -213,7 +223,11 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           this.url = this.tmpnb_url + data.url + '/';
           this.log('tmpnb says we should use');
           this.log(this.url);
-          this.start_kernel(cb);
+          if (!this.options.terminal_mode) {
+            this.start_kernel(cb);
+          } else {
+            this.start_terminal_backend(cb);
+          }
           $.cookie('thebe_url', this.url);
           return this.track('call_spawn_success');
         }
@@ -605,6 +619,85 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       return this.build_thebe();
     };
 
+    Thebe.prototype.start_terminal = function() {
+      return $(this.selector).one('click', (function(_this) {
+        return function(e) {
+          if (_this.url) {
+            return _this.start_terminal_backend();
+          } else {
+            return _this.call_spawn(function() {});
+          }
+        };
+      })(this));
+    };
+
+    Thebe.prototype.start_terminal_backend = function() {
+      var invo;
+      invo = new XMLHttpRequest;
+      invo.open("POST", this.url + "api/terminals", true);
+      invo.onreadystatechange = (function(_this) {
+        return function(e) {
+          if (invo.readyState === 4) {
+            return _this.terminal_start_handler(e);
+          }
+        };
+      })(this);
+      invo.onerror = (function(_this) {
+        return function(e) {
+          _this.log("Cannot connect to jupyter server to start terminal", true);
+          _this.set_state(_this.cant_state);
+          $.removeCookie('thebe_url');
+          return _this.track('start_terminal_fail');
+        };
+      })(this);
+      return invo.send();
+    };
+
+    Thebe.prototype.terminal_start_handler = function(e) {
+      var calculate_size, res, size, termColWidth, termRowHeight, terminal, terminal_name, ws_url;
+      res = JSON.parse(e.target.responseText);
+      terminal_name = res["name"];
+      ws_url = this.url.replace('http', 'ws') + ("terminals/websocket/" + terminal_name);
+      this.log("Thebe is in terminal mode, i.e. not running as a notebook", true);
+      $(this.selector).html("");
+      this.setup_dummy_term_div();
+      termRowHeight = function() {
+        return 1.00 * $('#dummy-screen')[0].offsetHeight / 25;
+      };
+      termColWidth = function() {
+        return 1.02 * $('#dummy-screen-rows')[0].offsetWidth / 80;
+      };
+      calculate_size = (function(_this) {
+        return function() {
+          var cols, height, rows, width;
+          height = $(_this.selector).height();
+          width = $(_this.selector).width();
+          rows = Math.min(1000, Math.max(20, Math.floor(height / termRowHeight())));
+          cols = Math.min(1000, Math.max(40, Math.floor(width / termColWidth()) - 1));
+          return {
+            rows: rows,
+            cols: cols
+          };
+        };
+      })(this);
+      size = calculate_size();
+      terminal = terminado.make_terminal($(this.selector)[0], size, ws_url);
+      return window.onresize = (function(_this) {
+        return function() {
+          var geom;
+          geom = calculate_size();
+          terminal.term.resize(geom.cols, geom.rows);
+          return terminal.socket.send(JSON.stringify(['set_size', geom.rows, geom.cols, $(_this.selector).height(), $(_this.selector).width()]));
+        };
+      })(this);
+    };
+
+    Thebe.prototype.setup_dummy_term_div = function() {
+      var fake;
+      fake = '<div style="position:absolute; left:-1000em">\n<pre id="dummy-screen" style="border: solid 5px white;" class="terminal">0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n<span id="dummy-screen-rows" style="">01234567890123456789012345678901234567890123456789012345678901234567890123456789</span>\n</pre>\n</div>';
+      return $("body").append(fake);
+    };
+
     Thebe.prototype.setup_resources = function() {
       var script, urls;
       window.mathjax_url = '';
@@ -685,3 +778,5 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe: Thebe
   };
 });
+
+//# sourceMappingURL=main.js.map
