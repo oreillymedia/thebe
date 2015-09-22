@@ -82,6 +82,8 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       error_addendum: true
       # adds interrupt to every cell control, when it's running
       add_interrupt_button: false
+      # hack to set the codemirror mode correctly
+      codemirror_mode_name: "ipython"
       # totally different mode for running a terminal instead of a notebook
       terminal_mode: false
       # show messages from @log()
@@ -106,7 +108,10 @@ will make each `pre` tag with class `cool` runnable, and will try to connect wit
 
 Thebe now includes terminal functionality, via termjs. To run a terminal in the browser, make sure you only have one instance of the selector (which defaults to `pre[data-executable]`) and set `terminal_mode` to true. Now, clicking on the element will connect and launch a terminal.
 
-**Terminal mode only works with the most up to date version of [jupyter notebook](https://github.com/jupyter/notebook). For now, you can run this [docker image](https://hub.docker.com/r/jupyter/notebook/) and it should work. **
+**Terminal mode only works with the most up to date version of [jupyter notebook](https://github.com/jupyter/notebook). For now, you can run this [docker image](https://hub.docker.com/r/jupyter/notebook/) and it should work.**
+
+## CodeMirror Language Modes
+For simplicity, several codemirror language modes (i.e. syntax highlighting) are bundled with Thebe. [Here's a list of them](https://github.com/oreillymedia/thebe/blob/master/static/main.coffee#L20-L34).
 
 # Run Locally (Simple)
 The easiest way to get this running locally is to simply set the `url` option to the url of a running ipython notebook server, as above.

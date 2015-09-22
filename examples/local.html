@@ -63,11 +63,8 @@
       // Require thebe, instantiate it
       require(['main'], function(main){
           // To run this locally, replace this url with the url of your notebook server or tmpnb server
-          // thebe = new main.Thebe({url:"https://oreillyorchard.com:8000/spawn/"});
-          
-          // The default is //192.168.59.103:8000/spawn/, tmpnb running on boot2docker
           thebe = new main.Thebe({
-            url: "https://192.168.99.101:8000",
+            url: "https://192.168.99.100:8000",
             debug: true,
             append_kernel_controls_to: 'body',
             next_cell_shortcut: false,
