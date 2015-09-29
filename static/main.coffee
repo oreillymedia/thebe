@@ -237,6 +237,12 @@ define [
           @track 'call_spawn_full'
         # otherwise start the kernel
         else
+          # Check if URL is a full URL, adapt tmpnb_url as our new URL
+          fullURL = data.url.match(/(https?:\/\/.[^\/]+)(.*)/i)
+          if fullURL
+            @tmpnb_url = fullURL[1]
+            data.url = fullURL[2]
+
           # concat the base url with the one we just got
           @url = @tmpnb_url+data.url+'/'
           @log 'tmpnb says we should use'
