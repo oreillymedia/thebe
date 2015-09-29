@@ -202,7 +202,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     };
 
     Thebe.prototype.spawn_handler = function(e, cb) {
-      var data, _ref;
+      var data, fullURL, _ref;
       this.log('spawn handler called');
       if ((_ref = e.target.status) === 0 || _ref === 405) {
         this.log('Cannot connect to tmpnb server, status: ' + e.target.status, true);
@@ -220,6 +220,11 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           this.set_state(this.full_state);
           return this.track('call_spawn_full');
         } else {
+          fullURL = data.url.match(/(https?:\/\/.[^\/]+)(.*)/i);
+          if (fullURL) {
+            this.tmpnb_url = fullURL[1];
+            data.url = fullURL[2];
+          }
           this.url = this.tmpnb_url + data.url + '/';
           this.log('tmpnb says we should use');
           this.log(this.url);
@@ -778,5 +783,3 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe: Thebe
   };
 });
-
-//# sourceMappingURL=main.js.map
