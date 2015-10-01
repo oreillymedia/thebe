@@ -1,0 +1,14 @@
+{
+  "name": "term.js",
+  "homepage": "https://github.com/chjj/term.js",
+  "version": "0.0.7",
+  "_release": "0.0.7",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.0.7",
+    "commit": "6fa19452ce526bf0df0fb766891ccb6e0d61f4f6"
+  },
+  "_source": "git://github.com/chjj/term.js.git",
+  "_target": "~0.0.4",
+  "_originalSource": "chjj/term.js"
+}

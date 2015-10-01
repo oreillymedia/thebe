@@ -1,4 +1,4 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 define([
@@ -73,7 +73,7 @@ define([
         if (!NotebookList._bound_singletons) {
             NotebookList._bound_singletons = true;
             $('#new-file').click(function(e) {
-                var w = window.open(undefined, IPython._target);
+                var w = window.open('', IPython._target);
                 that.contents.new_untitled(that.notebook_path || '', {type: 'file', ext: '.txt'}).then(function(data) {
                     var url = utils.url_join_encode(
                         that.base_url, 'edit', data.path
@@ -92,6 +92,7 @@ define([
                             OK: {'class': 'btn-primary'}
                         }
                     });
+                    console.warn('Error durring New file creation', e);
                 });
                 that.load_sessions();
             });
@@ -111,6 +112,7 @@ define([
                             OK: {'class': 'btn-primary'}
                         }
                     });
+                    console.warn('Error durring New directory creation', e);
                 });
                 that.load_sessions();
             });
@@ -122,24 +124,56 @@ define([
             $('.delete-button').click($.proxy(this.delete_selected, this));
 
             // Bind events for selection menu buttons.
-            $('#tree-selector .select-all').click($.proxy(this.select_all, this));
-            $('#tree-selector .select-notebooks').click($.proxy(this.select_notebooks, this));
-            $('#tree-selector .select-running-notebooks').click($.proxy(this.select_running_notebooks, this));
-            $('#tree-selector .select-files').click($.proxy(this.select_files, this));
-            $('#tree-selector .select-directories').click($.proxy(this.select_directories, this));
-            $('#tree-selector .deselect-all').click($.proxy(this.deselect_all, this));
+            $('#selector-menu').click(function (event) {
+                that.select($(event.target).attr('id'));
+            });
+            var select_all = $('#select-all');
+            select_all.change(function () {
+                if (!select_all.prop('checked') || select_all.data('indeterminate')) {
+                    that.select('select-none');
+                } else {
+                    that.select('select-all');
+                }
+            });
+            $('#button-select-all').click(function (e) {
+                // toggle checkbox if the click doesn't come from the checkbox already
+                if (!$(e.target).is('input[type=checkbox]')) {
+                    if (select_all.prop('checked') || select_all.data('indeterminate')) {
+                        that.select('select-none');
+                    } else {
+                        that.select('select-all');
+                    }
+                }
+            });
         }
     };
 
     NotebookList.prototype.handleFilesUpload =  function(event, dropOrForm) {
         var that = this;
         var files;
-        if(dropOrForm =='drop'){
+        if(dropOrForm === 'drop'){
             files = event.originalEvent.dataTransfer.files;
-        } else 
+        } else
         {
             files = event.originalEvent.target.files;
         }
+
+        var reader_onload = function (event) {
+            var item = $(event.target).data('item');
+            that.add_file_data(event.target.result, item);
+            that.add_upload_button(item);
+        };
+        var reader_onerror = function (event) {
+            var item = $(event.target).data('item');
+            var name = item.data('name');
+            item.remove();
+            dialog.modal({
+                title : 'Failed to read file',
+                body : "Failed to read file '" + name + "'",
+                buttons : {'OK' : { 'class' : 'btn-primary' }}
+            });
+        };
+
         for (var i = 0; i < files.length; i++) {
             var f = files[i];
             var name_and_ext = utils.splitext(f.name);
@@ -154,25 +188,12 @@ define([
             }
             var item = that.new_item(0, true);
             item.addClass('new-file');
-            that.add_name_input(f.name, item, file_ext == '.ipynb' ? 'notebook' : 'file');
+            that.add_name_input(f.name, item, file_ext === '.ipynb' ? 'notebook' : 'file');
             // Store the list item in the reader so we can use it later
             // to know which item it belongs to.
             $(reader).data('item', item);
-            reader.onload = function (event) {
-                var item = $(event.target).data('item');
-                that.add_file_data(event.target.result, item);
-                that.add_upload_button(item);
-            };
-            reader.onerror = function (event) {
-                var item = $(event.target).data('item');
-                var name = item.data('name');
-                item.remove();
-                dialog.modal({
-                    title : 'Failed to read file',
-                    body : "Failed to read file '" + name + "'",
-                    buttons : {'OK' : { 'class' : 'btn-primary' }}
-                });
-            };
+            reader.onload = reader_onload;
+            reader.onerror = reader_onerror;
         }
         // Replace the file input form wth a clone of itself. This is required to
         // reset the form. Otherwise, if you upload a file, delete it and try to 
@@ -239,10 +260,10 @@ define([
             if (type_order[a['type']] > type_order[b['type']]) {
                 return 1;
             }
-            if (a['name'] < b['name']) {
+            if (a['name'].toLowerCase() < b['name'].toLowerCase()) {
                 return -1;
             }
-            if (a['name'] > b['name']) {
+            if (a['name'].toLowerCase() > b['name'].toLowerCase()) {
                 return 1;
             }
             return 0;
@@ -274,7 +295,11 @@ define([
         for (var i=0; i<len; i++) {
             model = list.content[i];
             item = this.new_item(i+offset, true);
-            this.add_link(model, item);
+            try {
+                this.add_link(model, item);
+            } catch(err) {
+                console.log('Error adding link: ' + err)
+            }
         }
         // Trigger an event when we've finished drawing the notebook list.
         events.trigger('draw_notebook_list.NotebookList');
@@ -285,7 +310,7 @@ define([
             var list_items = $('.list_item');
             for (var i=0; i<list_items.length; i++) {
                 var $list_item = $(list_items[i]);
-                if ($list_item.data('path') == item.path) {
+                if ($list_item.data('path') === item.path) {
                     $list_item.find('input[type=checkbox]').prop('checked', true);
                     break;
                 }
@@ -377,74 +402,21 @@ define([
     };
 
     /**
-     * Select all of the items in the tree.
+     * Select all items in the tree of specified type.
+     * selection_type : string among "select-all", "select-folders", "select-notebooks", "select-running-notebooks", "select-files"
+     *                  any other string (like "select-none") deselects all items
      */
-    NotebookList.prototype.select_all = function() {
-        $('.list_item input[type=checkbox]').each(function(index, item) {
-            $(item).prop('checked', true);
-        });
-        this._selection_changed();
-    };
-
-    /**
-     * Select all of the notebooks in the tree.
-     */
-    NotebookList.prototype.select_notebooks = function() {
-        this.deselect_all();
-        $('.list_item').each(function(index, item) {
-            if ($(item).data('type') === 'notebook') {
-                $(item).find('input[type=checkbox]').prop('checked', true);
-            }
-        });
-        this._selection_changed();
-    };
-
-    /**
-     * Select all of the running notebooks in the tree.
-     */
-    NotebookList.prototype.select_running_notebooks = function() {
-        this.deselect_all();
+    NotebookList.prototype.select = function(selection_type) {
         var that = this;
         $('.list_item').each(function(index, item) {
-            if ($(item).data('type') === 'notebook' && that.sessions[$(item).data('path')] !== undefined) {
-                $(item).find('input[type=checkbox]').prop('checked', true);
-            }
-        });
-        this._selection_changed();
-    };
-
-    /**
-     * Select all of the files in the tree.
-     */
-    NotebookList.prototype.select_files = function() {
-        this.deselect_all();
-        $('.list_item').each(function(index, item) {
-            if ($(item).data('type') === 'file') {
-                $(item).find('input[type=checkbox]').prop('checked', true);
-            }
-        });
-        this._selection_changed();
-    };
-
-    /**
-     * Select all of the directories in the tree.
-     */
-    NotebookList.prototype.select_directories = function() {
-        this.deselect_all();
-        $('.list_item').each(function(index, item) {
-            if ($(item).data('type') === 'directory') {
-                $(item).find('input[type=checkbox]').prop('checked', true);
-            }
-        });
-        this._selection_changed();
-    };
-
-    /**
-     * Unselect everything selected in the tree.
-     */
-    NotebookList.prototype.deselect_all = function() {
-        $('.list_item input[type=checkbox]').each(function(index, item) {
-            $(item).prop('checked', false);
+            var item_type = $(item).data('type');
+            var state = false;
+            state = state || (selection_type === "select-all");
+            state = state || (selection_type === "select-folders" && item_type === 'directory');
+            state = state || (selection_type === "select-notebooks" && item_type === 'notebook');
+            state = state || (selection_type === "select-running-notebooks" && item_type === 'notebook' && that.sessions[$(item).data('path')] !== undefined);
+            state = state || (selection_type === "select-files" && item_type === 'file');
+            $(item).find('input[type=checkbox]').prop('checked', state);
         });
         this._selection_changed();
     };
@@ -466,28 +438,29 @@ define([
         $('.list_item :checked').each(function(index, item) {
             var parent = $(item).parent().parent();
 
-            // If the item doesn't have an upload button and it's not the 
-            // breadcrumbs, it can be selected.  Breadcrumbs path == ''.
-            if (parent.find('.upload_button').length === 0 && parent.data('path') !== '') {
+            // If the item doesn't have an upload button, isn't the
+            // breadcrumbs and isn't the parent folder '..', then it can be selected.
+            // Breadcrumbs path == ''.
+            if (parent.find('.upload_button').length === 0 && parent.data('path') !== '' && parent.data('path') !== utils.url_path_split(that.notebook_path)[0]) {
                 checked++;
                 selected.push({
-                    name: parent.data('name'), 
-                    path: parent.data('path'), 
+                    name: parent.data('name'),
+                    path: parent.data('path'),
                     type: parent.data('type')
                 });
 
                 // Set flags according to what is selected.  Flags are later
                 // used to decide which action buttons are visible.
-                has_running_notebook = has_running_notebook || 
-                    (parent.data('type') == 'notebook' && that.sessions[parent.data('path')] !== undefined);
-                has_file = has_file || parent.data('type') == 'file';
-                has_directory = has_directory || parent.data('type') == 'directory';    
+                has_running_notebook = has_running_notebook ||
+                    (parent.data('type') === 'notebook' && that.sessions[parent.data('path')] !== undefined);
+                has_file = has_file || (parent.data('type') === 'file');
+                has_directory = has_directory || (parent.data('type') === 'directory');
             }
         });
         this.selected = selected;
 
-        // Rename is only visible when one item is selected.
-        if (selected.length==1) {
+        // Rename is only visible when one item is selected, and it is not a running notebook
+        if (selected.length === 1 && !has_running_notebook) {
             $('.rename-button').css('display', 'inline-block');
         } else {
             $('.rename-button').css('display', 'none');
@@ -523,27 +496,41 @@ define([
             var parent = $(item).parent().parent();
             // If the item doesn't have an upload button and it's not the 
             // breadcrumbs, it can be selected.  Breadcrumbs path == ''.
-            if (parent.find('.upload_button').length === 0 && parent.data('path') !== '') {
+            if (parent.find('.upload_button').length === 0 && parent.data('path') !== '' && parent.data('path') !== utils.url_path_split(that.notebook_path)[0]) {
                 total++;
             }
         });
+        
+        var select_all = $("#select-all");
         if (checked === 0) {
-            $('#tree-selector input[type=checkbox]')[0].indeterminate = false;
-            $('#tree-selector input[type=checkbox]').prop('checked', false);
+            select_all.prop('checked', false);
+            select_all.prop('indeterminate', false);
+            select_all.data('indeterminate', false);
         } else if (checked === total) {
-            $('#tree-selector input[type=checkbox]')[0].indeterminate = false;
-            $('#tree-selector input[type=checkbox]').prop('checked', true);
+            select_all.prop('checked', true);
+            select_all.prop('indeterminate', false);
+            select_all.data('indeterminate', false);
         } else {
-            $('#tree-selector input[type=checkbox]').prop('checked', false);
-            $('#tree-selector input[type=checkbox]')[0].indeterminate = true;
+            select_all.prop('checked', false);
+            select_all.prop('indeterminate', true);
+            select_all.data('indeterminate', true);
+        }
+        // Update total counter
+        $('#counter-select-all').html(checked===0 ? '&nbsp;' : checked);
+
+        // If at aleast on item is selected, hide the selection instructions.
+        if (checked > 0) {
+            $('.dynamic-instructions').hide();
+        } else {
+            $('.dynamic-instructions').show();
         }
     };
 
     NotebookList.prototype.add_link = function (model, item) {
         var path = model.path,
             name = model.name;
-        var running = (model.type == 'notebook' && this.sessions[path] !== undefined);
-        
+        var running = (model.type === 'notebook' && this.sessions[path] !== undefined);
+
         item.data('name', name);
         item.data('path', path);
         item.data('type', model.type);
@@ -553,6 +540,13 @@ define([
             icon = 'running_' + icon;
         }
         var uri_prefix = NotebookList.uri_prefixes[model.type];
+        if (model.type === 'file' &&
+            model.mimetype && model.mimetype.substr(0,5) !== 'text/'
+        ) {
+            // send text/unidentified files to editor, others go to raw viewer
+            uri_prefix = 'files';
+        }
+        
         item.find(".item_icon").addClass(icon).addClass('icon-fixed-width');
         var link = item.find("a.item_link")
             .attr('href',
@@ -583,8 +577,8 @@ define([
             .attr('size', '30')
             .attr('type', 'text')
             .keyup(function(event){
-                if(event.keyCode == 13){item.find('.upload_button').click();}
-                else if(event.keyCode == 27){item.remove();}
+                if(event.keyCode === 13){item.find('.upload_button').click();}
+                else if(event.keyCode === 27){item.remove();}
             })
         );
     };
@@ -598,7 +592,7 @@ define([
     NotebookList.prototype.shutdown_selected = function() {
         var that = this;
         this.selected.forEach(function(item) {
-            if (item.type == 'notebook') {
+            if (item.type === 'notebook') {
                 that.shutdown_notebook(item.path);
             }
         });
@@ -629,32 +623,36 @@ define([
     };
 
     NotebookList.prototype.rename_selected = function() {
-        if (this.selected.length != 1) return;
+        if (this.selected.length !== 1){
+            return;
+        }
 
         var that = this;
-        var path = this.selected[0].path;
+        var item_path = this.selected[0].path;
+        var item_name = this.selected[0].name;
+        var item_type = this.selected[0].type;
         var input = $('<input/>').attr('type','text').attr('size','25').addClass('form-control')
-            .val(path);
+            .val(item_name);
         var dialog_body = $('<div/>').append(
             $("<p/>").addClass("rename-message")
-                .text('Enter a new directory name:')
+                .text('Enter a new '+ item_type + ' name:')
         ).append(
             $("<br/>")
         ).append(input);
         var d = dialog.modal({
-            title : "Rename directory",
+            title : "Rename "+ item_type,
             body : dialog_body,
             buttons : {
                 OK : {
                     class: "btn-primary",
                     click: function() {
-                        that.contents.rename(path, input.val()).then(function() {
+                        that.contents.rename(item_path, utils.url_path_join(that.notebook_path, input.val())).then(function() {
                             that.load_list();
                         }).catch(function(e) { 
                             dialog.modal({
                                 title: "Rename Failed",
                                 body: $('<div/>')
-                                    .text("An error occurred while renaming \"" + path + "\" to \"" + input.val() + "\".")
+                                    .text("An error occurred while renaming \"" + item_name + "\" to \"" + input.val() + "\".")
                                     .append($('<div/>')
                                         .addClass('alert alert-danger')
                                         .text(e.message || e)),
@@ -662,6 +660,7 @@ define([
                                     OK: {'class': 'btn-primary'}
                                 }
                             });
+                            console.warn('Error durring renaming :', e);
                         });
                     }
                 },
@@ -675,14 +674,19 @@ define([
                         return false;
                     }
                 });
-                input.focus().select();
+                input.focus();
+                if (input.val().indexOf(".") > 0) {
+                    input[0].setSelectionRange(0,input.val().indexOf("."));
+                } else {
+                    input.select();
+                }
             }
         });
     };
 
     NotebookList.prototype.delete_selected = function() {
         var message;
-        if (this.selected.length == 1) {
+        if (this.selected.length === 1) {
             message = 'Are you sure you want to permanently delete: ' + this.selected[0].name + '?';
         } else {
             message = 'Are you sure you want to permanently delete the ' + this.selected.length + ' files/folders selected?';
@@ -715,6 +719,7 @@ define([
                                         OK: {'class': 'btn-primary'}
                                     }
                                 });
+                                console.warn('Error durring content deletion:', e);
                             });
                         });
                     }
@@ -726,14 +731,14 @@ define([
 
     NotebookList.prototype.duplicate_selected = function() {
         var message;
-        if (this.selected.length == 1) {
+        if (this.selected.length === 1) {
             message = 'Are you sure you want to duplicate: ' + this.selected[0].name + '?';
         } else {
             message = 'Are you sure you want to duplicate the ' + this.selected.length + ' files selected?';
         }
         var that = this;
         dialog.modal({
-            title : "Delete",
+            title : "Duplicate",
             body : message,
             buttons : {
                 Duplicate : {
@@ -744,9 +749,9 @@ define([
                                 that.load_list();
                             }).catch(function(e) { 
                                 dialog.modal({
-                                    title: "Delete Failed",
+                                    title: "Duplicate Failed",
                                     body: $('<div/>')
-                                        .text("An error occurred while deleting \"" + item.path + "\".")
+                                        .text("An error occurred while duplicating \"" + item.path + "\".")
                                         .append($('<div/>')
                                             .addClass('alert alert-danger')
                                             .text(e.message || e)),
@@ -754,6 +759,7 @@ define([
                                         OK: {'class': 'btn-primary'}
                                     }
                                 });
+                                console.warn('Error durring content duplication', e);
                             });
                         });
                     }
@@ -828,6 +834,7 @@ define([
                                 }
                             }}
                         });
+                        console.warn('Error durring notebook uploading', e);
                         return false;
                     }
                     content_type = 'application/json';
@@ -869,7 +876,7 @@ define([
                 } else {
                     that.contents.save(path, model).then(on_success);
                 }
-                
+
                 return false;
             });
         var cancel_button = $('<button/>').text("Cancel")
@@ -882,10 +889,6 @@ define([
             .append(upload_button)
             .append(cancel_button);
     };
-
-
-    // Backwards compatability.
-    IPython.NotebookList = NotebookList;
 
     return {'NotebookList': NotebookList};
 });

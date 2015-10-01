@@ -1,14 +1,13 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 define([
-    'base/js/namespace',
     'jquery',
     'base/js/utils',
     'base/js/keyboard',
     'notebook/js/contexthint',
     'codemirror/lib/codemirror',
-], function(IPython, $, utils, keyboard, CodeMirror) {
+], function($, utils, keyboard, CodeMirror) {
     "use strict";
 
     // easier key mapping
@@ -203,12 +202,14 @@ define([
         // append the introspection result, in order, at at the beginning of
         // the table and compute the replacement range from current cursor
         // positon and matched_text length.
+        var from = utils.from_absolute_cursor_pos(this.editor, start);
+        var to = utils.from_absolute_cursor_pos(this.editor, end);
         for (i = matches.length - 1; i >= 0; --i) {
             filtered_results.unshift({
                 str: matches[i],
                 type: "introspection",
-                from: utils.from_absolute_cursor_pos(this.editor, start),
-                to: utils.from_absolute_cursor_pos(this.editor, end)
+                from: from,
+                to: to
             });
         }
 
@@ -321,9 +322,10 @@ define([
 
     Completer.prototype.keydown = function (event) {
         var code = event.keyCode;
-        var that = this;
 
         // Enter
+        var options;
+        var index;
         if (code == keycodes.enter) {
             event.codemirrorIgnore = true;
             event._ipkmIgnore = true;
@@ -341,14 +343,11 @@ define([
             // like %pylab , pylab have no shred start, and ff will result in py<tab><tab>
             // to erase py
             var sh = shared_start(this.raw_result, true);
-            if (sh) {
+            if (sh.str !== '') {
                 this.insert(sh);
             }
             this.close();
-            //reinvoke self
-            setTimeout(function () {
-                that.carry_on_completion();
-            }, 50);
+            this.carry_on_completion();
         } else if (code == keycodes.up || code == keycodes.down) {
             // need to do that to be able to move the arrow
             // when on the first or last line ofo a code cell
@@ -356,8 +355,8 @@ define([
             event._ipkmIgnore = true;
             event.preventDefault();
 
-            var options = this.sel.find('option');
-            var index = this.sel[0].selectedIndex;
+            options = this.sel.find('option');
+            index = this.sel[0].selectedIndex;
             if (code == keycodes.up) {
                 index--;
             }
@@ -369,8 +368,8 @@ define([
         } else if (code == keycodes.pageup || code == keycodes.pagedown) {
             event._ipkmIgnore = true;
 
-            var options = this.sel.find('option');
-            var index = this.sel[0].selectedIndex;
+            options = this.sel.find('option');
+            index = this.sel[0].selectedIndex;
             if (code == keycodes.pageup) {
                 index -= 10; // As 10 is the hard coded size of the drop down menu
             } else {
@@ -408,9 +407,6 @@ define([
             that.carry_on_completion();
         }, 50);
     };
-
-    // For backwards compatability.
-    IPython.Completer = Completer;
 
     return {'Completer': Completer};
 });

@@ -1,4 +1,4 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 /**
  *
@@ -9,11 +9,10 @@
  */
 
 define([
-    'base/js/namespace',
     'jquery',
     'base/js/utils',
     'base/js/keyboard',
-], function(IPython, $, utils, keyboard) {
+], function($, utils, keyboard) {
     "use strict";
     
     // Main keyboard manager for the notebook
@@ -79,7 +78,7 @@ define([
             'up'                  : 'ipython.move-cursor-up-or-previous-cell',
             'down'                : 'ipython.move-cursor-down-or-next-cell',
             'ctrl-shift--'        : 'ipython.split-cell-at-cursor',
-            'ctrl-shift-subtract' : 'ipython.split-cell-at-cursor'
+            'ctrl-shift-subtract' : 'ipython.split-cell-at-cursor',
         };
     };
 
@@ -87,7 +86,7 @@ define([
         return {
             'shift-space': 'ipython.scroll-up',
             'shift-v' : 'ipython.paste-cell-before',
-            'shift-m' : 'ipython.merge-selected-cell-with-cell-after',
+            'shift-m' : 'ipython.merge-selected-cells',
             'shift-o' : 'ipython.toggle-output-scrolling-selected-cell',
             'enter' : 'ipython.enter-edit-mode',
             'space' : 'ipython.scroll-down',
@@ -99,6 +98,8 @@ define([
             'up' : 'ipython.select-previous-cell',
             'k' : 'ipython.select-previous-cell',
             'j' : 'ipython.select-next-cell',
+            'shift-k': 'ipython.extend-selection-previous',
+            'shift-j': 'ipython.extend-selection-next',
             'x' : 'ipython.cut-selected-cell',
             'c' : 'ipython.copy-selected-cell',
             'v' : 'ipython.paste-cell-after',
@@ -188,6 +189,7 @@ define([
     };
 
     KeyboardManager.prototype.register_events = function (e) {
+        e = $(e);
         var that = this;
         var handle_focus = function () {
             that.disable();
@@ -221,10 +223,6 @@ define([
             }
         });
     };
-
-
-    // For backwards compatibility.
-    IPython.KeyboardManager = KeyboardManager;
 
     return {'KeyboardManager': KeyboardManager};
 });
