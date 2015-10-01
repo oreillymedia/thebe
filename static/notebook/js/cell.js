@@ -1,4 +1,4 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 /**
@@ -11,15 +11,13 @@
 
 
 define([
-    'base/js/namespace',
     'jquery',
     'base/js/utils',
     'codemirror/lib/codemirror',
     'codemirror/addon/edit/matchbrackets',
     'codemirror/addon/edit/closebrackets',
     'codemirror/addon/comment/comment'
-], function(IPython, $, utils, CodeMirror, cm_match, cm_closeb, cm_comment) {
-    // TODO: remove IPython dependency here 
+], function($, utils, CodeMirror, cm_match, cm_closeb, cm_comment) {
     "use strict";
     
     var overlayHack = CodeMirror.scrollbarModel.native.prototype.overlayHack;
@@ -56,8 +54,9 @@ define([
         // superclass default overwrite our default
         
         this.placeholder = config.placeholder || '';
-        this.read_only = config.cm_config.readOnly;
         this.selected = false;
+        this.in_selection = false;
+        this.selection_anchor = false;
         this.rendered = false;
         this.mode = 'command';
 
@@ -74,9 +73,23 @@ define([
             }
         });
 
+        // backward compat.
+        Object.defineProperty(this, 'cm_config', {
+            get: function() {
+                console.warn("Warning: accessing Cell.cm_config directly is deprecate.")
+                return that._options.cm_config;
+            },
+        });
+
         // load this from metadata later ?
         this.user_highlight = 'auto';
-        this.cm_config = config.cm_config;
+
+
+        var _local_cm_config = {};
+        if(this.class_config){
+            _local_cm_config = this.class_config.get_sync('cm_config');
+        }
+        config.cm_config = utils.mergeopt({}, config.cm_config, _local_cm_config);
         this.cell_id = utils.uuid();
         this._options = config;
 
@@ -131,7 +144,7 @@ define([
          * Call after this.element exists to initialize the css classes
          * related to selected, rendered and mode.
          */
-        if (this.selected) {
+        if (this.in_selection) {
             this.element.addClass('selected');
         } else {
             this.element.addClass('unselected');
@@ -243,6 +256,7 @@ define([
             this.element.addClass('selected');
             this.element.removeClass('unselected');
             this.selected = true;
+            this.in_selection = true;
             return true;
         } else {
             return false;
@@ -250,19 +264,21 @@ define([
     };
 
     /**
-     * handle cell level logic when a cell is unselected
+     * handle cell level logic when the cursor moves away from a cell
      * @method unselect
+     * @param {bool} leave_selected - true to move cursor away and extend selection
      * @return is the action being taken
      */
-    Cell.prototype.unselect = function () {
-        if (this.selected) {
+    Cell.prototype.unselect = function (leave_selected) {
+        var was_selected_cell = this.selected;
+        this.selected = false;
+        if ((!leave_selected) && this.in_selection) {
+            this.in_selection = false;
+            this.selection_anchor = false;
             this.element.addClass('unselected');
             this.element.removeClass('selected');
-            this.selected = false;
-            return true;
-        } else {
-            return false;
         }
+        return was_selected_cell;
     };
 
     /**
@@ -306,7 +322,7 @@ define([
     };
 
     /**
-     * Delegates keyboard shortcut handling to either IPython keyboard
+     * Delegates keyboard shortcut handling to either Jupyter keyboard
      * manager when in command mode, or CodeMirror when in edit mode
      *
      * @method handle_keyevent
@@ -375,6 +391,12 @@ define([
             return false;
         }
     };
+
+    Cell.prototype.ensure_focused = function() {
+        if(this.element !== document.activeElement && !this.code_mirror.hasFocus()){
+            this.focus_cell();
+        }
+    }
     
     /**
      * Focus the cell in the DOM sense
@@ -566,8 +588,17 @@ define([
             var regs = modes[mode].reg;
             // only one key every time but regexp can't be keys...
             for(var i=0; i<regs.length; i++) {
-                // here we handle non magic_modes
-                if(first_line.match(regs[i]) !== null) {
+                // here we handle non magic_modes.
+                // TODO :
+                // On 3.0 and below, these things were regex.
+                // But now should be string for json-able config. 
+                // We should get rid of assuming they might be already 
+                // in a later version of Jupyter.
+                var re = regs[i];
+                if(typeof(re) === 'string'){
+                    re = new RegExp(re) 
+                }
+                if(first_line.match(re) !== null) {
                     if(current_mode == mode){
                         return;
                     }
@@ -681,9 +712,6 @@ define([
             cell.events.trigger('unrecognized_cell.Cell', {cell: cell});
         });
     };
-
-    // Backwards compatibility.
-    IPython.Cell = Cell;
 
     return {
         Cell: Cell,

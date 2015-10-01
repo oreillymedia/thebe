@@ -1,45 +1,45 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 define([
-    'base/js/namespace',
     'jquery',
     'codemirror/lib/codemirror',
     'moment',
     // silently upgrades CodeMirror
     'codemirror/mode/meta',
-], function(IPython, $, CodeMirror, moment){
+], function($, CodeMirror, moment){
     "use strict";
     
-    var load_extensions = function () {
-        // load one or more IPython notebook extensions with requirejs
-        
-        var extensions = [];
-        var extension_names = arguments;
-        for (var i = 0; i < extension_names.length; i++) {
-            extensions.push("nbextensions/" + arguments[i]);
-        }
-        
-        require(extensions,
-            function () {
-                for (var i = 0; i < arguments.length; i++) {
-                    var ext = arguments[i];
-                    var ext_name = extension_names[i];
-                    // success callback
-                    console.log("Loaded extension: " + ext_name);
-                    if (ext && ext.load_ipython_extension !== undefined) {
-                        ext.load_ipython_extension();
-                    }
+    /**
+     * Load a single extension.
+     * @param  {string} extension - extension path.
+     * @return {Promise} that resolves to an extension module handle
+     */
+    var load_extension = function (extension) {
+        return new Promise(function(resolve, reject) {
+            require(["nbextensions/" + extension], function(module) {
+                console.log("Loaded extension: " + extension);
+                try {
+                    module.load_ipython_extension();
+                } finally {
+                    resolve(module);
                 }
-            },
-            function (err) {
-                // failure callback
-                console.log("Failed to load extension(s):", err.requireModules, err);
-            }
-        );
+            }, function(err) {
+                reject(err);
+            });
+        });
     };
-    
-    IPython.load_extensions = load_extensions;
+
+    /**
+     * Load multiple extensions.
+     * Takes n-args, where each arg is a string path to the extension.
+     * @return {Promise} that resolves to a list of loaded module handles.
+     */
+    var load_extensions = function () {
+        return Promise.all(Array.prototype.map.call(arguments, load_extension)).catch(function(err) {
+            console.error("Failed to load extension" + (err.requireModules.length>1?'s':'') + ":", err.requireModules, err);
+        });
+    };
 
     /**
      * Wait for a config section to load, and then load the extensions specified
@@ -509,13 +509,14 @@ define([
     
     var from_absolute_cursor_pos = function (cm, cursor_pos) {
         /**
-         * turn absolute cursor postion into CodeMirror col, ch cursor
+         * turn absolute cursor position into CodeMirror col, ch cursor
          */
-        var i, line;
+        var i, line, next_line;
         var offset = 0;
-        for (i = 0, line=cm.getLine(i); line !== undefined; i++, line=cm.getLine(i)) {
-            if (offset + line.length < cursor_pos) {
-                offset += line.length + 1;
+        for (i = 0, next_line=cm.getLine(i); next_line !== undefined; i++, next_line=cm.getLine(i)) {
+            line = next_line;
+            if (offset + next_line.length < cursor_pos) {
+                offset += next_line.length + 1;
             } else {
                 return {
                     line : i,
@@ -525,8 +526,8 @@ define([
         }
         // reached end, return endpoint
         return {
-            ch : line.length - 1,
             line : i - 1,
+            ch : line.length - 1,
         };
     };
     
@@ -848,6 +849,7 @@ define([
     };
     
     var utils = {
+        load_extension: load_extension,
         load_extensions: load_extensions,
         load_extensions_from_config: load_extensions_from_config,
         regex_split : regex_split,
@@ -887,8 +889,5 @@ define([
         time: time,
     };
 
-    // Backwards compatability.
-    IPython.utils = utils;
-    
     return utils;
 }); 

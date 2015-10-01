@@ -1,4 +1,4 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 /**
  *
@@ -9,11 +9,10 @@
  */
 
 define([
-    'base/js/namespace',
     'jquery',
     'base/js/utils',
     'underscore',
-], function(IPython, $, utils, _) {
+], function($, utils, _) {
     "use strict";
 
 
@@ -244,13 +243,13 @@ define([
             }
         }
         help.sort(function (a, b) {
-            if (a.help_index > b.help_index){
+            if (a.help_index === b.help_index) {
+                return 0;
+            }
+            if (a.help_index === undefined || a.help_index > b.help_index){
                 return 1;
             }
-            if (a.help_index < b.help_index){
-                return -1;
-            }
-            return 0;
+            return -1;
         });
         return help;
     };
@@ -287,7 +286,7 @@ define([
     };
 
     ShortcutManager.prototype.set_shortcut = function( shortcut, action_name){
-        if( typeof(action_name) !== 'string'){ throw('action is not a string', action_name);}
+        if( typeof(action_name) !== 'string'){throw new Error('action is not a string', action_name);}
         if( typeof(shortcut) === 'string'){
             shortcut = shortcut.split(',');
         }
@@ -352,9 +351,8 @@ define([
          **/
         var action_name = this.actions.get_name(data);
         if (! action_name){
-            throw('does nto know how to deal with ', data);
+          throw new Error('does not know how to deal with', data);
         }
-        
         shortcut = normalize_shortcut(shortcut);
         this.set_shortcut(shortcut, action_name);
 
@@ -386,10 +384,19 @@ define([
         if( typeof(shortcut) === 'string'){
             shortcut = shortcut.split(',');
         }
-        this._remove_leaf(shortcut, this._shortcuts);
-        if (!suppress_help_update) {
+        /*
+         *  The shortcut error should be explicit here, because it will be
+         *  seen by users.
+         */
+        try
+        {
+          this._remove_leaf(shortcut, this._shortcuts);
+          if (!suppress_help_update) {
             // update the keyboard shortcuts notebook help
             this.events.trigger('rebuild.QuickHelp');
+          }
+        } catch (ex) {
+          throw new Error('trying to remove a non-existent shortcut', shortcut);
         }
     };
 
@@ -446,9 +453,6 @@ define([
         shortcut_to_event : shortcut_to_event,
         event_to_shortcut : event_to_shortcut,
     };
-
-    // For backwards compatibility.
-    IPython.keyboard = keyboard;
 
     return keyboard;
 });

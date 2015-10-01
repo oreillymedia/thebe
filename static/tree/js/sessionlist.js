@@ -1,11 +1,10 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 define([
-    'base/js/namespace',
     'jquery',
     'base/js/utils',
-], function(IPython, $, utils) {
+], function($, utils) {
     "use strict";
 
     var SesssionList = function (options) {
@@ -77,9 +76,6 @@ define([
         }
         this.events.trigger('sessions_loaded.Dashboard', this.sessions);
     };
-
-    // Backwards compatability.
-    IPython.SesssionList = SesssionList;
 
     return {'SesssionList': SesssionList};
 });

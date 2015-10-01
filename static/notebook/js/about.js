@@ -1,4 +1,4 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 require([
     'jquery',
@@ -9,9 +9,9 @@ require([
     'use strict';
     $('#notebook_about').click(function () {
         // use underscore template to auto html escape
-        var text = 'You are using IPython notebook.<br/><br/>';
+        var text = 'You are using Jupyter notebook.<br/><br/>';
         text = text + 'The version of the notebook server is ';
-        text = text + _.template('<b><%- version %></b>')({ version: sys_info.ipython_version });
+        text = text + _.template('<b><%- version %></b>')({ version: sys_info.notebook_version });
         if (sys_info.commit_hash) {
             text = text + _.template('-<%- hash %>')({ hash: sys_info.commit_hash });
         }
@@ -23,7 +23,7 @@ require([
         body.append($('<h4/>').text('Current Kernel Information:'));
         body.append(kinfo);
         dialog.modal({
-            title: 'About IPython Notebook',
+            title: 'About Jupyter Notebook',
             body: body,
             buttons: { 'OK': {} }
         });

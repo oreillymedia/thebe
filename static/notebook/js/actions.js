@@ -1,4 +1,4 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 define(function(require){
@@ -10,7 +10,7 @@ define(function(require){
     };
 
     /**
-     *  A bunch of predefined `Simple Actions` used by IPython.
+     *  A bunch of predefined `Simple Actions` used by Jupyter.
      *  `Simple Actions` have the following keys:
      *  help (optional): a short string the describe the action.
      *      will be used in various context, like as menu name, tool tips on buttons,
@@ -29,7 +29,7 @@ define(function(require){
      *  avoid conflict the prefix should be all lowercase and end with a dot `.`
      *  in the absence of a prefix the behavior of the action is undefined.
      *
-     *  All action provided by IPython are prefixed with `ipython.`.
+     *  All action provided by Jupyter are prefixed with `ipython.`.
      *
      *  One can register extra actions or replace an existing action with another one is possible
      *  but is considered undefined behavior.
@@ -37,7 +37,7 @@ define(function(require){
      **/
     var _actions = {
         'run-select-next': {
-            icon: 'fa-play',
+            icon: 'fa-step-forward',
             help    : 'run cell, select below',
             help_index : 'ba',
             handler : function (env) {
@@ -100,6 +100,35 @@ define(function(require){
                 }
             }
         },
+        'extend-selection-previous' : {
+            help: 'extend selection above',
+            help_index : 'dc',
+            handler : function (env) {
+                var index = env.notebook.get_selected_index();
+                if (index !== 0 && index !== null) {
+                    env.notebook.extend_selection('up');
+                    env.notebook.focus_cell();
+                }
+            }
+        },
+        'extend-selection-next' : {
+            help: 'extend selection below',
+            help_index : 'dd',
+            handler : function (env) {
+                var index = env.notebook.get_selected_index();
+                if (index !== (env.notebook.ncells()-1) && index !== null) {
+                    env.notebook.extend_selection('down');
+                    env.notebook.focus_cell();
+                }
+            }
+        },
+        'reset-selection': {
+            help: 'clear selected cells',
+            help_index: 'de',
+            handler: function(env) {
+                env.notebook.reset_selection();
+            }
+        },
         'cut-selected-cell' : {
             icon: 'fa-cut',
             help_index : 'ee',
@@ -107,7 +136,6 @@ define(function(require){
                 var index = env.notebook.get_selected_index();
                 env.notebook.cut_cell();
                 env.notebook.select(index);
-                env.notebook.focus_cell();
             }
         },
         'copy-selected-cell' : {
@@ -115,7 +143,6 @@ define(function(require){
             help_index : 'ef',
             handler : function (env) {
                 env.notebook.copy_cell();
-                env.notebook.focus_cell();
             }
         },
         'paste-cell-before' : {
@@ -268,7 +295,6 @@ define(function(require){
             help_index : 'ha',
             handler : function (env) {
                 env.notebook.kernel.interrupt();
-                env.notebook.focus_cell();
             }
         },
         'restart-kernel':{
@@ -276,7 +302,6 @@ define(function(require){
             help_index : 'hb',
             handler : function (env) {
                 env.notebook.restart_kernel();
-                env.notebook.focus_cell();
             }
         },
         'undo-last-cell-deletion' : {
@@ -292,6 +317,13 @@ define(function(require){
                 env.notebook.merge_cell_below();
             }
         },
+        'merge-selected-cells' : {
+            help : 'merge selected cells',
+            help_index: 'el',
+            handler: function(env) {
+                env.notebook.merge_selected_cells();
+            }
+        },
         'close-pager' : {
             help_index : 'gd',
             handler : function (env) {
@@ -302,7 +334,7 @@ define(function(require){
     };
 
     /**
-     * A bunch of `Advance actions` for IPython.
+     * A bunch of `Advance actions` for Jupyter.
      * Cf `Simple Action` plus the following properties.
      *
      * handler: first argument of the handler is the event that triggerd the action
@@ -372,6 +404,26 @@ define(function(require){
                 return env.notebook.scroll_manager.scroll(-1);
             },
         },
+        'scroll-cell-center': {
+            help: "Scroll the current cell to the center",
+            handler: function (env, event) {
+                if(event){
+                    event.preventDefault();
+                }
+                var cell = env.notebook.get_selected_index();
+                return env.notebook.scroll_cell_percent(cell, 50, 0);
+            }
+        },
+        'scroll-cell-top': {
+            help: "Scroll the current cell to the top",
+            handler: function (env, event) {
+                if(event){
+                    event.preventDefault();
+                }
+                var cell = env.notebook.get_selected_index();
+                return env.notebook.scroll_cell_percent(cell, 0, 0);
+            }
+        },
         'save-notebook':{
             help: "Save and Checkpoint",
             help_index : 'fb',
@@ -396,7 +448,7 @@ define(function(require){
         return source[subkey].handler;
     };
 
-    // Will actually generate/register all the IPython actions
+    // Will actually generate/register all the Jupyter actions
     var fun = function(){
         var final_actions = {};
         var k;
