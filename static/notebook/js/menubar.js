@@ -1,4 +1,4 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 define([
@@ -16,7 +16,7 @@ define([
         /**
          * Constructor
          *
-         * A MenuBar Class to generate the menubar of IPython notebook
+         * A MenuBar Class to generate the menubar of Jupyter notebook
          *
          * Parameters:
          *  selector: string
@@ -76,7 +76,7 @@ define([
             notebook_path
         ) + "?download=" + download.toString();
         
-        var w = window.open(undefined, IPython._target);
+        var w = window.open('', IPython._target);
         if (this.notebook.dirty) {
             this.notebook.save_notebook().then(function() {
                 w.location = url;
@@ -104,18 +104,25 @@ define([
             window.open(utils.url_join_encode(that.base_url, 'tree', parent), IPython._target);
         });
         this.element.find('#copy_notebook').click(function () {
+            if (that.notebook.dirty) {
+                that.notebook.save_notebook({async : false});
+            }
             that.notebook.copy_notebook();
             return false;
         });
         this.element.find('#download_ipynb').click(function () {
             var base_url = that.notebook.base_url;
             var notebook_path = that.notebook.notebook_path;
+            var w = window.open('');
+            var url = utils.url_join_encode(base_url, 'files', notebook_path)
+                                + '?download=1';
             if (that.notebook.dirty) {
-                that.notebook.save_notebook({async : false});
+                that.notebook.save_notebook().then(function() {
+                    w.location = url;
+                });
+            } else {
+                w.location = url;
             }
-            
-            var url = utils.url_join_encode(base_url, 'files', notebook_path);
-            window.open(url + '?download=1');
         });
         
         this.element.find('#print_preview').click(function () {
@@ -124,6 +131,10 @@ define([
 
         this.element.find('#download_html').click(function () {
             that._nbconvert('html', true);
+        });
+
+        this.element.find('#download_markdown').click(function () {
+            that._nbconvert('markdown', true);
         });
 
         this.element.find('#download_rst').click(function () {
@@ -406,9 +417,6 @@ define([
         });
         
     };
-
-    // Backwards compatability.
-    IPython.MenuBar = MenuBar;
 
     return {'MenuBar': MenuBar};
 });

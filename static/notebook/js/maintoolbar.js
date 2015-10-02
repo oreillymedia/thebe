@@ -1,13 +1,12 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 define([
     'require',
-    'base/js/namespace',
     'jquery',
     './toolbar',
     './celltoolbar'
-], function(require, IPython, $, toolbar, celltoolbar) {
+], function(require, $, toolbar, celltoolbar) {
     "use strict";
 
     var MainToolBar = function (selector, options) {
@@ -25,7 +24,6 @@ define([
         this.events = options.events;
         this.notebook = options.notebook;
         this._make();
-        this.notebook.keyboard_manager.register_events(this.element);
         Object.seal(this);
     };
 
@@ -74,6 +72,7 @@ define([
             .append($('<option/>').attr('value','markdown').text('Markdown'))
             .append($('<option/>').attr('value','raw').text('Raw NBConvert'))
             .append($('<option/>').attr('value','heading').text('Heading'));
+        this.notebook.keyboard_manager.register_events(sel);
         this.events.on('selected_cell_type_changed.Notebook', function (event, data) {
             if (data.cell_type === 'heading') {
                 sel.val('Markdown');
@@ -126,6 +125,7 @@ define([
                 }
                 that.notebook.focus_cell();
             });
+        this.notebook.keyboard_manager.register_events(select);
         // Setup the currently registered presets.
         var presets = celltoolbar.CellToolbar.list_presets();
         for (var i=0; i<presets.length; i++) {
@@ -156,9 +156,6 @@ define([
         wrapper.append(label).append(select);
         return wrapper;
     };
-
-    // Backwards compatibility.
-    IPython.MainToolBar = MainToolBar;
 
     return {'MainToolBar': MainToolBar};
 });

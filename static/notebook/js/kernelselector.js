@@ -1,4 +1,4 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 define([
@@ -34,6 +34,8 @@ define([
     };
     
     KernelSelector.prototype.request_kernelspecs = function() {
+        // Preliminary documentation for kernelspecs api is at 
+        // https://github.com/ipython/ipython/wiki/IPEP-25%3A-Registry-of-installed-kernels#rest-api
         var url = utils.url_join_encode(this.notebook.base_url, 'api/kernelspecs');
         utils.promising_ajax(url).then($.proxy(this._got_kernelspecs, this));
     };
@@ -94,6 +96,7 @@ define([
     
     KernelSelector.prototype._spec_changed = function (event, ks) {
         /** event handler for spec_changed */
+        var that = this;
         
         // update selection
         this.current_selection = ks.name;
@@ -157,6 +160,15 @@ define([
                     console.warn("Failed to load kernel.js from ", ks.resources['kernel.js'], err);
                 }
             );
+            this.events.on('spec_changed.Kernel', function (evt, new_ks) {
+                if (ks.name != new_ks.name) {
+                    console.warn("kernelspec %s had custom kernel.js. Forcing page reload for %s.",
+                        ks.name, new_ks.name);
+                    that.notebook.save_notebook().then(function () {
+                        window.location.reload();
+                    });
+                }
+            });
         }
     };
 
@@ -273,7 +285,7 @@ define([
 
     KernelSelector.prototype.new_notebook = function (kernel_name) {
         
-        var w = window.open(undefined, IPython._target);
+        var w = window.open('', IPython._target);
         // Create a new notebook in the same path as the current
         // notebook's path.
         var that = this;

@@ -1,11 +1,10 @@
 define([
-    'base/js/namespace',
     'jquery',
     'base/js/utils',
     'base/js/dialog',
     'base/js/notificationarea',
     'moment'
-], function(IPython, $, utils, dialog, notificationarea, moment) {
+], function($, utils, dialog, notificationarea, moment) {
     "use strict";
     var NotificationArea = notificationarea.NotificationArea;
     
@@ -178,7 +177,7 @@ define([
                     keyboard_manager: that.keyboard_manager,
                     notebook: that.notebook,
                     buttons : {
-                        "Manual Restart": {
+                        "Try restarting now": {
                             class: "btn-danger",
                             click: function () {
                                 that.notebook.start_session();
@@ -340,8 +339,5 @@ define([
         });
     };
 
-    // Backwards compatibility.
-    IPython.NotificationArea = NotebookNotificationArea;
-    
     return {'NotebookNotificationArea': NotebookNotificationArea};
 });

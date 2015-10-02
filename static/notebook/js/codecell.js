@@ -1,4 +1,4 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 /**
  *
@@ -103,8 +103,6 @@ define([
 
         this.last_msg_id = null;
         this.completer = null;
-        this.widget_views = [];
-        this._widgets_live = true;
 
         Cell.apply(this,[{
             config: $.extend({}, CodeCell.options_default), 
@@ -128,32 +126,32 @@ define([
                 "Cmd-/" : "toggleComment",
                 "Ctrl-/" : "toggleComment"
             },
-            mode: 'ipython',
+            mode: 'text',
             // XXX Changed by Zach
             // theme: 'oreilly', // "ipython"
             viewportMargin: Infinity,
             scrollPastEnd: true,
             lineNumbers: true,
-            matchBrackets: true
-        }
-    };
-
-    CodeCell.config_defaults = {
+            matchBrackets: true,
+            autoCloseBrackets: true
+        },
         highlight_modes : {
-            'magic_javascript'    :{'reg':[/^%%javascript/]},
-            'magic_perl'          :{'reg':[/^%%perl/]},
-            'magic_ruby'          :{'reg':[/^%%ruby/]},
-            'magic_python'        :{'reg':[/^%%python3?/]},
-            'magic_shell'         :{'reg':[/^%%bash/]},
-            'magic_r'             :{'reg':[/^%%R/]},
-            'magic_text/x-cython' :{'reg':[/^%%cython/]},
+            'magic_javascript'    :{'reg':['^%%javascript']},
+            'magic_perl'          :{'reg':['^%%perl']},
+            'magic_ruby'          :{'reg':['^%%ruby']},
+            'magic_python'        :{'reg':['^%%python3?']},
+            'magic_shell'         :{'reg':['^%%bash']},
+            'magic_r'             :{'reg':['^%%R']},
+            'magic_text/x-cython' :{'reg':['^%%cython']},
         },
     };
+
+    CodeCell.config_defaults = CodeCell.options_default;
 
     CodeCell.msg_cells = {};
 
     CodeCell.prototype = Object.create(Cell.prototype);
-
+    
     /** @method create_element */
     CodeCell.prototype.create_element = function () {
         Cell.prototype.create_element.apply(this, arguments);
@@ -163,6 +161,7 @@ define([
         cell.attr('tabindex','2');
 
         var input = $('<div></div>').addClass('input');
+        this.input = input;
         var prompt = $('<div/>').addClass('prompt input_prompt');
         var inner_cell = $('<div/>').addClass('inner_cell');
         this.celltoolbar = new celltoolbar.CellToolbar({
@@ -170,7 +169,7 @@ define([
             notebook: this.notebook});
         inner_cell.append(this.celltoolbar.element);
         var input_area = $('<div/>').addClass('input_area');
-        this.code_mirror = new CodeMirror(input_area.get(0), this.cm_config);
+        this.code_mirror = new CodeMirror(input_area.get(0), this._options.cm_config);
         // In case of bugs that put the keyboard manager into an inconsistent state,
         // ensure KM is enabled when CodeMirror is focused:
         this.code_mirror.on('focus', function () {
@@ -183,39 +182,8 @@ define([
         inner_cell.append(input_area);
         input.append(prompt).append(inner_cell);
 
-        var widget_area = $('<div/>')
-            .addClass('widget-area')
-            .hide();
-        this.widget_area = widget_area;
-        var widget_prompt = $('<div/>')
-            .addClass('prompt')
-            .appendTo(widget_area);
-        var widget_subarea = $('<div/>')
-            .addClass('widget-subarea')
-            .appendTo(widget_area);
-        this.widget_subarea = widget_subarea;
-        var that = this;
-        var widget_clear_buton = $('<button />')
-            .addClass('close')
-            .html('&times;')
-            .click(function() {
-                widget_area.slideUp('', function(){ 
-                    for (var i = 0; i < that.widget_views.length; i++) {
-                        var view = that.widget_views[i];
-                        view.remove();
-
-                        // Remove widget live events.
-                        view.off('comm:live', that._widget_live);
-                        view.off('comm:dead', that._widget_dead);
-                    }
-                    that.widget_views = [];
-                    widget_subarea.html(''); 
-                });
-            })
-            .appendTo(widget_prompt);
-
         var output = $('<div></div>');
-        cell.append(input).append(widget_area).append(output);
+        cell.append(input).append(output);
         this.element = cell;
         this.output_area = new outputarea.OutputArea({
             selector: output, 
@@ -223,64 +191,6 @@ define([
             events: this.events, 
             keyboard_manager: this.keyboard_manager});
         this.completer = new completer.Completer(this, this.events);
-    };
-
-    /**
-    *  Display a widget view in the cell.
-    */
-    CodeCell.prototype.display_widget_view = function(view_promise) {
-
-        // Display a dummy element
-        var dummy = $('<div/>');
-        this.widget_subarea.append(dummy);
-
-        // Display the view.
-        var that = this;
-        return view_promise.then(function(view) {
-            that.widget_area.show();
-            dummy.replaceWith(view.$el);
-            that.widget_views.push(view);
-
-            // Check the live state of the view's model.
-            if (view.model.comm_live) {
-                that._widget_live(view);
-            } else {
-                that._widget_dead(view);
-            }
-
-            // Listen to comm live events for the view.
-            view.on('comm:live', that._widget_live, that);
-            view.on('comm:dead', that._widget_dead, that);
-            return view;
-        });
-    };
-
-    /**
-     * Handles when a widget loses it's comm connection.
-     * @param  {WidgetView} view
-     */
-    CodeCell.prototype._widget_dead = function(view) {
-        if (this._widgets_live) {
-            this._widgets_live = false;
-            this.widget_area.addClass('connection-problems');
-        }
-
-    };
-
-    /**
-     * Handles when a widget is connected to a live comm.
-     * @param  {WidgetView} view
-     */
-    CodeCell.prototype._widget_live = function(view) {
-        if (!this._widgets_live) {
-            // Check that the other widgets are live too.  O(N) operation.
-            // Abort the function at the first dead widget found.
-            for (var i = 0; i < this.widget_views.length; i++) {
-                if (!this.widget_views[i].model.comm_live) return;
-            }
-            this._widgets_live = true;
-            this.widget_area.removeClass('connection-problems');
-        }
     };
 
     /** @method bind_events */
@@ -409,21 +319,6 @@ define([
             stop_on_error = true;
         }
 
-        // Clear widget area
-        for (var i = 0; i < this.widget_views.length; i++) {
-            var view = this.widget_views[i];
-            view.remove();
-
-            // Remove widget live events.
-            view.off('comm:live', this._widget_live);
-            view.off('comm:dead', this._widget_dead);
-        }
-        this.widget_views = [];
-        this.widget_subarea.html('');
-        this.widget_subarea.height('');
-        this.widget_area.height('');
-        this.widget_area.hide();
-        
         var old_msg_id = this.last_msg_id;
 
         if (old_msg_id) {
@@ -651,14 +546,14 @@ define([
     };
 
     /**
-     * handle cell level logic when a cell is unselected
+     * handle cell level logic when the cursor moves away from a cell
      * @method unselect
      * @return is the action being taken
      */
-    CodeCell.prototype.unselect = function () {
-        var cont = Cell.prototype.unselect.apply(this);
+    CodeCell.prototype.unselect = function (leave_selected) {
+        var cont = Cell.prototype.unselect.apply(this, [leave_selected]);
         if (cont) {
-            // When a code cell is usnelected, make sure that the corresponding
+            // When a code cell is unselected, make sure that the corresponding
             // tooltip and completer to that cell is closed.
             this.tooltip.remove_and_cancel_tooltip(true);
             if (this.completer !== null) {

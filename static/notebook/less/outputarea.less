@@ -1,7 +1,9 @@
 div.output_wrapper {
     /* this position must be relative to enable descendents to be absolute within it */
     position: relative;
-    .vbox()
+    .vbox();
+    // avoid scrolled output overlaying input in some strange circumstances
+    z-index: 1;
 }
 
 /* class for the output area when it should be height-limited */
@@ -64,6 +66,14 @@ div.output_area {
             margin-right: 0;
         }
     }
+    
+    img, svg {
+        max-width: 100%;
+        height: auto;
+        &.unconfined {
+            max-width: none;
+        }
+    }
 }
 
 /* This is needed to protect the pre formating from global settings such
@@ -92,8 +102,12 @@ div.output_area pre {
 /* This class is for the output subarea inside the output_area and after
    the prompt div. */
 div.output_subarea {
+    // Don't let contents overflow page area.
+    overflow-x: auto;
     padding: @code_padding;
     .box-flex1();
+    // appears to be needed for max-width in children to mean anything on Firefox:
+    max-width: calc(~"100% - 14ex");
 }
 
 /* The rest of the output_* classes are for special styling of the different
@@ -143,18 +157,18 @@ div.output_javascript:empty {
 /* raw_input styles */
 
 div.raw_input_container {
-    font-family: @font-family-monospace;
+    line-height: @code_line_height;
     // for some reason, em padding doesn't compute the same for raw_input
     // that is not the first input, but px does
     padding-top: 5px;
 }
 
-span.raw_input_prompt {
-    /* nothing needed here */
+pre.raw_input_prompt {
+    /* nothing needed here. */
 }
 
 input.raw_input {
-    font-family: inherit;
+    font-family: @font-family-monospace;
     font-size: inherit;
     color: inherit;
     width: auto;
