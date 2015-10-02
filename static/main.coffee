@@ -36,7 +36,7 @@ define [
   'custom/custom'
 ], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) ->
   
-  promise.polyfill()
+  # promise.polyfill()
 
   class Thebe
     default_options:
