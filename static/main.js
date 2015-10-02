@@ -559,8 +559,6 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.kernel.name = this.options.kernel_name;
       this.kernel.start();
       this.notebook.kernel = this.kernel;
-      console.log('@kernel.name');
-      console.log(this.kernel.name);
       return this.events.on('kernel_ready.Kernel', (function(_this) {
         return function() {
           var cell, i, _i, _len, _ref;
@@ -623,6 +621,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       };
       this.events.trigger('app_initialized.NotebookApp');
       this.notebook.load_notebook(common_options.notebook_path, this.options.codemirror_mode_name);
+      utils.load_extension('widgets/notebook/js/extension');
       return this.build_thebe();
     };
 

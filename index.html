@@ -32,13 +32,21 @@
           paths: {
             underscore : 'components/underscore/underscore-min',
             backbone : 'components/backbone/backbone-min',
-            jquery: 'empty:',
             // jquery: 'components/jquery/jquery.min',
+            jquery: 'empty:',
             bootstrap: 'components/bootstrap/js/bootstrap.min',
+            // bootstraptour: 'components/bootstrap-tour/build/js/bootstrap-tour.min',
             jqueryui: 'components/jquery-ui/ui/minified/jquery-ui.min',
             moment: 'components/moment/moment',
             codemirror: 'components/codemirror',
             termjs: 'components/term.js/src/term',
+            // 'nbextensions/widgets': 'components/ipywidgets/ipywidgets/static',
+            'nbextensions/widgets': 'components/ipywidgets/ipywidgets/static',
+            // widgets: 'components/ipywidgets/ipywidgets/static'
+            // widgets: 'components/ipywidgets/ipywidgets/static/widgets/js'
+            // widgets: 'components/ipywidgets/ipywidgets/static/widgets/js'
+            // widgets: 'components/ipywidgets/ipywidgets/static/notebook/js/extensions'
+
           },
           shim: {
             underscore: {
@@ -62,7 +70,12 @@
       // Require thebe, instantiate it
       require(['main'], function(main){
           // To run this locally, replace this url with the url of your notebook server or tmpnb server
-          thebe = new main.Thebe({url:"https://tmp39.tmpnb.org"});
+          thebe = new main.Thebe({
+            // url:"https://tmp39.tmpnb.org",
+            url:"http://192.168.99.100:8888",
+            tmpnb_mode: false
+          });
+          // thebe = new main.Thebe({url:"https://tmp39.tmpnb.org"});
 
       });
 
@@ -83,6 +96,11 @@
 <h2>Jupyter javascript plugin for static sites</h2>
 
 <p> A really simple example:</p>
+
+<pre data-executable>
+from ipywidgets import *
+IntSlider()
+</pre>
 
 <pre data-executable id="hello-example">
 z = "hello", 4+4

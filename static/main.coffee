@@ -15,7 +15,8 @@ define [
   'notebook/js/kernelselector'
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
-  'terminal/js/terminado',
+  'terminal/js/terminado'
+  # 'components/ipywidgets/ipywidgets/static/notebook/js/extension'
   'components/term.js/src/term'
   'codemirror/mode/ruby/ruby'
   'codemirror/mode/css/css'
@@ -521,13 +522,11 @@ define [
     start_kernel: (cb)=>
       @log 'start_kernel with '+@url
       @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, @options.kernel_name
-      # hack to fix changes in v4 in kernel selector
+      # hack to fix changes in v4 in kernel selector, this was an object instead
       @kernel.name = @options.kernel_name
       # start it
       @kernel.start()
       @notebook.kernel = @kernel
-      console.log '@kernel.name'
-      console.log @kernel.name
       @events.on 'kernel_ready.Kernel', =>
         @has_kernel_connected = true
         @log 'kernel ready'
@@ -572,6 +571,8 @@ define [
 
       @events.trigger 'app_initialized.NotebookApp'
       @notebook.load_notebook common_options.notebook_path, @options.codemirror_mode_name
+
+      utils.load_extension('widgets/notebook/js/extension')
       # And finally
       @build_thebe()
 
