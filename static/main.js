@@ -242,6 +242,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       var focus_edit_flag, get_cell_id_from_event;
       this.notebook.writable = false;
       this.notebook._unsafe_delete_cell(0);
+      this.notebook.container = $("body");
       $(this.selector).add(this.options.not_executable_selector).each((function(_this) {
         return function(i, el) {
           var cell, controls, original_id, wrap;
@@ -621,6 +622,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       };
       this.events.trigger('app_initialized.NotebookApp');
       this.notebook.load_notebook(common_options.notebook_path, this.options.codemirror_mode_name);
+      IPython.notebook = this.notebook;
       utils.load_extension('widgets/notebook/js/extension');
       return this.build_thebe();
     };

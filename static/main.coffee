@@ -267,6 +267,8 @@ define [
       # otherwise this will mess up our index
       @notebook._unsafe_delete_cell(0)
 
+      @notebook.container = $("body")
+
 
       $(@selector).add(@options.not_executable_selector).each (i, el) =>
         cell = @notebook.insert_cell_at_bottom('code')
@@ -571,7 +573,7 @@ define [
 
       @events.trigger 'app_initialized.NotebookApp'
       @notebook.load_notebook common_options.notebook_path, @options.codemirror_mode_name
-
+      IPython.notebook = @notebook
       utils.load_extension('widgets/notebook/js/extension')
       # And finally
       @build_thebe()
