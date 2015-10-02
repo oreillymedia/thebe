@@ -78,10 +78,10 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
-      # Default keyboard shortcut focusing next cell, shift+ this keycode, defaults (32) is spacebar
+      # Default keyboard shortcut for focusing next cell, shift+ this keycode, default (32) is spacebar
       # Set to false to disable
       next_cell_shortcut: 32
-      # Default keyboard shortcut for executing cell, shift+ this keycode, defaults (13) is return
+      # Default keyboard shortcut for executing cell, shift+ this keycode, default (13) is return
       # Set to false to disable
       run_cell_shortcut: 13
       # For when you want a pre to become a CM instance, but not be runnable
@@ -96,6 +96,10 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       codemirror_mode_name: "ipython"
       # totally different mode for running a terminal instead of a notebook
       terminal_mode: false
+      # where are our cell elements (that are created from the selector option above)
+      container_selector: "body"
+      # for setting what docker image you want to run on the back end
+      image_name: "jupyter/notebook"
       # show messages from @log()
       debug: false
 ````
