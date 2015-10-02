@@ -23,13 +23,23 @@ Also, [Thebe is a moon of Jupiter](http://en.wikipedia.org/wiki/Thebe_%28moon%29
 You can change the first two by passing options to Thebe when you instantiate it (see below)
 
 ## Front End Use
-Include the `Thebe` script like so:
+Currently Thebe is imported via an HTML script tag.  Since Thebe is an 
+alternative Jupyter notebook front-end, the notebook server version and 
+ipywidgets version of the tmpnb instance are important and must be specified.  
+The following example will load Thebe for the notebook version 4.1.0 and 
+ipywidgets 4.0.3:
 
 ```html
-<script src="https://rawgit.com/oreillymedia/thebe/master/static/main-built.js" type="text/javascript" charset="utf-8"></script>
+<script src="http://cdn.jupyter.org/thebe/notebook4.1.0/ipywidgets4.0.3/static/main-built.js" type="text/javascript" charset="utf-8"></script>
 ```
 
-and then 
+**or** for the notebook version 3.x:
+
+```html
+<script src="http://cdn.jupyter.org/thebe/notebook3.0.0/static/main-built.js" type="text/javascript" charset="utf-8"></script>
+```
+
+and then, to instantiate Thebe:
 
 ```javascript
 <script>
