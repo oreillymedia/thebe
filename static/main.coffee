@@ -78,6 +78,8 @@ define [
       terminal_mode: false
       # where are our cell elements (that are created from the selector option above)
       container_selector: "body"
+      # for setting what docker image you want to run on the back end
+      image_name: "jupyter/notebook"
       # show messages from @log()
       debug: false
 
@@ -178,6 +180,7 @@ define [
       if @kernel?.ws then @log 'HAZ WEBSOCKET?'
       invo = new XMLHttpRequest
       invo.open 'POST', @tmpnb_url+@spawn_path, true
+      payload = JSON.stringify {image_name: @options.image_name}
       invo.onreadystatechange = (e)=> 
         # if we're done, call the spawn handler
         if invo.readyState is 4 then  @spawn_handler(e, cb)
@@ -186,7 +189,7 @@ define [
         @set_state(@cant_state)
         $.removeCookie 'thebe_url'
         @track 'call_spawn_fail'
-      invo.send()
+      invo.send(payload)
 
     check_server: (invo=new XMLHttpRequest)->
       invo.open 'GET', @tmpnb_url+@stats_path, true

@@ -23,6 +23,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       codemirror_mode_name: "ipython",
       terminal_mode: false,
       container_selector: "body",
+      image_name: "jupyter/notebook",
       debug: false
     };
 
@@ -128,7 +129,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     }
 
     Thebe.prototype.call_spawn = function(cb) {
-      var invo, _ref;
+      var invo, payload, _ref;
       this.log('call spawn');
       this.track('call_spawn');
       if ((_ref = this.kernel) != null ? _ref.ws : void 0) {
@@ -136,6 +137,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       }
       invo = new XMLHttpRequest;
       invo.open('POST', this.tmpnb_url + this.spawn_path, true);
+      payload = JSON.stringify({
+        image_name: this.options.image_name
+      });
       invo.onreadystatechange = (function(_this) {
         return function(e) {
           if (invo.readyState === 4) {
@@ -151,7 +155,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           return _this.track('call_spawn_fail');
         };
       })(this);
-      return invo.send();
+      return invo.send(payload);
     };
 
     Thebe.prototype.check_server = function(invo) {
