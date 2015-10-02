@@ -2,9 +2,8 @@
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'terminal/js/terminado', 'components/term.js/src/term', 'codemirror/mode/ruby/ruby', 'codemirror/mode/css/css', 'codemirror/mode/coffeescript/coffeescript', 'codemirror/mode/dockerfile/dockerfile', 'codemirror/mode/go/go', 'codemirror/mode/javascript/javascript', 'codemirror/mode/julia/julia', 'codemirror/mode/python/python', 'codemirror/mode/haskell/haskell', 'codemirror/mode/r/r', 'codemirror/mode/shell/shell', 'codemirror/mode/clike/clike', 'codemirror/mode/jinja2/jinja2', 'codemirror/mode/php/php', 'codemirror/mode/sql/sql', 'custom/custom', 'widgets/notebook/js/extension'], function(IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) {
+define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'terminal/js/terminado', 'components/term.js/src/term', 'codemirror/mode/ruby/ruby', 'codemirror/mode/css/css', 'codemirror/mode/coffeescript/coffeescript', 'codemirror/mode/dockerfile/dockerfile', 'codemirror/mode/go/go', 'codemirror/mode/javascript/javascript', 'codemirror/mode/julia/julia', 'codemirror/mode/python/python', 'codemirror/mode/haskell/haskell', 'codemirror/mode/r/r', 'codemirror/mode/shell/shell', 'codemirror/mode/clike/clike', 'codemirror/mode/jinja2/jinja2', 'codemirror/mode/php/php', 'codemirror/mode/sql/sql', 'custom/custom'], function(IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) {
   var Thebe;
-  promise.polyfill();
   Thebe = (function() {
     Thebe.prototype.default_options = {
       selector: 'pre[data-executable]',
@@ -557,8 +556,11 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe.prototype.start_kernel = function(cb) {
       this.log('start_kernel with ' + this.url);
       this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, this.options.kernel_name);
+      this.kernel.name = this.options.kernel_name;
       this.kernel.start();
       this.notebook.kernel = this.kernel;
+      console.log('@kernel.name');
+      console.log(this.kernel.name);
       return this.events.on('kernel_ready.Kernel', (function(_this) {
         return function() {
           var cell, i, _i, _len, _ref;
