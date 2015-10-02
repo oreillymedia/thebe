@@ -16,7 +16,6 @@ define [
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
   'terminal/js/terminado'
-  # 'components/ipywidgets/ipywidgets/static/notebook/js/extension'
   'components/term.js/src/term'
   'codemirror/mode/ruby/ruby'
   'codemirror/mode/css/css'
@@ -33,6 +32,7 @@ define [
   'codemirror/mode/jinja2/jinja2'
   'codemirror/mode/php/php'
   'codemirror/mode/sql/sql'
+  'nbextensions/widgets/notebook/js/extension'
 
   'custom/custom'
 ], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) ->
@@ -76,6 +76,8 @@ define [
       codemirror_mode_name: "ipython"
       # totally different mode for running a terminal instead of a notebook
       terminal_mode: false
+      # where are our cell elements (that are created from the selector option above)
+      container_selector: "body"
       # show messages from @log()
       debug: false
 
@@ -267,8 +269,8 @@ define [
       # otherwise this will mess up our index
       @notebook._unsafe_delete_cell(0)
 
-      @notebook.container = $("body")
-
+      # so that notebook.get_cells works, so widgets work
+      @notebook.container = $(@options.container_selector)
 
       $(@selector).add(@options.not_executable_selector).each (i, el) =>
         cell = @notebook.insert_cell_at_bottom('code')

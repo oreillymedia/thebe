@@ -2,7 +2,7 @@
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'terminal/js/terminado', 'components/term.js/src/term', 'codemirror/mode/ruby/ruby', 'codemirror/mode/css/css', 'codemirror/mode/coffeescript/coffeescript', 'codemirror/mode/dockerfile/dockerfile', 'codemirror/mode/go/go', 'codemirror/mode/javascript/javascript', 'codemirror/mode/julia/julia', 'codemirror/mode/python/python', 'codemirror/mode/haskell/haskell', 'codemirror/mode/r/r', 'codemirror/mode/shell/shell', 'codemirror/mode/clike/clike', 'codemirror/mode/jinja2/jinja2', 'codemirror/mode/php/php', 'codemirror/mode/sql/sql', 'custom/custom'], function(IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) {
+define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'terminal/js/terminado', 'components/term.js/src/term', 'codemirror/mode/ruby/ruby', 'codemirror/mode/css/css', 'codemirror/mode/coffeescript/coffeescript', 'codemirror/mode/dockerfile/dockerfile', 'codemirror/mode/go/go', 'codemirror/mode/javascript/javascript', 'codemirror/mode/julia/julia', 'codemirror/mode/python/python', 'codemirror/mode/haskell/haskell', 'codemirror/mode/r/r', 'codemirror/mode/shell/shell', 'codemirror/mode/clike/clike', 'codemirror/mode/jinja2/jinja2', 'codemirror/mode/php/php', 'codemirror/mode/sql/sql', 'nbextensions/widgets/notebook/js/extension', 'custom/custom'], function(IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) {
   var Thebe;
   Thebe = (function() {
     Thebe.prototype.default_options = {
@@ -22,6 +22,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       add_interrupt_button: false,
       codemirror_mode_name: "ipython",
       terminal_mode: false,
+      container_selector: "body",
       debug: false
     };
 
@@ -242,7 +243,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       var focus_edit_flag, get_cell_id_from_event;
       this.notebook.writable = false;
       this.notebook._unsafe_delete_cell(0);
-      this.notebook.container = $("body");
+      this.notebook.container = $(this.options.container_selector);
       $(this.selector).add(this.options.not_executable_selector).each((function(_this) {
         return function(i, el) {
           var cell, controls, original_id, wrap;
