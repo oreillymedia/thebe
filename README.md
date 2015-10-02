@@ -30,13 +30,13 @@ The following example will load Thebe for the notebook version 4.1.0 and
 ipywidgets 4.0.3:
 
 ```html
-<script src="https://rawgit.com/oreillymedia/thebe/notebook4.1.0,ipywidgets4.0.3/static/main-built.js" type="text/javascript" charset="utf-8"></script>
+<script src="http://cdn.jupyter.org/thebe/notebook4.1.0/ipywidgets4.0.3/static/main-built.js" type="text/javascript" charset="utf-8"></script>
 ```
 
 **or** for the notebook version 3.x:
 
 ```html
-<script src="https://rawgit.com/oreillymedia/thebe/notebook3.x/static/main-built.js" type="text/javascript" charset="utf-8"></script>
+<script src="http://cdn.jupyter.org/thebe/notebook3.0.0/static/main-built.js" type="text/javascript" charset="utf-8"></script>
 ```
 
 and then, to instantiate Thebe:
