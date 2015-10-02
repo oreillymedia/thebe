@@ -556,8 +556,11 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe.prototype.start_kernel = function(cb) {
       this.log('start_kernel with ' + this.url);
       this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, this.options.kernel_name);
+      this.kernel.name = this.options.kernel_name;
       this.kernel.start();
       this.notebook.kernel = this.kernel;
+      console.log('@kernel.name');
+      console.log(this.kernel.name);
       return this.events.on('kernel_ready.Kernel', (function(_this) {
         return function() {
           var cell, i, _i, _len, _ref;

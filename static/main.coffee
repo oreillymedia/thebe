@@ -521,8 +521,13 @@ define [
     start_kernel: (cb)=>
       @log 'start_kernel with '+@url
       @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, @options.kernel_name
+      # hack to fix changes in v4 in kernel selector
+      @kernel.name = @options.kernel_name
+      # start it
       @kernel.start()
       @notebook.kernel = @kernel
+      console.log '@kernel.name'
+      console.log @kernel.name
       @events.on 'kernel_ready.Kernel', =>
         @has_kernel_connected = true
         @log 'kernel ready'

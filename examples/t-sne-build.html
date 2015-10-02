@@ -22,7 +22,15 @@
 
 <script>
     $(function(){
-        window.thebe = new Thebe({selector:"pre[data-executable]", add_interrupt_button: true, url:"https://192.168.99.100:8000"});
+        window.thebe = new Thebe({
+            selector:"pre[data-executable]",
+            add_interrupt_button: true,
+            kernel_name: "python3",
+            url:"http://192.168.99.100:8888/",
+            // url:"https://192.168.99.100:8000",
+            tmpnb_mode: false,
+            debug: true
+        });
     });
 </script>
 
