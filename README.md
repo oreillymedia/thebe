@@ -181,6 +181,13 @@ python -m SimpleHTTPServer
 
 ```
 
+Or with python3,
+
+```
+python -m http.server
+
+```
+
 and visit it at [localhost:8000](http://localhost:8000) and [localhost:8000/built.html](http://localhost:8000/built.html)
 
 
