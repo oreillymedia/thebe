@@ -132,7 +132,7 @@ The easiest way to get this running locally is to simply set the `url` option to
 
 After installing ipython, run it like so:
 
-    ipython notebook  --NotebookApp.allow_origin=* --no-browser
+    ipython notebook  --NotebookApp.allow_origin='*' --no-browser
 
 Which defaults to running at http://localhost:8888/, and should tell you that.
 
