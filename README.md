@@ -128,7 +128,19 @@ Thebe now includes terminal functionality, via termjs. To run a terminal in the 
 For simplicity, several codemirror language modes (i.e. syntax highlighting) are bundled with Thebe. [Here's a list of them](https://github.com/oreillymedia/thebe/blob/master/static/main.coffee#L20-L34).
 
 # Run Locally (Simple)
-The easiest way to get this running locally is to simply set the `url` option to the url of a running ipython notebook server, as above.
+The easiest way to get this running locally requires setting a few options in your Thebe declaration. 
+
+```javascript
+$(function(){
+    var thebe = new Thebe({
+        tmpnb_mode: false,
+        url: 'http://localhost:8888/'
+    });
+});
+```
+
+
+to point to your server's address `url` option to the url of a running ipython notebook server, as above.
 
 After installing ipython, run it like so:
 
