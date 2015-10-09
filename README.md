@@ -10,7 +10,9 @@ Four things are required:
 1. A server, either a [tmpnb](https://github.com/zischwartz/tmpnb) server, for lots of users, or simply an [ipython notebook server](http://ipython.org/notebook.html).
 1. A web page with some code examples
 1. A script tag in the page that includes the compiled javascript of `Thebe`, which is in this repo at `static/main-built.js`
-1. jQuery, already included in the page
+1. node-js and bower to install external javascript dependencies.
+
+To install the javascript dependencies, simply run `bower install` in the root of the repository.
 
 Also, [Thebe is a moon of Jupiter](http://en.wikipedia.org/wiki/Thebe_%28moon%29) in case you were wondering. Naming things is hard.
 
@@ -132,7 +134,7 @@ The easiest way to get this running locally is to simply set the `url` option to
 
 After installing ipython, run it like so:
 
-    ipython notebook  --NotebookApp.allow_origin=* --no-browser
+    ipython notebook  --NotebookApp.allow_origin='*' --no-browser
 
 Which defaults to running at http://localhost:8888/, and should tell you that.
 
@@ -176,6 +178,13 @@ Next, start a normal server in this directory
 
 ```
 python -m SimpleHTTPServer
+
+```
+
+Or with python3,
+
+```
+python -m http.server
 
 ```
 
