@@ -40,8 +40,8 @@
   },
     name: "main",
     out: "main-built.js",
-    // optimize: "none",
-    optimize: 'uglify2',
+    // optimize: "none"
+    optimize: 'uglify2'
     // exclude: ['jquery']
 })
 
