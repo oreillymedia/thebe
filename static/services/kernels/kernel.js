@@ -197,7 +197,12 @@ define([
             cache: false,
             type: "POST",
             data: JSON.stringify({name: this.name}),
-            contentType: 'application/json',
+            // Removed, asit was pre the merge with jupyter/notebook v4
+            // It was causing an OPTIONS preflight request, which the notebook backend
+            // depending on how it's run and installed, does not like sometimes
+            // XXX Removed by Zach
+            //
+            // contentType: 'application/json',
             dataType: "json",
             success: this._on_success(on_success),
             error: this._on_error(error)
