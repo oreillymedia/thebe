@@ -80,6 +80,8 @@ define [
       container_selector: "body"
       # for setting what docker image you want to run on the back end
       image_name: "jupyter/notebook"
+      # should we remember the url that we connect to
+      set_url_cookie: true
       # show messages from @log()
       debug: false
 
@@ -153,7 +155,14 @@ define [
       thebe_url = $.cookie 'thebe_url'
       # passing a notebook url takes precedence over a cookie
       if thebe_url and @url is ''
-        @check_existing_container(thebe_url)
+        # if we're in tmpnb mode
+        if @options.tmpnb_mode
+          # and the tmpnb url hasn't changed
+          if @tmpnb_url is thebe_url[0..@tmpnb_url.length-1]
+            @check_existing_container(thebe_url)
+          else $.removeCookie 'thebe_url'
+        else
+          @check_existing_container(thebe_url)
       
       # check that the tmpnb server is up
       if @tmpnb_url then @check_server()
@@ -205,8 +214,9 @@ define [
       invo.send()
 
     check_existing_container: (url, invo=new XMLHttpRequest)->
+      @log "checking existing container", url
       # no trailing slash for api url
-      invo.open 'GET', url+'api', true
+      invo.open 'GET', url+'api/kernels', true
       invo.onerror = (e)=>
         $.removeCookie 'thebe_url'
         @log 'server error when checking existing container'
@@ -257,7 +267,8 @@ define [
             @start_kernel(cb)
           else
             @start_terminal_backend(cb)
-          $.cookie 'thebe_url', @url
+          if @options.set_url_cookie
+            $.cookie 'thebe_url', @url
           @track 'call_spawn_success'
 
     

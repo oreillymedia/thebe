@@ -102,6 +102,8 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       container_selector: "body"
       # for setting what docker image you want to run on the back end
       image_name: "jupyter/notebook"
+      # should we remember the url that we connect to
+      set_url_cookie: true
       # show messages from @log()
       debug: false
 ````
