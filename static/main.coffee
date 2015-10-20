@@ -81,7 +81,7 @@ define [
       # for setting what docker image you want to run on the back end
       image_name: "jupyter/notebook"
       # should we remember the url that we connect to
-      persist_thebe_url_cookie: true
+      set_url_cookie: true
       # show messages from @log()
       debug: false
 
@@ -267,7 +267,8 @@ define [
             @start_kernel(cb)
           else
             @start_terminal_backend(cb)
-          $.cookie 'thebe_url', @url
+          if @options.set_url_cookie
+            $.cookie 'thebe_url', @url
           @track 'call_spawn_success'
 
     

@@ -24,7 +24,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       terminal_mode: false,
       container_selector: "body",
       image_name: "jupyter/notebook",
-      persist_thebe_url_cookie: true,
+      set_url_cookie: true,
       debug: false
     };
 
@@ -247,7 +247,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           } else {
             this.start_terminal_backend(cb);
           }
-          $.cookie('thebe_url', this.url);
+          if (this.options.set_url_cookie) {
+            $.cookie('thebe_url', this.url);
+          }
           return this.track('call_spawn_success');
         }
       }
