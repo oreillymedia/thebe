@@ -193,7 +193,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         invo = new XMLHttpRequest;
       }
       this.log("checking existing container", url);
-      invo.open('GET', url + 'api', true);
+      invo.open('GET', url + 'api/kernels', true);
       invo.onerror = (function(_this) {
         return function(e) {
           $.removeCookie('thebe_url');

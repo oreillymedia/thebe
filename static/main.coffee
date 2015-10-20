@@ -216,7 +216,7 @@ define [
     check_existing_container: (url, invo=new XMLHttpRequest)->
       @log "checking existing container", url
       # no trailing slash for api url
-      invo.open 'GET', url+'api', true
+      invo.open 'GET', url+'api/kernels', true
       invo.onerror = (e)=>
         $.removeCookie 'thebe_url'
         @log 'server error when checking existing container'
