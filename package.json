@@ -1,0 +1,34 @@
+{
+  "name": "thebe",
+  "version": "0.0.2",
+  "description": "Run code examples",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oreillymedia/thebe.git"
+  },
+  "keywords": [
+    "jupyter",
+    "ipython",
+    "notebook"
+  ],
+  "author": "zach schwartz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/oreillymedia/thebe/issues"
+  },
+  "homepage": "https://github.com/oreillymedia/thebe",
+  "devDependencies": {
+    "browserify": "^11.2.0",
+    "deamdify": "^0.1.1"
+  },
+  "dependencies": {
+    "moment": "^2.10.6"
+  }
+}

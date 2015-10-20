@@ -6,7 +6,8 @@ define([
     'codemirror/lib/codemirror',
     'moment',
     // silently upgrades CodeMirror
-    'codemirror/mode/meta',
+    // XXX commented out by zach
+    // 'codemirror/mode/meta',
 ], function($, CodeMirror, moment){
     "use strict";
     
