@@ -24,6 +24,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       terminal_mode: false,
       container_selector: "body",
       image_name: "jupyter/notebook",
+      persist_thebe_url_cookie: true,
       debug: false
     };
 
@@ -113,7 +114,15 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.setup_user_events();
       thebe_url = $.cookie('thebe_url');
       if (thebe_url && this.url === '') {
-        this.check_existing_container(thebe_url);
+        if (this.options.tmpnb_mode) {
+          if (this.tmpnb_url === thebe_url.slice(0, +(this.tmpnb_url.length - 1) + 1 || 9e9)) {
+            this.check_existing_container(thebe_url);
+          } else {
+            $.removeCookie('thebe_url');
+          }
+        } else {
+          this.check_existing_container(thebe_url);
+        }
       }
       if (this.tmpnb_url) {
         this.check_server();
@@ -183,6 +192,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       if (invo == null) {
         invo = new XMLHttpRequest;
       }
+      this.log("checking existing container", url);
       invo.open('GET', url + 'api', true);
       invo.onerror = (function(_this) {
         return function(e) {
