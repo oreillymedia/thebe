@@ -38,7 +38,7 @@ define [
 ], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) ->
   
   # promise.polyfill()
-
+  console.log $
   class Thebe
     default_options:
       # jquery selector for elements we want to make runnable 

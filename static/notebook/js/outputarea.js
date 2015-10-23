@@ -1,14 +1,17 @@
 // Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
+// ADDED jquery dependency here, XXX, ZACH
+
 define([
+    'jquery',
     'jqueryui',
     'base/js/utils',
     'base/js/security',
     'base/js/keyboard',
     'notebook/js/mathjaxutils',
     'components/marked/lib/marked',
-], function($, utils, security, keyboard, mathjaxutils, marked) {
+], function($, jqueryui, utils, security, keyboard, mathjaxutils, marked) {
     "use strict";
 
     /**
