@@ -160,6 +160,7 @@ After making a change to the javascript in `static/`, you'll need to recompile i
 ```javascript
 npm install -g requirejs
 npm install -g coffee-script
+bower install
 coffee -cbm .
 cd static
 r.js -o build.js baseUrl=. name=almond include=main out=main-built.js 
