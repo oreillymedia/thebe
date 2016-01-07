@@ -149,6 +149,8 @@ define(function (require) {
         rawcell_celltoolbar.register(this);
         slideshow_celltoolbar.register(this);
 
+        // added by zach for thebe xxx
+        this.codemirror_theme_name = options.codemirror_theme_name;
         // prevent assign to miss-typed properties.
         Object.seal(this);
     };

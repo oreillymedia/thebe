@@ -169,7 +169,11 @@ define([
             notebook: this.notebook});
         inner_cell.append(this.celltoolbar.element);
         var input_area = $('<div/>').addClass('input_area');
-        this.code_mirror = new CodeMirror(input_area.get(0), this._options.cm_config);
+        // Added/changed by Zach for Thebe XXX
+        var cm_config = this._options.cm_config;
+        cm_config.theme = this.notebook.codemirror_theme_name;
+        this.code_mirror = new CodeMirror(input_area.get(0), cm_config );
+
         // In case of bugs that put the keyboard manager into an inconsistent state,
         // ensure KM is enabled when CodeMirror is focused:
         this.code_mirror.on('focus', function () {

@@ -74,6 +74,8 @@ define [
       add_interrupt_button: false
       # hack to set the codemirror mode correctly
       codemirror_mode_name: "ipython"
+      # hack to set the codemirror theme
+      codemirror_theme_name: "default"
       # totally different mode for running a terminal instead of a notebook
       terminal_mode: false
       # where are our cell elements (that are created from the selector option above)
@@ -582,6 +584,7 @@ define [
         save_widget: save_widget
         contents: contents
         config: config_section
+        codemirror_theme_name: @options.codemirror_theme_name
       }, common_options))
   
       @notebook.kernel_selector =

@@ -21,6 +21,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       error_addendum: true,
       add_interrupt_button: false,
       codemirror_mode_name: "ipython",
+      codemirror_theme_name: "default",
       terminal_mode: false,
       container_selector: "body",
       image_name: "jupyter/notebook",
@@ -632,7 +633,8 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         keyboard_manager: keyboard_manager,
         save_widget: save_widget,
         contents: contents,
-        config: config_section
+        config: config_section,
+        codemirror_theme_name: this.options.codemirror_theme_name
       }, common_options));
       this.notebook.kernel_selector = {
         set_kernel: function() {}
@@ -803,3 +805,5 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe: Thebe
   };
 });
+
+//# sourceMappingURL=main.js.map
