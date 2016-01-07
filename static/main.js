@@ -77,7 +77,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     };
 
     function Thebe(_at_options) {
-      var thebe_url, _ref;
+      var qs_tmpnb, qs_url, thebe_url, _ref, _ref1;
       this.options = _at_options != null ? _at_options : {};
       this.track = __bind(this.track, this);
       this.setup_resources = __bind(this.setup_resources, this);
@@ -98,6 +98,16 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.server_error = false;
       _ref = _.defaults(this.options, this.default_options), this.selector = _ref.selector, this.url = _ref.url, this.debug = _ref.debug;
       this.setup_constants();
+      _ref1 = [this.get_param_from_qs('url'), this.get_param_from_qs('tmpnb_mode')], qs_url = _ref1[0], qs_tmpnb = _ref1[1];
+      if (qs_url) {
+        this.url = qs_url;
+      }
+      if (qs_tmpnb === 'true') {
+        this.options.tmpnb_mode = true;
+      }
+      if (qs_tmpnb === 'false') {
+        this.options.tmpnb_mode = false;
+      }
       if (this.url) {
         this.url = this.url.replace(/\/?$/, '/');
       }
@@ -759,6 +769,18 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           }
         };
       })(this));
+    };
+
+    Thebe.prototype.get_param_from_qs = function(name) {
+      var regex, results;
+      name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+      regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+      results = regex.exec(location.search);
+      if (results === null) {
+        return '';
+      } else {
+        return decodeURIComponent(results[1].replace(/\+/g, ' '));
+      }
     };
 
     Thebe.prototype.log = function(m, serious) {
