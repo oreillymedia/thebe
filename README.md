@@ -96,6 +96,8 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       add_interrupt_button: false
       # hack to set the codemirror mode correctly
       codemirror_mode_name: "ipython"
+      # hack to set the codemirror theme
+      codemirror_theme_name: "default"
       # totally different mode for running a terminal instead of a notebook
       terminal_mode: false
       # where are our cell elements (that are created from the selector option above)
