@@ -133,6 +133,13 @@ define [
       {@selector, @url, @debug} = _.defaults(@options, @default_options)
 
       @setup_constants()
+      
+      # For dev/debug: because these values change a lot it's useful to be able to
+      # override the values that are in the html file where thebe is instantiated
+      [qs_url, qs_tmpnb] = [@get_param_from_qs('url'), @get_param_from_qs('tmpnb_mode')]
+      if qs_url              then @url = qs_url
+      if qs_tmpnb is 'true'  then @options.tmpnb_mode = true
+      if qs_tmpnb is 'false' then @options.tmpnb_mode = false
 
       # if we've been given a non blank url, make sure it has a trailing slash
       if @url then @url = @url.replace(/\/?$/, '/')
@@ -695,6 +702,13 @@ define [
         if settings.url.indexOf(server_url) isnt -1
           @log "Ajax Error!"
           @set_state(@disc_state)
+
+    # really only used for debugging/dev @options, not for use in prod
+    get_param_from_qs: (name)->
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]')
+        regex = new RegExp('[\\?&]' + name + '=([^&#]*)')
+        results = regex.exec(location.search)
+        if results == null then '' else decodeURIComponent(results[1].replace(/\+/g, ' '))
 
     log: (m, serious=false)->
       if @debug

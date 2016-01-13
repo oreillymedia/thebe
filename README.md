@@ -124,6 +124,11 @@ $(function(){
 
 will make each `pre` tag with class `cool` runnable, and will try to connect with an ipython notebook server running locally at the ipython notebook default address and port.
 
+### Override with Query String
+Because the url of your notebook server or tmpnb server may change quite often during development, you can override the `url` and `tmpnb_mode` options that are set when thebe is instantiated.
+
+Do this by adding `url` and/or `tmpnb_mode` params as a query string to the page location. For instance, if you are serving a page at `localhost:8000`, accessing `localhost:8000?url=https://tmp38.tmpnb.org` in your browser instead will cause thebe to use `https://tmp38.tmpnb.org` rather than the options passed when thebe was instantiated. _This is only for debugging and should not be used for production_.
+
 ## Terminal Mode
 
 Thebe now includes terminal functionality, via termjs. To run a terminal in the browser, make sure you only have one instance of the selector (which defaults to `pre[data-executable]`) and set `terminal_mode` to true. Now, clicking on the element will connect and launch a terminal.
