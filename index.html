@@ -11,75 +11,23 @@
     <link rel="stylesheet" href="static/thebe/site.css" type="text/css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.6.0/codemirror.min.css" type="text/css"/>
     
-    <!-- This example uses requirejs to dynamically load scripts -->
-    <!-- which is good for local development, because we don't need to rebuild everything when we make a change. -->
-    
-    <!-- See examples/build.html for an example of using the compiled/built javascript -->
-    <!-- that does not require any knowledge or use of require.js -->
 
-    <script src="static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
     <!-- or -->
     <!-- // <script src="../static/components/jquery/jquery.min.js" type="text/javascript" charset="utf-8"></script> -->
+    <script src="/static/main-built.js" type="text/javascript" charset="utf-8"></script>
 
 
     <script>
-      // Only serve via https because that's all we have oreillyorchard.com set up for
-      if (window.location.protocol != "https:")
-          window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
-        
-      define('jquery', [], jQuery);
-
-
-      require.config({
-          
-          baseUrl: 'static/',
-          paths: {
-            underscore : 'components/underscore/underscore-min',
-            backbone : 'components/backbone/backbone-min',
-            // jquery: 'components/jquery/jquery.min',
-            jquery: 'empty:',
-            bootstrap: 'components/bootstrap/js/bootstrap.min',
-            // bootstraptour: 'components/bootstrap-tour/build/js/bootstrap-tour.min',
-            jqueryui: 'components/jquery-ui/ui/minified/jquery-ui.min',
-            moment: 'components/moment/moment',
-            codemirror: 'components/codemirror',
-            termjs: 'components/term.js/src/term',
-            'nbextensions/widgets': 'components/ipywidgets/ipywidgets/static',
-
-          },
-          shim: {
-            underscore: {
-              exports: '_'
-            },
-            backbone: {
-              deps: ["underscore", "jquery"],
-              exports: "Backbone"
-            },
-            bootstrap: {
-              deps: ["jquery"],
-              exports: "bootstrap"
-            },
-            jqueryui: {
-              deps: ["jquery"],
-              exports: "$"
-            }
-          }
-      });
-
-      // Require thebe, instantiate it
-      require(['main'], function(main){
-          // To run this locally, replace this url with the url of your notebook server or tmpnb server
-          thebe = new main.Thebe({
-            url:"https://tmp38.tmpnb.org",
-            // url:"https://192.168.99.100:8000",
-            // use the following settings if you are running from a
-            // single-user Jupyter notebook server
-            // url:"http://localhost:8888",
-            // tmpnb_mode: false
-            debug: true
+      $(function(){
+          window.thebe = new Thebe({
+              selector:"pre[data-executable]",
+              add_interrupt_button: true,
+              kernel_name: "python3",
+              url:"https://tmp39.tmpnb.org",
+              // url:"https://192.168.99.100:8000",
+              debug: true
           });
-
       });
 
     </script>
