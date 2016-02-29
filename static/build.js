@@ -11,6 +11,10 @@
         moment: 'components/moment/moment',
         codemirror: 'components/codemirror',
         termjs: 'components/term.js/src/term',
+        'nbextensions/widgets': 'components/ipywidgets/ipywidgets/static'
+
+        // 'nbextensions/widgets': 'components/ipywidgets/ipywidgets/static',
+        // widgets: 'components/ipywidgets/ipywidgets/static'
         // contents: 'contents'
   },
   wrap: {
@@ -36,8 +40,8 @@
   },
     name: "main",
     out: "main-built.js",
-    // optimize: "none",
-    optimize: 'uglify2',
+    // optimize: "none"
+    optimize: 'uglify2'
     // exclude: ['jquery']
 })
 

@@ -2,9 +2,8 @@
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'custom/custom'], function(IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) {
+define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'thebe/dotimeout', 'notebook/js/notebook', 'thebe/jquery-cookie', 'thebe/default_css', 'contents', 'services/config', 'base/js/utils', 'base/js/page', 'base/js/events', 'notebook/js/actions', 'notebook/js/kernelselector', 'services/kernels/kernel', 'codemirror/lib/codemirror', 'terminal/js/terminado', 'components/term.js/src/term', 'codemirror/mode/ruby/ruby', 'codemirror/mode/css/css', 'codemirror/mode/coffeescript/coffeescript', 'codemirror/mode/dockerfile/dockerfile', 'codemirror/mode/go/go', 'codemirror/mode/javascript/javascript', 'codemirror/mode/julia/julia', 'codemirror/mode/python/python', 'codemirror/mode/haskell/haskell', 'codemirror/mode/r/r', 'codemirror/mode/shell/shell', 'codemirror/mode/clike/clike', 'codemirror/mode/jinja2/jinja2', 'codemirror/mode/php/php', 'codemirror/mode/sql/sql', 'nbextensions/widgets/notebook/js/extension', 'custom/custom'], function(IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) {
   var Thebe;
-  promise.polyfill();
   Thebe = (function() {
     Thebe.prototype.default_options = {
       selector: 'pre[data-executable]',
@@ -20,12 +19,19 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       not_executable_selector: "pre[data-not-executable]",
       read_only_selector: "pre[data-read-only]",
       error_addendum: true,
+      add_interrupt_button: false,
+      codemirror_mode_name: "ipython",
+      codemirror_theme_name: "default",
+      terminal_mode: false,
+      container_selector: "body",
+      image_name: "jupyter/notebook",
+      set_url_cookie: true,
       debug: false
     };
 
     Thebe.prototype.spawn_path = "api/spawn/";
 
-    Thebe.prototype.stats_path = "stats";
+    Thebe.prototype.stats_path = "api/stats";
 
     Thebe.prototype.start_state = "start";
 
@@ -45,6 +51,8 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
 
     Thebe.prototype.user_error = "user_error";
 
+    Thebe.prototype.interrupt_state = "interrupt";
+
     Thebe.prototype.ui = {};
 
     Thebe.prototype.setup_constants = function() {
@@ -54,6 +62,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.ui[this.busy_state] = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>';
       this.ui[this.ran_state] = 'Run Again';
       this.ui[this.user_error] = 'Run Again';
+      this.ui[this.interrupt_state] = 'Interrupted. Run Again?';
       this.ui[this.full_state] = 'Server is Full :-(';
       this.ui[this.cant_state] = 'Can\'t connect to server';
       this.ui[this.disc_state] = 'Disconnected from Server<br>Attempting to reconnect';
@@ -68,10 +77,12 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     };
 
     function Thebe(_at_options) {
-      var thebe_url, _ref;
+      var qs_tmpnb, qs_url, thebe_url, _ref, _ref1;
       this.options = _at_options != null ? _at_options : {};
       this.track = __bind(this.track, this);
       this.setup_resources = __bind(this.setup_resources, this);
+      this.start_terminal_backend = __bind(this.start_terminal_backend, this);
+      this.start_terminal = __bind(this.start_terminal, this);
       this.start_notebook = __bind(this.start_notebook, this);
       this.start_kernel = __bind(this.start_kernel, this);
       this.before_first_run = __bind(this.before_first_run, this);
@@ -87,6 +98,16 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.server_error = false;
       _ref = _.defaults(this.options, this.default_options), this.selector = _ref.selector, this.url = _ref.url, this.debug = _ref.debug;
       this.setup_constants();
+      _ref1 = [this.get_param_from_qs('url'), this.get_param_from_qs('tmpnb_mode')], qs_url = _ref1[0], qs_tmpnb = _ref1[1];
+      if (qs_url) {
+        this.url = qs_url;
+      }
+      if (qs_tmpnb === 'true') {
+        this.options.tmpnb_mode = true;
+      }
+      if (qs_tmpnb === 'false') {
+        this.options.tmpnb_mode = false;
+      }
       if (this.url) {
         this.url = this.url.replace(/\/?$/, '/');
       }
@@ -104,16 +125,31 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       this.setup_user_events();
       thebe_url = $.cookie('thebe_url');
       if (thebe_url && this.url === '') {
-        this.check_existing_container(thebe_url);
+        if (this.options.tmpnb_mode) {
+          if (this.tmpnb_url === thebe_url.slice(0, +(this.tmpnb_url.length - 1) + 1 || 9e9)) {
+            this.check_existing_container(thebe_url);
+          } else {
+            $.removeCookie('thebe_url');
+          }
+        } else {
+          this.check_existing_container(thebe_url);
+        }
       }
       if (this.tmpnb_url) {
         this.check_server();
       }
-      this.start_notebook();
+      if (!this.options.terminal_mode) {
+        this.start_notebook();
+      } else {
+        if ($(this.selector).length !== 1) {
+          throw new Error("You should have one, and only one " + this.selector + " element in terminal mode. Change the selector option or change your html.");
+        }
+        this.start_terminal();
+      }
     }
 
     Thebe.prototype.call_spawn = function(cb) {
-      var invo, _ref;
+      var invo, payload, _ref;
       this.log('call spawn');
       this.track('call_spawn');
       if ((_ref = this.kernel) != null ? _ref.ws : void 0) {
@@ -121,6 +157,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       }
       invo = new XMLHttpRequest;
       invo.open('POST', this.tmpnb_url + this.spawn_path, true);
+      payload = JSON.stringify({
+        image_name: this.options.image_name
+      });
       invo.onreadystatechange = (function(_this) {
         return function(e) {
           if (invo.readyState === 4) {
@@ -136,7 +175,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           return _this.track('call_spawn_fail');
         };
       })(this);
-      return invo.send();
+      return invo.send(payload);
     };
 
     Thebe.prototype.check_server = function(invo) {
@@ -164,7 +203,8 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       if (invo == null) {
         invo = new XMLHttpRequest;
       }
-      invo.open('GET', url + 'api', true);
+      this.log("checking existing container", url);
+      invo.open('GET', url + 'api/kernels', true);
       invo.onerror = (function(_this) {
         return function(e) {
           $.removeCookie('thebe_url');
@@ -187,7 +227,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     };
 
     Thebe.prototype.spawn_handler = function(e, cb) {
-      var data, _ref;
+      var data, fullURL, _ref;
       this.log('spawn handler called');
       if ((_ref = e.target.status) === 0 || _ref === 405) {
         this.log('Cannot connect to tmpnb server, status: ' + e.target.status, true);
@@ -205,11 +245,22 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           this.set_state(this.full_state);
           return this.track('call_spawn_full');
         } else {
+          fullURL = data.url.match(/(https?:\/\/.[^\/]+)(.*)/i);
+          if (fullURL) {
+            this.tmpnb_url = fullURL[1];
+            data.url = fullURL[2];
+          }
           this.url = this.tmpnb_url + data.url + '/';
           this.log('tmpnb says we should use');
           this.log(this.url);
-          this.start_kernel(cb);
-          $.cookie('thebe_url', this.url);
+          if (!this.options.terminal_mode) {
+            this.start_kernel(cb);
+          } else {
+            this.start_terminal_backend(cb);
+          }
+          if (this.options.set_url_cookie) {
+            $.cookie('thebe_url', this.url);
+          }
           return this.track('call_spawn_success');
         }
       }
@@ -219,10 +270,12 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       var focus_edit_flag, get_cell_id_from_event;
       this.notebook.writable = false;
       this.notebook._unsafe_delete_cell(0);
+      this.notebook.container = $(this.options.container_selector);
       $(this.selector).add(this.options.not_executable_selector).each((function(_this) {
         return function(i, el) {
-          var cell, controls, wrap;
+          var cell, controls, original_id, wrap;
           cell = _this.notebook.insert_cell_at_bottom('code');
+          original_id = $(el).attr('id');
           cell.set_text($(el).text().trim());
           if ($(el).is(_this.options.read_only_selector)) {
             cell.read_only = true;
@@ -238,6 +291,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           }
           if ($(el).is(_this.options.not_executable_selector)) {
             controls.html("");
+          }
+          if (original_id) {
+            cell.element.attr('id', original_id);
           }
           cell.element.removeAttr('tabindex');
           return cell.element.off('dblclick');
@@ -278,6 +334,13 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           return true;
         };
       })(this));
+      $(window).on('keydown', (function(_this) {
+        return function(e) {
+          if (e.which === 67 && e.ctrlKey) {
+            return _this.kernel.interrupt();
+          }
+        };
+      })(this));
       this.events.on('kernel_connected.Kernel', (function(_this) {
         return function() {
           var cell, id, _i, _len, _ref, _results;
@@ -296,7 +359,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         return function() {
           _this.set_state(_this.idle_state);
           return $.doTimeout('thebe_idle_state', 300, function() {
-            var busy_ids, id, _i, _len, _ref;
+            var busy_ids, id, interrupt_ids, _i, _j, _len, _len1, _ref;
             if (_this.state === _this.idle_state) {
               busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(function() {
                 return $(this).data('cell-id');
@@ -304,6 +367,13 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
               for (_i = 0, _len = busy_ids.length; _i < _len; _i++) {
                 id = busy_ids[_i];
                 _this.show_cell_state(_this.idle_state, id);
+              }
+              interrupt_ids = $(".thebe_controls button[data-state='interrupt']").parent().map(function() {
+                return $(this).data('cell-id');
+              });
+              for (_j = 0, _len1 = interrupt_ids.length; _j < _len1; _j++) {
+                id = interrupt_ids[_j];
+                _this.cells[id]["output_area"].clear_output(false);
               }
               return false;
             } else if (_ref = _this.state, __indexOf.call(_this.error_states, _ref) < 0) {
@@ -338,7 +408,12 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           id = controls.data('cell-id');
           if (msg_type === 'error') {
             _this.log('Error executing cell #' + id);
-            return _this.show_cell_state(_this.user_error, id);
+            if (msg.content.ename === "KeyboardInterrupt") {
+              _this.log("KeyboardInterrupt by User");
+              return _this.show_cell_state(_this.interrupt_state, id);
+            } else {
+              return _this.show_cell_state(_this.user_error, id);
+            }
           }
         };
       })(this));
@@ -384,6 +459,9 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         html = this.ui[state];
       }
       result = "<button data-action='run' data-state='" + state + "'>" + html + "</button>";
+      if (this.options.add_interrupt_button && state === this.busy_state) {
+        result += "<button data-action='interrupt'>Interrupt</button>";
+      }
       if (state === this.user_error) {
         result += this.ui["error_addendum"];
       }
@@ -507,6 +585,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
     Thebe.prototype.start_kernel = function(cb) {
       this.log('start_kernel with ' + this.url);
       this.kernel = new kernel.Kernel(this.url + 'api/kernels', '', this.notebook, this.options.kernel_name);
+      this.kernel.name = this.options.kernel_name;
       this.kernel.start();
       this.notebook.kernel = this.kernel;
       return this.events.on('kernel_ready.Kernel', (function(_this) {
@@ -564,14 +643,96 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
         keyboard_manager: keyboard_manager,
         save_widget: save_widget,
         contents: contents,
-        config: config_section
+        config: config_section,
+        codemirror_theme_name: this.options.codemirror_theme_name
       }, common_options));
       this.notebook.kernel_selector = {
         set_kernel: function() {}
       };
       this.events.trigger('app_initialized.NotebookApp');
-      this.notebook.load_notebook(common_options.notebook_path);
+      this.notebook.load_notebook(common_options.notebook_path, this.options.codemirror_mode_name);
+      IPython.notebook = this.notebook;
+      utils.load_extension('widgets/notebook/js/extension');
       return this.build_thebe();
+    };
+
+    Thebe.prototype.start_terminal = function() {
+      return $(this.selector).one('click', (function(_this) {
+        return function(e) {
+          if (_this.url) {
+            return _this.start_terminal_backend();
+          } else {
+            return _this.call_spawn(function() {});
+          }
+        };
+      })(this));
+    };
+
+    Thebe.prototype.start_terminal_backend = function() {
+      var invo;
+      invo = new XMLHttpRequest;
+      invo.open("POST", this.url + "api/terminals", true);
+      invo.onreadystatechange = (function(_this) {
+        return function(e) {
+          if (invo.readyState === 4) {
+            return _this.terminal_start_handler(e);
+          }
+        };
+      })(this);
+      invo.onerror = (function(_this) {
+        return function(e) {
+          _this.log("Cannot connect to jupyter server to start terminal", true);
+          _this.set_state(_this.cant_state);
+          $.removeCookie('thebe_url');
+          return _this.track('start_terminal_fail');
+        };
+      })(this);
+      return invo.send();
+    };
+
+    Thebe.prototype.terminal_start_handler = function(e) {
+      var calculate_size, res, size, termColWidth, termRowHeight, terminal, terminal_name, ws_url;
+      res = JSON.parse(e.target.responseText);
+      terminal_name = res["name"];
+      ws_url = this.url.replace('http', 'ws') + ("terminals/websocket/" + terminal_name);
+      this.log("Thebe is in terminal mode, i.e. not running as a notebook", true);
+      $(this.selector).html("");
+      this.setup_dummy_term_div();
+      termRowHeight = function() {
+        return 1.00 * $('#dummy-screen')[0].offsetHeight / 25;
+      };
+      termColWidth = function() {
+        return 1.02 * $('#dummy-screen-rows')[0].offsetWidth / 80;
+      };
+      calculate_size = (function(_this) {
+        return function() {
+          var cols, height, rows, width;
+          height = $(_this.selector).height();
+          width = $(_this.selector).width();
+          rows = Math.min(1000, Math.max(20, Math.floor(height / termRowHeight())));
+          cols = Math.min(1000, Math.max(40, Math.floor(width / termColWidth()) - 1));
+          return {
+            rows: rows,
+            cols: cols
+          };
+        };
+      })(this);
+      size = calculate_size();
+      terminal = terminado.make_terminal($(this.selector)[0], size, ws_url);
+      return window.onresize = (function(_this) {
+        return function() {
+          var geom;
+          geom = calculate_size();
+          terminal.term.resize(geom.cols, geom.rows);
+          return terminal.socket.send(JSON.stringify(['set_size', geom.rows, geom.cols, $(_this.selector).height(), $(_this.selector).width()]));
+        };
+      })(this);
+    };
+
+    Thebe.prototype.setup_dummy_term_div = function() {
+      var fake;
+      fake = '<div style="position:absolute; left:-1000em">\n<pre id="dummy-screen" style="border: solid 5px white;" class="terminal">0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n<span id="dummy-screen-rows" style="">01234567890123456789012345678901234567890123456789012345678901234567890123456789</span>\n</pre>\n</div>';
+      return $("body").append(fake);
     };
 
     Thebe.prototype.setup_resources = function() {
@@ -608,6 +769,18 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           }
         };
       })(this));
+    };
+
+    Thebe.prototype.get_param_from_qs = function(name) {
+      var regex, results;
+      name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+      regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+      results = regex.exec(location.search);
+      if (results === null) {
+        return '';
+      } else {
+        return decodeURIComponent(results[1].replace(/\+/g, ' '));
+      }
     };
 
     Thebe.prototype.log = function(m, serious) {

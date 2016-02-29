@@ -8,45 +8,43 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="static/thebe/site.css" type="text/css"/>
+    <link rel="stylesheet" href="../static/thebe/site.css" type="text/css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.6.0/codemirror.min.css" type="text/css"/>
-    
+
+
     <!-- This example uses requirejs to dynamically load scripts -->
     <!-- which is good for local development, because we don't need to rebuild everything when we make a change. -->
     
     <!-- See examples/build.html for an example of using the compiled/built javascript -->
     <!-- that does not require any knowledge or use of require.js -->
+    <script src="../static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
 
-    <script src="static/components/requirejs/require.js" type="text/javascript" charset="utf-8"></script>
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-    <!-- or -->
-    <!-- // <script src="../static/components/jquery/jquery.min.js" type="text/javascript" charset="utf-8"></script> -->
-
+    <!-- This must be after the require.js script tag -->
+    <script src="../static/components/jquery/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+    <!-- OR -->
+    <!-- // <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script> -->
 
     <script>
       // Only serve via https because that's all we have oreillyorchard.com set up for
       if (window.location.protocol != "https:")
           window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
-        
+      // We need this because we're not actually including jquery with require
+      // For compiled js, the equivalent of this line is in wrap.end
       define('jquery', [], jQuery);
-
 
       require.config({
           
-          baseUrl: 'static/',
+          baseUrl: '../static/',
           paths: {
             underscore : 'components/underscore/underscore-min',
             backbone : 'components/backbone/backbone-min',
-            // jquery: 'components/jquery/jquery.min',
             jquery: 'empty:',
+            // jquery: 'components/jquery/jquery.min',
             bootstrap: 'components/bootstrap/js/bootstrap.min',
-            // bootstraptour: 'components/bootstrap-tour/build/js/bootstrap-tour.min',
             jqueryui: 'components/jquery-ui/ui/minified/jquery-ui.min',
             moment: 'components/moment/moment',
             codemirror: 'components/codemirror',
             termjs: 'components/term.js/src/term',
-            'nbextensions/widgets': 'components/ipywidgets/ipywidgets/static',
-
           },
           shim: {
             underscore: {
@@ -70,16 +68,18 @@
       // Require thebe, instantiate it
       require(['main'], function(main){
           // To run this locally, replace this url with the url of your notebook server or tmpnb server
+          // thebe = new main.Thebe({url:"https://oreillyorchard.com:8000/spawn/"});
+          
+          // The default is //192.168.59.103:8000/spawn/, tmpnb running on boot2docker
           thebe = new main.Thebe({
-            url:"https://tmp38.tmpnb.org",
-            // url:"https://192.168.99.100:8000",
-            // use the following settings if you are running from a
-            // single-user Jupyter notebook server
-            // url:"http://localhost:8888",
+            url: "https://tmp35.tmpnb.org",
+            debug: true,
+            kernel_name: 'ruby',
+            codemirror_mode_name: 'ruby',
+            append_kernel_controls_to: 'body'
+            // inject_css: false
             // tmpnb_mode: false
-            debug: true
           });
-
       });
 
     </script>
@@ -93,51 +93,71 @@
       This page requires JavaScript.<br>
       Please enable it to proceed.
   </div>
-</noscript>
+</noscript>   
 
 <h1>Thebe</h1>
 <h2>Jupyter javascript plugin for static sites</h2>
 
-<p> A really simple example:</p>
+<p> A really simple example using the iruby Kernel:</p>
 
-<pre data-executable id="hello-example">
-hey = "hello world", 38+4
-print(hey)
+<pre data-executable='true'>
+puts 'Hello, world!'
 
 </pre>
 
-<p>More complicated examples:</p>
+<pre data-type="programlisting" data-code-language="ruby" data-executable="true">require 'set' # Deals with a collection of unordered values with no duplicates
 
-<pre data-executable>
-x = [1,1]
-for i in xrange(10):    
-    x.append(x[-1] + x[-2]) 
-print(', '.join(str(y) for y in x))
+# Include this module to make your class taggable. The names of the
+# instance variable and the setup method are prefixed with "taggable_"
+# to reduce the risk of namespace collision. You must call
+# taggable_setup before you can use any of this module's methods.
+module Taggable
+  attr_accessor :tags
+
+  def taggable_setup
+    @tags = Set.new
+  end
+
+  def add_tag(tag)
+    @tags &lt;&lt; tag
+  end
+
+  def remove_tag(tag)
+    @tags.delete(tag)
+  end
+end</pre>
+
+<pre data-executable='true'>
+IRuby.display IRuby.table({a:[11,12,13,14],b:[21,22,23],c:[31,32,33,34]})
 </pre>
 
-<pre data-executable>
-%matplotlib inline
-import matplotlib.pyplot as plt
-import numpy as np
-x = np.linspace(0, 3*np.pi, 500)
-plt.plot(x, np.sin(x**2))
-plt.title('A simple chirp');
+<pre data-executable='true'>
+$stderr.puts 'Error!'
 </pre>
 
-<br> <br>
-<p>There are still more complicated examples in the <a href="https://github.com/oreillymedia/thebe/tree/master/examples"> examples directory</a> but you'll need to run a notebook server with the appropriate dependencies installed for them to work.</p>
-
-<br><br>
-
-<p> An example of code that is not executable</p>
-<pre data-not-executable>
-print("Na, you cannot run this sorry")
+<pre data-executable='true'>
+Math.sqrt(2)
 </pre>
 
-<p> An example of code that is read only but executable</p>
-<pre data-read-only data-executable>
-print("Nope, you can't edit this sorry! But you can run it.")
+
+<p>An plot example:</p>
+
+<pre data-executable='true'>
+require 'gnuplot'
+
+Gnuplot::Plot.new do |plot|  
+    plot.xrange '[-0.5:0.5]'
+    plot.title  'Example plot'
+    plot.ylabel 'x'
+    plot.xlabel 'sin(1/x)'
+    plot.samples 10000
+    plot.data << Gnuplot::DataSet.new('sin(1/x)') do |ds|
+        ds.with = 'lines'
+        ds.linewidth = 2
+    end
+end
 </pre>
+
 
 <p> Mathjax support built in:</p>
 

@@ -15,10 +15,29 @@ define [
   'notebook/js/kernelselector'
   'services/kernels/kernel'
   'codemirror/lib/codemirror'
+  'terminal/js/terminado'
+  'components/term.js/src/term'
+  'codemirror/mode/ruby/ruby'
+  'codemirror/mode/css/css'
+  'codemirror/mode/coffeescript/coffeescript'
+  'codemirror/mode/dockerfile/dockerfile'
+  'codemirror/mode/go/go'
+  'codemirror/mode/javascript/javascript'
+  'codemirror/mode/julia/julia'
+  'codemirror/mode/python/python'
+  'codemirror/mode/haskell/haskell'
+  'codemirror/mode/r/r'
+  'codemirror/mode/shell/shell'
+  'codemirror/mode/clike/clike'
+  'codemirror/mode/jinja2/jinja2'
+  'codemirror/mode/php/php'
+  'codemirror/mode/sql/sql'
+  'nbextensions/widgets/notebook/js/extension'
+
   'custom/custom'
-], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, custom) ->
+], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) ->
   
-  promise.polyfill()
+  # promise.polyfill()
 
   class Thebe
     default_options:
@@ -51,36 +70,52 @@ define [
       read_only_selector: "pre[data-read-only]"
       # if set to false, no addendum added, if a string, use that instead
       error_addendum: true
+      # adds interrupt to every cell control, when it's running
+      add_interrupt_button: false
+      # hack to set the codemirror mode correctly
+      codemirror_mode_name: "ipython"
+      # hack to set the codemirror theme
+      codemirror_theme_name: "default"
+      # totally different mode for running a terminal instead of a notebook
+      terminal_mode: false
+      # where are our cell elements (that are created from the selector option above)
+      container_selector: "body"
+      # for setting what docker image you want to run on the back end
+      image_name: "jupyter/notebook"
+      # should we remember the url that we connect to
+      set_url_cookie: true
       # show messages from @log()
       debug: false
 
     # some constants we need
     spawn_path: "api/spawn/"
-    stats_path: "stats"
+    stats_path: "api/stats"
     # state constants
-    start_state:   "start"
-    idle_state:    "idle"
-    busy_state:    "busy"
-    ran_state:     "ran"
-    full_state:    "full"
-    cant_state:    "cant"
-    disc_state:    "disconnected"
-    gaveup_state:  "gaveup"
-    user_error:    "user_error"
+    start_state:     "start"
+    idle_state:      "idle"
+    busy_state:      "busy"
+    ran_state:       "ran"
+    full_state:      "full"
+    cant_state:      "cant"
+    disc_state:      "disconnected"
+    gaveup_state:    "gaveup"
+    user_error:      "user_error"
+    interrupt_state: "interrupt"
     # I don't know an elegant way to use these pre instantiation
     ui: {}
     setup_constants: ->
-      @error_states = [@disc_state, @full_state, @cant_state, @gaveup_state]
+      @error_states     = [@disc_state, @full_state, @cant_state, @gaveup_state]
       @ui[@start_state] = 'Starting server...'
       @ui[@idle_state]  = 'Run'
       @ui[@busy_state]  = 'Working <div class="thebe-spinner thebe-spinner-three-bounce"><div></div> <div></div> <div></div></div>'
       @ui[@ran_state]   = 'Run Again'
       # Button stays the same, but we add the addendum for a user error
-      @ui[@user_error] = 'Run Again'
+      @ui[@user_error]  = 'Run Again'
+      @ui[@interrupt_state]   = 'Interrupted. Run Again?'
       @ui[@full_state]  = 'Server is Full :-('
       @ui[@cant_state]  = 'Can\'t connect to server'
       @ui[@disc_state]  = 'Disconnected from Server<br>Attempting to reconnect'
-      @ui[@gaveup_state]  = 'Disconnected!<br>Click to try again'
+      @ui[@gaveup_state]= 'Disconnected!<br>Click to try again'
 
       if @options.error_addendum is false then @ui['error_addendum']  = ""
       else if @options.error_addendum is true
@@ -98,6 +133,13 @@ define [
       {@selector, @url, @debug} = _.defaults(@options, @default_options)
 
       @setup_constants()
+      
+      # For dev/debug: because these values change a lot it's useful to be able to
+      # override the values that are in the html file where thebe is instantiated
+      [qs_url, qs_tmpnb] = [@get_param_from_qs('url'), @get_param_from_qs('tmpnb_mode')]
+      if qs_url              then @url = qs_url
+      if qs_tmpnb is 'true'  then @options.tmpnb_mode = true
+      if qs_tmpnb is 'false' then @options.tmpnb_mode = false
 
       # if we've been given a non blank url, make sure it has a trailing slash
       if @url then @url = @url.replace(/\/?$/, '/')
@@ -122,14 +164,27 @@ define [
       thebe_url = $.cookie 'thebe_url'
       # passing a notebook url takes precedence over a cookie
       if thebe_url and @url is ''
-        @check_existing_container(thebe_url)
+        # if we're in tmpnb mode
+        if @options.tmpnb_mode
+          # and the tmpnb url hasn't changed
+          if @tmpnb_url is thebe_url[0..@tmpnb_url.length-1]
+            @check_existing_container(thebe_url)
+          else $.removeCookie 'thebe_url'
+        else
+          @check_existing_container(thebe_url)
       
       # check that the tmpnb server is up
       if @tmpnb_url then @check_server()
       
-      # Start the notebook front end, creating cells with codemirror instances inside
-      # and get everything set up for when the user hits run that first time
-      @start_notebook()
+      if not @options.terminal_mode
+        # Start the notebook front end, creating cells with codemirror instances inside
+        # and get everything set up for when the user hits run that first time
+        @start_notebook()
+      else
+        if $(@selector).length isnt 1
+          throw new Error "You should have one, and only one #{@selector} element in terminal mode. Change the selector option or change your html."
+        @start_terminal()
+
     
     # NETWORKING
     # ----------------------
@@ -143,6 +198,7 @@ define [
       if @kernel?.ws then @log 'HAZ WEBSOCKET?'
       invo = new XMLHttpRequest
       invo.open 'POST', @tmpnb_url+@spawn_path, true
+      payload = JSON.stringify {image_name: @options.image_name}
       invo.onreadystatechange = (e)=> 
         # if we're done, call the spawn handler
         if invo.readyState is 4 then  @spawn_handler(e, cb)
@@ -151,7 +207,7 @@ define [
         @set_state(@cant_state)
         $.removeCookie 'thebe_url'
         @track 'call_spawn_fail'
-      invo.send()
+      invo.send(payload)
 
     check_server: (invo=new XMLHttpRequest)->
       invo.open 'GET', @tmpnb_url+@stats_path, true
@@ -167,8 +223,9 @@ define [
       invo.send()
 
     check_existing_container: (url, invo=new XMLHttpRequest)->
+      @log "checking existing container", url
       # no trailing slash for api url
-      invo.open 'GET', url+'api', true
+      invo.open 'GET', url+'api/kernels', true
       invo.onerror = (e)=>
         $.removeCookie 'thebe_url'
         @log 'server error when checking existing container'
@@ -205,12 +262,22 @@ define [
           @track 'call_spawn_full'
         # otherwise start the kernel
         else
+          # Check if URL is a full URL, adapt tmpnb_url as our new URL
+          fullURL = data.url.match(/(https?:\/\/.[^\/]+)(.*)/i)
+          if fullURL
+            @tmpnb_url = fullURL[1]
+            data.url = fullURL[2]
+
           # concat the base url with the one we just got
           @url = @tmpnb_url+data.url+'/'
           @log 'tmpnb says we should use'
           @log @url
-          @start_kernel(cb)
-          $.cookie 'thebe_url', @url
+          if not @options.terminal_mode
+            @start_kernel(cb)
+          else
+            @start_terminal_backend(cb)
+          if @options.set_url_cookie
+            $.cookie 'thebe_url', @url
           @track 'call_spawn_success'
 
     
@@ -225,9 +292,12 @@ define [
       # otherwise this will mess up our index
       @notebook._unsafe_delete_cell(0)
 
+      # so that notebook.get_cells works, so widgets work
+      @notebook.container = $(@options.container_selector)
 
       $(@selector).add(@options.not_executable_selector).each (i, el) =>
         cell = @notebook.insert_cell_at_bottom('code')
+        original_id = $(el).attr('id')
         # grab text, trim it, put it in cell
         cell.set_text $(el).text().trim()
         # is this a read only cell
@@ -249,6 +319,7 @@ define [
         if $(el).is(@options.not_executable_selector)
           controls.html("")
 
+        cell.element.attr('id', original_id) if original_id
         cell.element.removeAttr('tabindex')
         # otherwise cell.js will throw an error
         cell.element.off 'dblclick'
@@ -288,7 +359,11 @@ define [
           focus_edit_flag = false
         # XXX otherwise code will be uneditable!
         return true
-
+      
+      # Interrupt on ctrl-c, because terminal
+      $(window).on 'keydown', (e)=>
+        if e.which is 67 and e.ctrlKey then @kernel.interrupt()
+      
       # Used for a successful reconnection
       @events.on 'kernel_connected.Kernel', =>
         # Empty string = already connected but lost it
@@ -306,8 +381,13 @@ define [
             busy_ids = $(".thebe_controls button[data-state='busy']").parent().map(->$(this).data('cell-id'))
             # just the busy ones, doesn't do it on reconnect
             for id in busy_ids
-            # for cell, id in @cells
               @show_cell_state(@idle_state, id)
+
+            # Get rid of the traceback output generated for user interrupt
+            interrupt_ids = $(".thebe_controls button[data-state='interrupt']").parent().map(->$(this).data('cell-id'))
+            for id in interrupt_ids
+              @cells[id]["output_area"].clear_output(false)
+
             return false
           else if @state not in @error_states
             # keep polling
@@ -335,7 +415,11 @@ define [
         if msg_type is 'error'
           # $.doTimeout 'thebe_idle_state'
           @log 'Error executing cell #'+id
-          @show_cell_state(@user_error, id)
+          if msg.content.ename is "KeyboardInterrupt"
+            @log "KeyboardInterrupt by User"
+            @show_cell_state(@interrupt_state, id)
+          else
+            @show_cell_state(@user_error, id)
 
     # USER INTERFACE
     # ----------------------
@@ -360,11 +444,14 @@ define [
         state = @ran_state
       $(".thebe_controls[data-cell-id=#{cell_id}]").html @controls_html(state)
 
+
     # Basically a template
     # Note: not @state
     controls_html: (state=@idle_state, html=false)=>
       if not html then html = @ui[state]
       result = "<button data-action='run' data-state='#{state}'>#{html}</button>"
+      if @options.add_interrupt_button and state is @busy_state # and state is running??
+        result+="<button data-action='interrupt'>Interrupt</button>"
       if state is @user_error
         result+=@ui["error_addendum"]
       result
@@ -405,7 +492,6 @@ define [
       # The actual run cell logic, depends on if we've already connected or not
       cell = @cells[cell_id]
       
-      #
       if not @get_controls_html(cell) then return
 
       if not @has_kernel_connected
@@ -463,6 +549,9 @@ define [
     start_kernel: (cb)=>
       @log 'start_kernel with '+@url
       @kernel = new kernel.Kernel @url+'api/kernels', '', @notebook, @options.kernel_name
+      # hack to fix changes in v4 in kernel selector, this was an object instead
+      @kernel.name = @options.kernel_name
+      # start it
       @kernel.start()
       @notebook.kernel = @kernel
       @events.on 'kernel_ready.Kernel', =>
@@ -502,15 +591,82 @@ define [
         save_widget: save_widget
         contents: contents
         config: config_section
+        codemirror_theme_name: @options.codemirror_theme_name
       }, common_options))
   
       @notebook.kernel_selector =
         set_kernel : -> 
 
       @events.trigger 'app_initialized.NotebookApp'
-      @notebook.load_notebook common_options.notebook_path
+      @notebook.load_notebook common_options.notebook_path, @options.codemirror_mode_name
+      IPython.notebook = @notebook
+      utils.load_extension('widgets/notebook/js/extension')
       # And finally
       @build_thebe()
+
+    # equivalent to @start_notebook/build_thebe, i.e. doesn't do anything on the server
+    # (but sets up call_spawn and start_terminal_backend on click, for now)
+    start_terminal: =>
+      $(@selector).one 'click', (e)=>
+        # basically the same as before_first_run
+        if @url then @start_terminal_backend()
+        else @call_spawn(->)
+
+    # equivalent to @start_kernel 
+    # i.e. actually starts terminal on the server (after spawn if needed)
+    start_terminal_backend: =>
+      invo = new XMLHttpRequest
+      invo.open "POST", @url+"api/terminals", true
+      invo.onreadystatechange = (e)=> 
+        if invo.readyState is 4
+          @terminal_start_handler(e)
+      invo.onerror = (e)=>
+        @log "Cannot connect to jupyter server to start terminal", true 
+        @set_state(@cant_state)
+        $.removeCookie 'thebe_url'
+        @track 'start_terminal_fail'
+      invo.send()
+
+
+    terminal_start_handler: (e)->
+      res = JSON.parse e.target.responseText
+      terminal_name = res["name"]
+      ws_url = @url.replace('http', 'ws')+"terminals/websocket/#{terminal_name}"
+      @log "Thebe is in terminal mode, i.e. not running as a notebook", true
+      
+      # remove any content in our element
+      $(@selector).html("")
+
+      # The below is copeied from terminal/main.js
+      # with some changes because we want to contain the terminal
+      # in al element, not the whole page
+      @setup_dummy_term_div()
+      # Test size: 25x80
+      termRowHeight = ->  1.00 * $('#dummy-screen')[0].offsetHeight / 25
+      #  # 1.02 here arrived at by trial and error to make the spacing look right
+      termColWidth = ->   1.02 * $('#dummy-screen-rows')[0].offsetWidth / 80
+
+      calculate_size = =>
+        height = $(@selector).height()
+        width = $(@selector).width()
+        rows = Math.min(1000, Math.max(20, Math.floor(height / termRowHeight()) )) # was also - 1, but that seemed to be a line short
+        cols = Math.min(1000, Math.max(40, Math.floor(width / termColWidth()) - 1))
+        {rows: rows, cols: cols}
+
+      size = calculate_size()
+      # start it up
+      terminal = terminado.make_terminal($(@selector)[0], size, ws_url)
+
+      window.onresize = =>
+        geom = calculate_size()
+        terminal.term.resize geom.cols, geom.rows
+        terminal.socket.send JSON.stringify([
+          'set_size', geom.rows, geom.cols, $(@selector).height(), $(@selector).width()
+        ])
+
+    setup_dummy_term_div: ->
+      fake = '<div style="position:absolute; left:-1000em">\n<pre id="dummy-screen" style="border: solid 5px white;" class="terminal">0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n<span id="dummy-screen-rows" style="">01234567890123456789012345678901234567890123456789012345678901234567890123456789</span>\n</pre>\n</div>'
+      $("body").append fake
 
     # Sets up css loading and injection, and ajax error handling
     setup_resources: =>
@@ -546,6 +702,13 @@ define [
         if settings.url.indexOf(server_url) isnt -1
           @log "Ajax Error!"
           @set_state(@disc_state)
+
+    # really only used for debugging/dev @options, not for use in prod
+    get_param_from_qs: (name)->
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]')
+        regex = new RegExp('[\\?&]' + name + '=([^&#]*)')
+        results = regex.exec(location.search)
+        if results == null then '' else decodeURIComponent(results[1].replace(/\+/g, ' '))
 
     log: (m, serious=false)->
       if @debug

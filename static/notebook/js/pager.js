@@ -1,11 +1,10 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 define([
-    'base/js/namespace',
     'jqueryui',
     'base/js/utils',
-], function(IPython, $, utils) {
+], function($, utils) {
     "use strict";
 
     var Pager = function (pager_selector, options) {
@@ -83,8 +82,13 @@ define([
         });
 
         this.events.on('open_with_text.Pager', function (event, payload) {
-            // FIXME: support other mime types
-            if (payload.data['text/plain'] && payload.data['text/plain'] !== "") {
+            // FIXME: support other mime types with generic mimebundle display
+            // mechanism
+            if (payload.data['text/html'] && payload.data['text/html'] !== "") {
+                that.clear();
+                that.expand();
+                that.append(payload.data['text/html']);
+            } else if (payload.data['text/plain'] && payload.data['text/plain'] !== "") {
                 that.clear();
                 that.expand();
                 that.append_text(payload.data['text/plain']);
@@ -132,7 +136,7 @@ define([
                 .attr('type',"text/css")
         )
         .append(
-                $('<title>').text("IPython Pager")
+                $('<title>').text("Jupyter Pager")
         );
         var pager_body = $(w.document.body);
         pager_body.css('overflow','scroll');
@@ -161,9 +165,6 @@ define([
         // notebook.
         $('.end_space').css('height', Math.max(this.pager_element.height(), this._default_end_space));
     };
-
-    // Backwards compatability.
-    IPython.Pager = Pager;
 
     return {'Pager': Pager};
 });

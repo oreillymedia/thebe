@@ -3,14 +3,16 @@
 ## What? Why?
 In short, this is an easy way to let users on a web page run code examples on a server.
 
-Here are a [some](https://oreillymedia.github.io/thebe/examples/matplotlib-3d.html) relatively simple [examples](https://oreillymedia.github.io/thebe/examples/matplotlib.html) and a more [complicated](https://oreillymedia.github.io/thebe/examples/t-sne-build.html) one.
-
 Four things are required:
 
 1. A server, either a [tmpnb](https://github.com/zischwartz/tmpnb) server, for lots of users, or simply an [ipython notebook server](http://ipython.org/notebook.html).
 1. A web page with some code examples
 1. A script tag in the page that includes the compiled javascript of `Thebe`, which is in this repo at `static/main-built.js`
-1. jQuery, already included in the page
+1. node-js and bower to install external javascript dependencies.
+
+To install the javascript dependencies, simply run `bower install` in the root of the repository.
+
+Here is a [very simple example/demo](https://oreillymedia.github.io/thebe/). There are more complicated examples in the <a href="https://github.com/oreillymedia/thebe/tree/master/examples">examples directory</a> but you'll need to run a notebook server with the appropriate dependencies installed for them to work.
 
 Also, [Thebe is a moon of Jupiter](http://en.wikipedia.org/wiki/Thebe_%28moon%29) in case you were wondering. Naming things is hard.
 
@@ -18,17 +20,28 @@ Also, [Thebe is a moon of Jupiter](http://en.wikipedia.org/wiki/Thebe_%28moon%29
 `shift`+`return` executes the example that is currently focused 
 `shift`+`space`  moves the focus to the next example
 `shift`+`click`ing a run button will execute all preceding code examples as well as the current one
+`ctrl`+`c` works like a keyboard interrupt (in case of infinite loops and such)
 
 You can change the first two by passing options to Thebe when you instantiate it (see below)
 
 ## Front End Use
-Include the `Thebe` script like so:
+Currently Thebe is imported via an HTML script tag.  Since Thebe is an 
+alternative Jupyter notebook front-end, the notebook server version and 
+ipywidgets version of the tmpnb instance are important and must be specified.  
+The following example will load Thebe for the notebook version 4.1.0 and 
+ipywidgets 4.0.3:
 
 ```html
-<script src="https://rawgit.com/oreillymedia/thebe/master/static/main-built.js" type="text/javascript" charset="utf-8"></script>
+<script src="http://cdn.jupyter.org/thebe/notebook4.1.0/ipywidgets4.0.3/static/main-built.js" type="text/javascript" charset="utf-8"></script>
 ```
 
-and then 
+**or** for the notebook version 3.x:
+
+```html
+<script src="http://cdn.jupyter.org/thebe/notebook3.0.0/static/main-built.js" type="text/javascript" charset="utf-8"></script>
+```
+
+and then, to instantiate Thebe:
 
 ```javascript
 <script>
@@ -67,10 +80,10 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       load_css: true
       # Automatically load mathjax js
       load_mathjax: true
-      # Default keyboard shortcut focusing next cell, shift+ this keycode, defaults (32) is spacebar
+      # Default keyboard shortcut for focusing next cell, shift+ this keycode, default (32) is spacebar
       # Set to false to disable
       next_cell_shortcut: 32
-      # Default keyboard shortcut for executing cell, shift+ this keycode, defaults (13) is return
+      # Default keyboard shortcut for executing cell, shift+ this keycode, default (13) is return
       # Set to false to disable
       run_cell_shortcut: 13
       # For when you want a pre to become a CM instance, but not be runnable
@@ -79,6 +92,20 @@ You can override the below default options when you instantiate Thebe: `Thebe(op
       read_only_selector: "pre[data-read-only]"
       # if set to false, no addendum added, if a string, use that instead
       error_addendum: true
+      # adds interrupt to every cell control, when it's running
+      add_interrupt_button: false
+      # hack to set the codemirror mode correctly
+      codemirror_mode_name: "ipython"
+      # hack to set the codemirror theme
+      codemirror_theme_name: "default"
+      # totally different mode for running a terminal instead of a notebook
+      terminal_mode: false
+      # where are our cell elements (that are created from the selector option above)
+      container_selector: "body"
+      # for setting what docker image you want to run on the back end
+      image_name: "jupyter/notebook"
+      # should we remember the url that we connect to
+      set_url_cookie: true
       # show messages from @log()
       debug: false
 ````
@@ -97,12 +124,38 @@ $(function(){
 
 will make each `pre` tag with class `cool` runnable, and will try to connect with an ipython notebook server running locally at the ipython notebook default address and port.
 
+### Override with Query String
+Because the url of your notebook server or tmpnb server may change quite often during development, you can override the `url` and `tmpnb_mode` options that are set when thebe is instantiated.
+
+Do this by adding `url` and/or `tmpnb_mode` params as a query string to the page location. For instance, if you are serving a page at `localhost:8000`, accessing `localhost:8000?url=https://tmp38.tmpnb.org` in your browser instead will cause thebe to use `https://tmp38.tmpnb.org` rather than the options passed when thebe was instantiated. _This is only for debugging and should not be used for production_.
+
+## Terminal Mode
+
+Thebe now includes terminal functionality, via termjs. To run a terminal in the browser, make sure you only have one instance of the selector (which defaults to `pre[data-executable]`) and set `terminal_mode` to true. Now, clicking on the element will connect and launch a terminal.
+
+**Terminal mode only works with the most up to date version of [jupyter notebook](https://github.com/jupyter/notebook). For now, you can run this [docker image](https://hub.docker.com/r/jupyter/notebook/) and it should work.**
+
+## CodeMirror Language Modes
+For simplicity, several codemirror language modes (i.e. syntax highlighting) are bundled with Thebe. [Here's a list of them](https://github.com/oreillymedia/thebe/blob/master/static/main.coffee#L20-L34).
+
 # Run Locally (Simple)
-The easiest way to get this running locally is to simply set the `url` option to the url of a running ipython notebook server, as above.
+The easiest way to get this running locally requires setting a few options in your Thebe declaration. 
+
+```javascript
+$(function(){
+    var thebe = new Thebe({
+        tmpnb_mode: false,
+        url: 'http://localhost:8888/'
+    });
+});
+```
+
+
+to point to your server's address `url` option to the url of a running ipython notebook server, as above.
 
 After installing ipython, run it like so:
 
-    ipython notebook  --NotebookApp.allow_origin=* --no-browser
+    ipython notebook  --NotebookApp.allow_origin='*' --no-browser
 
 Which defaults to running at http://localhost:8888/, and should tell you that.
 
@@ -114,6 +167,7 @@ After making a change to the javascript in `static/`, you'll need to recompile i
 ```javascript
 npm install -g requirejs
 npm install -g coffee-script
+bower install
 coffee -cbm .
 cd static
 r.js -o build.js baseUrl=. name=almond include=main out=main-built.js 
@@ -146,6 +200,13 @@ Next, start a normal server in this directory
 
 ```
 python -m SimpleHTTPServer
+
+```
+
+Or with python3,
+
+```
+python -m http.server
 
 ```
 

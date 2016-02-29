@@ -26,7 +26,15 @@
         window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
 
     $(function(){
-        new Thebe({url:"https://oreillyorchard.com:8000/", append_kernel_controls_to: "body"});
+        window.thebe = new Thebe({
+            selector:"pre[data-executable]",
+            add_interrupt_button: true,
+            kernel_name: "python3",
+            url:"http://192.168.99.100:8888/",
+            // url:"https://192.168.99.100:8000",
+            tmpnb_mode: false,
+            debug: true
+        });
     });
 </script>
 
@@ -240,8 +248,7 @@ plt.savefig('images/similarity.png', dpi=120)
 <p>Let's assume that our map points are all connected with springs. The stiffness of a spring connecting points <span class="math-tex" data-type="tex">\(i\)</span> and <span class="math-tex" data-type="tex">\(j\)</span> depends on the mismatch between the similarity of the two data points and the similarity of the two map points, that is, <span class="math-tex" data-type="tex">\(p_{ij} - q_{ij}\)</span>. Now, we let the system evolve according to the laws of physics. If two map points are far apart while the data points are close, they are attracted together. If they are nearby while the data points are dissimilar, they are repelled.</p>
 <p>The final mapping is obtained when the equilibrium is reached.</p>
 <p>Here is an illustration of a dynamic graph layout based on a similar idea. Nodes are connected via springs and the system evolves according to law of physics (example by <a href="http://bl.ocks.org/mbostock/4062045">Mike Bostock</a>).</p>
-<iframe src="http://bl.ocks.org/rossant/raw/f06184034ba66a0bd06a/"
-        style="border: 0; width: 620px; height: 440px; padding: 0;" /></iframe>
+<!-- <iframe src="http://bl.ocks.org/rossant/raw/f06184034ba66a0bd06a/"style="border: 0; width: 620px; height: 440px; padding: 0;" /></iframe> -->
 
 
 <h2 id="algorithm">Algorithm</h2>

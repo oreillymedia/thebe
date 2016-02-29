@@ -1,14 +1,13 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 define([
-    'base/js/namespace',
     'jquery',
     'base/js/utils',
     './comm',
     './serialize',
-    'widgets/js/init'
-], function(IPython, $, utils, comm, serialize, widgetmanager) {
+    'base/js/events'
+], function($, utils, comm, serialize, events) {
     "use strict";
 
     /**
@@ -17,14 +16,16 @@ define([
      * by.  the `Session` object. Once created, this object should be
      * used to communicate with the kernel.
      * 
+     * Preliminary documentation for the REST API is at
+     * https://github.com/ipython/ipython/wiki/IPEP-16%3A-Notebook-multi-directory-dashboard-and-URL-mapping#kernels-api
+     * 
      * @class Kernel
      * @param {string} kernel_service_url - the URL to access the kernel REST api
      * @param {string} ws_url - the websockets URL
-     * @param {Notebook} notebook - notebook object
      * @param {string} name - the kernel type (e.g. python3)
      */
-    var Kernel = function (kernel_service_url, ws_url, notebook, name) {
-        this.events = notebook.events;
+    var Kernel = function (kernel_service_url, ws_url, name) {
+        this.events = events;
 
         this.id = null;
         this.name = name;
@@ -32,7 +33,7 @@ define([
 
         this.kernel_service_url = kernel_service_url;
         this.kernel_url = null;
-        this.ws_url = ws_url || IPython.utils.get_body_data("wsUrl");
+        this.ws_url = ws_url || utils.get_body_data("wsUrl");
         if (!this.ws_url) {
             // trailing 's' in https will become wss for secure web sockets
             this.ws_url = location.protocol.replace('http', 'ws') + "//" + location.host;
@@ -41,6 +42,7 @@ define([
         this.username = "username";
         this.session_id = utils.uuid();
         this._msg_callbacks = {};
+        this._msg_queue = Promise.resolve();
         this.info_reply = {}; // kernel_info_reply stored here after starting
 
         if (typeof(WebSocket) !== 'undefined') {
@@ -54,7 +56,6 @@ define([
         this.bind_events();
         this.init_iopub_handlers();
         this.comm_manager = new comm.CommManager(this);
-        this.widget_manager = new widgetmanager.WidgetManager(this.comm_manager, notebook);
         
         this.last_msg_id = null;
         this.last_msg_callbacks = {};
@@ -196,6 +197,12 @@ define([
             cache: false,
             type: "POST",
             data: JSON.stringify({name: this.name}),
+            // Removed, asit was pre the merge with jupyter/notebook v4
+            // It was causing an OPTIONS preflight request, which the notebook backend
+            // depending on how it's run and installed, does not like sometimes
+            // XXX Removed by Zach
+            //
+            // contentType: 'application/json',
             dataType: "json",
             success: this._on_success(on_success),
             error: this._on_error(error)
@@ -278,6 +285,7 @@ define([
             processData: false,
             cache: false,
             type: "POST",
+            contentType: false,  // there's no data with this
             dataType: "json",
             success: this._on_success(on_success),
             error: this._on_error(error)
@@ -319,6 +327,7 @@ define([
             processData: false,
             cache: false,
             type: "POST",
+            contentType: false,  // there's no data with this
             dataType: "json",
             success: this._on_success(on_success),
             error: this._on_error(on_error)
@@ -860,19 +869,23 @@ define([
     };
     
     Kernel.prototype._handle_ws_message = function (e) {
-        serialize.deserialize(e.data, $.proxy(this._finish_ws_message, this));
+        var that = this;
+        this._msg_queue = this._msg_queue.then(function() {
+            return serialize.deserialize(e.data);
+        }).then(function(msg) {return that._finish_ws_message(msg);})
+        .catch(utils.reject("Couldn't process kernel message", true));
     };
 
     Kernel.prototype._finish_ws_message = function (msg) {
         switch (msg.channel) {
             case 'shell':
-                this._handle_shell_reply(msg);
+                return this._handle_shell_reply(msg);
                 break;
             case 'iopub':
-                this._handle_iopub_message(msg);
+                return this._handle_iopub_message(msg);
                 break;
             case 'stdin':
-                this._handle_input_request(msg);
+                return this._handle_input_request(msg);
                 break;
             default:
                 console.error("unrecognized message channel", msg.channel, msg);
@@ -881,10 +894,12 @@ define([
     
     Kernel.prototype._handle_shell_reply = function (reply) {
         this.events.trigger('shell_reply.Kernel', {kernel: this, reply:reply});
+        var that = this;
         var content = reply.content;
         var metadata = reply.metadata;
         var parent_id = reply.parent_header.msg_id;
         var callbacks = this.get_callbacks_for_msg(parent_id);
+        var promise = Promise.resolve();
         if (!callbacks || !callbacks.shell) {
             return;
         }
@@ -894,17 +909,21 @@ define([
         this._finish_shell(parent_id);
         
         if (shell_callbacks.reply !== undefined) {
-            shell_callbacks.reply(reply);
+            promise = promise.then(function() {return shell_callbacks.reply(reply)});
         }
         if (content.payload && shell_callbacks.payload) {
-            this._handle_payloads(content.payload, shell_callbacks.payload, reply);
+            promise = promise.then(function() {
+                return that._handle_payloads(content.payload, shell_callbacks.payload, reply);
+            });
         }
+        return promise;
     };
 
     /**
      * @function _handle_payloads
      */
     Kernel.prototype._handle_payloads = function (payloads, payload_callbacks, msg) {
+        var promise = [];
         var l = payloads.length;
         // Payloads are handled by triggering events because we don't want the Kernel
         // to depend on the Notebook or Pager classes.
@@ -912,9 +931,10 @@ define([
             var payload = payloads[i];
             var callback = payload_callbacks[payload.source];
             if (callback) {
-                callback(payload, msg);
+                promise.push(callback(payload, msg));
             }
         }
+        return Promise.all(promise);
     };
 
     /**
@@ -1027,7 +1047,7 @@ define([
     Kernel.prototype._handle_iopub_message = function (msg) {
         var handler = this.get_iopub_handler(msg.header.msg_type);
         if (handler !== undefined) {
-            handler(msg);
+            return handler(msg);
         }
     };
 
@@ -1050,9 +1070,6 @@ define([
             }
         }
     };
-
-    // Backwards compatability.
-    IPython.Kernel = Kernel;
 
     return {'Kernel': Kernel};
 });

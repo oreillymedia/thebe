@@ -1,4 +1,4 @@
-// Copyright (c) IPython Development Team.
+// Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
 /**
@@ -114,6 +114,7 @@ define(function (require) {
         this.next_prompt_number = 1;
         this.session = null;
         this.kernel = null;
+        this.kernel_busy = false;
         this.clipboard = null;
         this.undelete_backup = null;
         this.undelete_index = null;
@@ -135,7 +136,7 @@ define(function (require) {
         this.notebook_name_blacklist_re = /[\/\\:]/;
         this.nbformat = 4; // Increment this when changing the nbformat
         this.nbformat_minor = this.current_nbformat_minor = 0; // Increment this when changing the nbformat
-        this.codemirror_mode = 'ipython';
+        this.codemirror_mode = 'text';
         this.create_elements();
         this.bind_events();
         this.kernel_selector = null;
@@ -148,6 +149,8 @@ define(function (require) {
         rawcell_celltoolbar.register(this);
         slideshow_celltoolbar.register(this);
 
+        // added by zach for thebe xxx
+        this.codemirror_theme_name = options.codemirror_theme_name;
         // prevent assign to miss-typed properties.
         Object.seal(this);
     };
@@ -179,7 +182,7 @@ define(function (require) {
     };
 
     /**
-     * Bind JavaScript events: key presses and custom IPython events.
+     * Bind JavaScript events: key presses and custom Jupyter events.
      */
     Notebook.prototype.bind_events = function () {
         var that = this;
@@ -249,6 +252,14 @@ define(function (require) {
             var cm_mode = langinfo.codemirror_mode || langinfo.name || 'null';
             that.set_codemirror_mode(cm_mode);
         });
+        
+        this.events.on('kernel_idle.Kernel', function () {
+            that.kernel_busy = false;
+        });
+        
+        this.events.on('kernel_busy.Kernel', function () {
+            that.kernel_busy = true;
+        });
 
         var collapse_time = function (time) {
             var app_height = $('#ipython-main-app').height(); // content height
@@ -274,7 +285,7 @@ define(function (require) {
             var time = (extrap !== undefined) ? ((extrap.duration !== undefined ) ? extrap.duration : 'fast') : 'fast';
             expand_time(time);
         });
-        
+
         // Firefox 22 broke $(window).on("beforeunload")
         // I'm not sure why or how.
         // window.onbeforeunload = function (e) {
@@ -301,9 +312,12 @@ define(function (require) {
         //             return "Unsaved changes will be lost.";
         //         }
         //     }
-        //     // Null is the *only* return value that will make the browser not
-        //     // pop up the "don't leave" dialog.
-        //     return null;
+        //     // if the kernel is busy, prompt the user if he’s sure
+        //     if (that.kernel_busy) {
+        //         return "The Kernel is busy, outputs may be lost.";
+        //     }
+        //     // IE treats null as a string.  Instead just return which will avoid the dialog.
+        //     return;
         // };
     };
     
@@ -352,11 +366,30 @@ define(function (require) {
      * @return {integer} Pixel offset from the top of the container
      */
     Notebook.prototype.scroll_to_cell = function (index, time) {
+        return this.scroll_cell_percent(index, 0, time);
+    };
+
+    /**
+     * Scroll the middle of the page to a given cell.
+     *
+     * @param {integer}  index - An index of the cell to view
+     * @param {integer}  percent - 0-100, the location on the screen to scroll.
+     *                   0 is the top, 100 is the bottom.
+     * @param {integer}  time - Animation time in milliseconds
+     * @return {integer} Pixel offset from the top of the container
+     */
+    Notebook.prototype.scroll_cell_percent = function (index, percent, time) {
         var cells = this.get_cells();
         time = time || 0;
+        percent = percent || 0;
         index = Math.min(cells.length-1,index);
         index = Math.max(0             ,index);
-        var scroll_value = cells[index].element.position().top-cells[0].element.position().top ;
+        var sme = this.scroll_manager.element;
+        var h = sme.height();
+        var st = sme.scrollTop();
+        var t = sme.offset().top;
+        var ct = cells[index].element.offset().top;
+        var scroll_value =  st + ct - (t + .01 * percent * h);
         this.scroll_manager.element.animate({scrollTop:scroll_value}, time);
         return scroll_value;
     };
@@ -569,6 +602,46 @@ define(function (require) {
         return result;
     };
 
+    /**
+     * Get the index of the anchor cell for range selection
+     *
+     * @return {integer} The anchor cell's numeric index
+     */
+    Notebook.prototype.get_selection_anchor = function() {
+        var result = null;
+        this.get_cell_elements().filter(function (index) {
+            if ($(this).data("cell").selection_anchor === true) {
+                result = index;
+            }
+        });
+        return result;
+    };
+
+    /**
+     * Get an array of the cells in the currently selected range
+     *
+     * @return {Array} The selected cells
+     */
+    Notebook.prototype.get_selected_cells = function () {
+        return this.get_cells().filter(function(cell) {
+            return cell.in_selection;
+        });
+    };
+
+    /**
+     * Get the indices of the currently selected range of cells.
+     *
+     * @return {Array} The selected cells' numeric indices
+     */
+    Notebook.prototype.get_selected_indices = function () {
+        var result = [];
+        this.get_cell_elements().filter(function (index) {
+            if ($(this).data("cell").in_selection === true) {
+                result.push(index);
+            }
+        });
+        return result;
+    };
 
     // Cell selection.
 
@@ -587,21 +660,25 @@ define(function (require) {
                 if (this.mode !== 'command') {
                     this.command_mode();
                 }
-                this.get_cell(sindex).unselect();
             }
-            var cell = this.get_cell(index);
-            cell.select();
-            if (cell.cell_type === 'heading') {
-                this.events.trigger('selected_cell_type_changed.Notebook',
-                    {'cell_type':cell.cell_type,level:cell.level}
-                );
-            } else {
-                this.events.trigger('selected_cell_type_changed.Notebook',
-                    {'cell_type':cell.cell_type}
-                );
+            var current_selection = this.get_selected_cells();
+            for (var i=0; i<current_selection.length; i++) {
+                current_selection[i].unselect()
             }
+
+            var cell = this._select(index);
+            cell.selection_anchor = true
         }
         return this;
+    };
+
+    Notebook.prototype._select = function(index) {
+        var cell = this.get_cell(index);
+        cell.select();
+        this.events.trigger('selected_cell_type_changed.Notebook',
+            {'cell_type':cell.cell_type}
+        );
+        return cell;
     };
 
     /**
@@ -624,6 +701,42 @@ define(function (require) {
         var index = this.get_selected_index();
         this.select(index-1);
         return this;
+    };
+
+    /**
+     * Extend the selected range
+     *
+     * @param {string} direction - 'up' or 'down
+     */
+    Notebook.prototype.extend_selection = function(direction) {
+        var anchor_ix = this.get_selection_anchor();
+        var cursor_ix = this.get_selected_index();
+        var range_direction = (cursor_ix > anchor_ix) ? 'down' : 'up';
+        var contracting = (cursor_ix !== anchor_ix) &&
+                            (direction !== range_direction);
+        var ix_delta = (direction === 'up') ? -1 : 1;
+        var new_ix = cursor_ix + ix_delta;
+        if (new_ix < 0 || new_ix >= this.ncells()) {
+            return false;
+        }
+        if (this.mode !== 'command') {
+            this.command_mode();
+        }
+        this.get_cell(cursor_ix).unselect(!contracting);
+        this._select(new_ix);
+        return true;
+    };
+
+    /**
+     * Clear selection of multiple cells (except the cell at the cursor)
+     */
+    Notebook.prototype.reset_selection = function() {
+        var current_selection = this.get_selected_cells();
+        for (var i=0; i<current_selection.length; i++) {
+            if (!current_selection[i].selected) {
+                current_selection[i].unselect()
+            }
+        }
     };
 
 
@@ -664,10 +777,9 @@ define(function (require) {
     Notebook.prototype.command_mode = function () {
         var cell = this.get_cell(this.get_edit_index());
         if (cell && this.mode !== 'command') {
-            // We don't call cell.command_mode, but rather call cell.focus_cell()
-            // which will blur and CM editor and trigger the call to
-            // handle_command_mode.
-            cell.focus_cell();
+            // We don't call cell.command_mode, but rather blur the CM editor
+            // which will trigger the call to handle_command_mode.
+            cell.code_mirror.getInputField().blur();
         }
     };
 
@@ -680,6 +792,7 @@ define(function (require) {
         if (cell && this.mode !== 'edit') {
             cell.edit_mode();
             this.mode = 'edit';
+            this.reset_selection();
             this.events.trigger('edit_mode.Notebook');
             this.keyboard_manager.edit_mode();
         }
@@ -695,6 +808,16 @@ define(function (require) {
             cell.focus_editor();
         }
     };
+    
+    /**
+     * Ensure either cell, or codemirror is focused. Is none 
+     * is focused, focus the cell.
+     */
+    Notebook.prototype.ensure_focused = function(){
+        var cell = this.get_selected_cell();
+        if (cell === null) {return;}  // No cell is selected
+        cell.ensure_focused();
+    }
 
     /**
      * Focus the currently selected cell.
@@ -1113,7 +1236,7 @@ define(function (require) {
             keyboard_manager: this.keyboard_manager,
             title : "Use markdown headings",
             body : $("<p/>").text(
-                'IPython no longer uses special heading cells. ' + 
+                'Jupyter no longer uses special heading cells. ' + 
                 'Instead, write your headings in Markdown cells using # characters:'
             ).append($('<pre/>').text(
                 '## This is a level 2 heading'
@@ -1250,36 +1373,71 @@ define(function (require) {
     };
 
     /**
+     * Merge a series of cells into one
+     *
+     * @param {Array} indices - the numeric indices of the cells to be merged
+     * @param {bool} into_last - merge into the last cell instead of the first
+     */
+    Notebook.prototype.merge_cells = function(indices, into_last) {
+        if (indices.length <= 1) {
+            return;
+        }
+        for (var i=0; i < indices.length; i++) {
+            if (!this.get_cell(indices[i]).is_mergeable()) {
+                return;
+            }
+        }
+        var target = this.get_cell(into_last ? indices.pop() : indices.shift());
+
+        // Get all the cells' contents
+        var contents = [];
+        for (i=0; i < indices.length; i++) {
+            contents.push(this.get_cell(indices[i]).get_text());
+        }
+        if (into_last) {
+            contents.push(target.get_text())
+        } else {
+            contents.unshift(target.get_text())
+        }
+
+        // Update the contents of the target cell
+        if (target instanceof codecell.CodeCell) {
+            target.set_text(contents.join('\n\n'))
+        } else {
+            var was_rendered = target.rendered;
+            target.unrender(); // Must unrender before we set_text.
+            target.set_text(contents.join('\n\n'));
+            if (was_rendered) {
+                // The rendered state of the final cell should match
+                // that of the original selected cell;
+                target.render();
+            }
+        }
+
+        // Delete the other cells
+        // If we started deleting cells from the top, the later indices would
+        // get offset. We sort them into descending order to avoid that.
+        indices.sort(function(a, b) {return b-a;});
+        for (i=0; i < indices.length; i++) {
+            this.delete_cell(indices[i]);
+        }
+
+        this.select(this.find_cell_index(target));
+    };
+
+    /**
+     * Merge the selected range of cells
+     */
+    Notebook.prototype.merge_selected_cells = function() {
+        this.merge_cells(this.get_selected_indices());
+    };
+
+    /**
      * Merge the selected cell into the cell above it.
      */
     Notebook.prototype.merge_cell_above = function () {
         var index = this.get_selected_index();
-        var cell = this.get_cell(index);
-        var render = cell.rendered;
-        if (!cell.is_mergeable()) {
-            return;
-        }
-        if (index > 0) {
-            var upper_cell = this.get_cell(index-1);
-            if (!upper_cell.is_mergeable()) {
-                return;
-            }
-            var upper_text = upper_cell.get_text();
-            var text = cell.get_text();
-            if (cell instanceof codecell.CodeCell) {
-                cell.set_text(upper_text+'\n'+text);
-            } else {
-                cell.unrender(); // Must unrender before we set_text.
-                cell.set_text(upper_text+'\n\n'+text);
-                if (render) {
-                    // The rendered state of the final cell should match
-                    // that of the original selected cell;
-                    cell.render();
-                }
-            }
-            this.delete_cell(index-1);
-            this.select(this.find_cell_index(cell));
-        }
+        this.merge_cells([index-1, index], true)
     };
 
     /**
@@ -1287,32 +1445,7 @@ define(function (require) {
      */
     Notebook.prototype.merge_cell_below = function () {
         var index = this.get_selected_index();
-        var cell = this.get_cell(index);
-        var render = cell.rendered;
-        if (!cell.is_mergeable()) {
-            return;
-        }
-        if (index < this.ncells()-1) {
-            var lower_cell = this.get_cell(index+1);
-            if (!lower_cell.is_mergeable()) {
-                return;
-            }
-            var lower_text = lower_cell.get_text();
-            var text = cell.get_text();
-            if (cell instanceof codecell.CodeCell) {
-                cell.set_text(text+'\n'+lower_text);
-            } else {
-                cell.unrender(); // Must unrender before we set_text.
-                cell.set_text(text+'\n\n'+lower_text);
-                if (render) {
-                    // The rendered state of the final cell should match
-                    // that of the original selected cell;
-                    cell.render();
-                }
-            }
-            this.delete_cell(index+1);
-            this.select(this.find_cell_index(cell));
-        }
+        this.merge_cells([index, index+1], false)
     };
 
 
@@ -1487,29 +1620,50 @@ define(function (require) {
     Notebook.prototype.cell_toggle_line_numbers = function() {
         this.get_selected_cell().toggle_line_numbers();
     };
+
+
+    //dispatch codemirror mode to all cells.
+    Notebook.prototype._dispatch_mode = function(spec, newmode){
+        this.codemirror_mode = newmode;
+        codecell.CodeCell.options_default.cm_config.mode = newmode;
+        this.get_cells().map(function(cell, i) {
+            if (cell.cell_type === 'code'){
+                cell.code_mirror.setOption('mode', spec);
+                // This is currently redundant, because cm_config ends up as
+                // codemirror's own .options object, but I don't want to
+                // rely on that.
+                cell._options.cm_config.mode = spec;
+            }
+        });
+
+    };
+
+    // roughly try to check mode equality
+    var _mode_equal = function(mode1, mode2){
+        return ((mode1||{}).name||mode1)===((mode2||{}).name||mode2);
+    };
     
     /**
      * Set the codemirror mode for all code cells, including the default for
      * new code cells.
+     * Set the mode to 'null' (no highlighting) if it can't be found.
      */
     Notebook.prototype.set_codemirror_mode = function(newmode){
-        if (newmode === this.codemirror_mode) {
+        // if mode is the same don't reset,
+        // to avoid n-time re-highlighting.
+        if (_mode_equal(newmode, this.codemirror_mode)) {
             return;
         }
-        this.codemirror_mode = newmode;
-        codecell.CodeCell.options_default.cm_config.mode = newmode;
         
         var that = this;
         utils.requireCodeMirrorMode(newmode, function (spec) {
-            that.get_cells().map(function(cell, i) {
-                if (cell.cell_type === 'code'){
-                    cell.code_mirror.setOption('mode', spec);
-                    // This is currently redundant, because cm_config ends up as
-                    // codemirror's own .options object, but I don't want to
-                    // rely on that.
-                    cell.cm_config.mode = spec;
-                }
-            });
+            that._dispatch_mode(spec, newmode);
+        }, function(){
+            // on error don't dispatch the new mode as re-setting it later will not work.
+            // don't either set to null mode if it has been changed in the meantime
+            if( _mode_equal(newmode, this.codemirror_mode) ){
+                that._dispatch_mode('null','null');
+            }
         });
     };
 
@@ -1570,7 +1724,7 @@ define(function (require) {
     };
     
     /**
-     * Prompt the user to restart the IPython kernel.
+     * Prompt the user to restart the Jupyter kernel.
      */
     Notebook.prototype.restart_kernel = function () {
         var that = this;
@@ -1583,12 +1737,19 @@ define(function (require) {
             ),
             buttons : {
                 "Continue running" : {},
-                "Restart" : {
+                "Clear all outputs & restart" : {
                     "class" : "btn-danger",
+                    "click" : function(){
+                        that.clear_all_output();
+                        that.kernel.restart();
+                    },
+                },
+                "Restart" : {
+                    "class" : "btn-warning",
                     "click" : function() {
                         that.kernel.restart();
                     }
-                }
+                },
             }
         });
     };
@@ -1704,7 +1865,7 @@ define(function (require) {
      * @return {string} This notebook's name (excluding file extension)
      */
     Notebook.prototype.get_notebook_name = function () {
-        var nbname = this.notebook_name.substring(0,this.notebook_name.length-6);
+        var nbname = utils.splitext(this.notebook_name)[0];
         return nbname;
     };
 
@@ -1894,8 +2055,16 @@ define(function (require) {
                             notebook: that,
                             keyboard_manager: that.keyboard_manager,
                             title: "Notebook changed",
-                            body: "Notebook has changed since we opened it. Overwrite the changed file?",
+                            body: "The notebook file has changed on disk since the last time we opened or saved it. "+
+                                  "Do you want to overwrite the file on disk with the version open here, or load "+
+                                  "the version on disk (reload the page) ?",
                             buttons: {
+                                Reload: {
+                                    class: 'btn-warning',
+                                    click: function() {
+                                        window.location.reload();
+                                    }
+                                },
                                 Cancel: {},
                                 Overwrite: {
                                     class: 'btn-danger',
@@ -1983,7 +2152,7 @@ define(function (require) {
      */
     Notebook.prototype.trust_notebook = function () {
         var body = $("<div>").append($("<p>")
-            .text("A trusted IPython notebook may execute hidden malicious code ")
+            .text("A trusted Jupyter notebook may execute hidden malicious code ")
             .append($("<strong>")
                 .append(
                     $("<em>").text("when you open it")
@@ -1993,7 +2162,7 @@ define(function (require) {
             ).append(
                 " For more information, see the "
             ).append($("<a>").attr("href", "http://ipython.org/ipython-doc/2/notebook/security.html")
-                .text("IPython security documentation")
+                .text("Jupyter security documentation")
             ).append(".")
         );
 
@@ -2032,7 +2201,7 @@ define(function (require) {
     Notebook.prototype.copy_notebook = function () {
         var that = this;
         var base_url = this.base_url;
-        var w = window.open(undefined, IPython._target);
+        var w = window.open('', IPython._target);
         var parent = utils.url_path_split(this.notebook_path)[0];
         this.contents.copy(this.notebook_path, parent).then(
             function (data) {
@@ -2052,8 +2221,9 @@ define(function (require) {
      * Returns the filename with the appropriate extension, appending if necessary.
      */
     Notebook.prototype.ensure_extension = function (name) {
-        if (!name.match(/\.ipynb$/)) {
-            name = name + ".ipynb";
+        var ext = utils.splitext(this.notebook_path)[1];
+        if (ext.length && name.slice(-ext.length) !== ext) {
+            name = name + ext;
         }
         return name;
     };
@@ -2073,6 +2243,7 @@ define(function (require) {
             function (json) {
                 that.notebook_name = json.name;
                 that.notebook_path = json.path;
+                that.last_modified = new Date(json.last_modified);
                 that.session.rename_notebook(json.path);
                 that.events.trigger('notebook_renamed.Notebook', json);
             }
@@ -2091,15 +2262,21 @@ define(function (require) {
      * 
      * @param {string} notebook_path - A notebook to load
      */
-    Notebook.prototype.load_notebook = function (notebook_path) {
-        var that = this;
+     // CHANGED BY ZACH XXX, added mode
+    Notebook.prototype.load_notebook = function (notebook_path, mode) {
         this.notebook_path = notebook_path;
         this.notebook_name = utils.url_path_split(this.notebook_path)[1];
         this.events.trigger('notebook_loading.Notebook');
         
+        if (!mode) {
+            mode = "ipython"
+        }
+        
         //Zach XXX TODO
         //FAKE STUB
-        var data = {"mimetype": null, "writable": true, "name": "blank.ipynb", "format": "json", "created": "2015-03-31T18:35:40.310440+00:00", "content": {"nbformat_minor": 0, "cells": [], "nbformat": 4, "metadata": {"kernelspec": {"display_name": "Python 2", "name": "python2", "language": "python"}, "language_info": {"mimetype": "text/x-python", "nbconvert_exporter": "python", "version": "2.7.6", "name": "python", "file_extension": ".py", "pygments_lexer": "ipython2", "codemirror_mode": {"version": 2, "name": "ipython"}}}}, "last_modified": "2015-03-26T20:44:44+00:00", "path": "blank.ipynb", "type": "notebook"};
+        // var data = {"mimetype": null, "writable": true, "name": "blank.ipynb", "format": "json", "created": "2015-03-31T18:35:40.310440+00:00", "content": {"nbformat_minor": 0, "cells": [], "nbformat": 4, "metadata": {"kernelspec": {"display_name": "Python 2", "name": "python2", "language": "python"}, "language_info": {"mimetype": "text/x-python", "nbconvert_exporter": "python", "version": "2.7.6", "name": "python", "file_extension": ".py", "pygments_lexer": "ipython2", "codemirror_mode": {"version": 2, "name": "ipython"}}}}, "last_modified": "2015-03-26T20:44:44+00:00", "path": "blank.ipynb", "type": "notebook"};
+        // This one includes the mode
+        var data = {"mimetype": null, "writable": true, "name": "blank.ipynb", "format": "json", "created": "2015-03-31T18:35:40.310440+00:00", "content": {"nbformat_minor": 0, "cells": [], "nbformat": 4, "metadata": {"kernelspec": {"display_name": "Python 2", "name": "python2", "language": "python"}, "language_info": {"mimetype": "text/x-python", "nbconvert_exporter": "python", "version": "2.7.6", "name": "python", "file_extension": ".py", "pygments_lexer": "ipython2", "codemirror_mode": {"name": mode}}}}, "last_modified": "2015-03-26T20:44:44+00:00", "path": "blank.ipynb", "type": "notebook"};
         this.load_notebook_success(data);
         // this.contents.get(notebook_path, {type: 'notebook'}).then(
         //     $.proxy(this.load_notebook_success, this),
@@ -2193,7 +2370,7 @@ define(function (require) {
             "current notebook format will be used.";
             
             if (nbmodel.nbformat > orig_nbformat) {
-                msg += " Older versions of IPython may not be able to read the new format.";
+                msg += " Older versions of Jupyter may not be able to read the new format.";
             } else {
                 msg += " Some features of the original notebook may not be available.";
             }
@@ -2464,10 +2641,6 @@ define(function (require) {
         this.events.trigger('checkpoint_deleted.Notebook');
         this.load_notebook(this.notebook_path);
     };
-
-
-    // For backwards compatability.
-    IPython.Notebook = Notebook;
 
     return {'Notebook': Notebook};
 });
