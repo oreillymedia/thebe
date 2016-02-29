@@ -96,20 +96,19 @@
 <p> A really simple example:</p>
 
 <pre data-executable id="hello-example">
-z = "hello", 4+4
-print(z)
+hey = "hello world", 38+4
+print(hey)
 
 </pre>
-<br>
-<p> Other Example Pages</p>
-<ul>
-  <li><a href="examples/matplotlib-3d.html">Matplotlib-3d</a></li>
-  <li><a href="examples/t-sne-require.html">Machine Learning</a></li>
-  <li><a href="examples/widgets-built.html">Built</a> All the Thebe javascript compiled into one file</li>
-</ul>
-<br>
 
-<p>A more complicated example:</p>
+<p>More complicated examples:</p>
+
+<pre data-executable>
+x = [1,1]
+for i in xrange(10):    
+    x.append(x[-1] + x[-2]) 
+print(', '.join(str(y) for y in x))
+</pre>
 
 <pre data-executable>
 %matplotlib inline
@@ -120,6 +119,10 @@ plt.plot(x, np.sin(x**2))
 plt.title('A simple chirp');
 </pre>
 
+<br> <br>
+<p>There are still more complicated examples in the <a href="https://github.com/oreillymedia/thebe/tree/master/examples"> examples directory</a> but you'll need to run a notebook server with the appropriate dependencies installed for them to work.</p>
+
+<br><br>
 
 <p> An example of code that is not executable</p>
 <pre data-not-executable>
