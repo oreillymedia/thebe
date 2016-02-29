@@ -66,7 +66,7 @@
       require(['main'], function(main){
           // To run this locally, replace this url with the url of your notebook server or tmpnb server
           thebe = new main.Thebe({
-            url:"https://tmp39.tmpnb.org",
+            url:"https://tmp38.tmpnb.org",
             // url:"https://192.168.99.100:8000",
             // use the following settings if you are running from a
             // single-user Jupyter notebook server
@@ -95,11 +95,6 @@
 
 <p> A really simple example:</p>
 
-<pre data-executable>
-from ipywidgets import *
-IntSlider()
-</pre>
-
 <pre data-executable id="hello-example">
 z = "hello", 4+4
 print(z)
@@ -125,38 +120,6 @@ plt.plot(x, np.sin(x**2))
 plt.title('A simple chirp');
 </pre>
 
-<p>An interactive example:</p>
-
-<pre data-executable>
-from __future__ import print_function
-from IPython.html.widgets import interact, interactive, fixed
-from IPython.html import widgets
-@interact(x=True, y=1.0)
-def g(x, y):
-    print(x, y)
-</pre>
-
-<p>An example with audio:</p>
-
-<pre data-executable>
-%matplotlib inline
-import matplotlib.pyplot as plt
-import numpy as np
-from IPython.html.widgets import interactive
-from IPython.display import Audio, display
-import numpy as np
-
-def beat_freq(f1=220.0, f2=224.0):
-    max_time = 3
-    rate = 8000
-    times = np.linspace(0,max_time,rate*max_time)
-    signal = np.sin(2*np.pi*f1*times) + np.sin(2*np.pi*f2*times)
-    print(f1, f2, abs(f1-f2))
-    display(Audio(data=signal, rate=rate))
-    return signal
-v = interactive(beat_freq, f1=(200.0,300.0), f2=(200.0,300.0))
-display(v)
-</pre>
 
 <p> An example of code that is not executable</p>
 <pre data-not-executable>
