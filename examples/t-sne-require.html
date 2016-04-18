@@ -16,9 +16,13 @@
     <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 
     <script>
+      // Only serve via https because that's all we have oreillyorchard.com set up for
+      if (window.location.protocol != "https:")
+          window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
+
       
       define('jquery', [], jQuery);
-      
+
       require.config({
           
           baseUrl: '../static/',
@@ -54,14 +58,14 @@
 
       // And then actually require it, so Thebe runs
       require(['main'], function(main){
-
+        new Thebe({url:"https://tmp39.tmpnb.org/", append_kernel_controls_to: "body"});
       });
     </script>
 
 
 </head>
 
-<body data-runnable="true">
+<body>
 <h1>An illustrated introduction to the t-SNE algorithm</h1>
 
 <p>In the Big Data era, data is not only becoming bigger and bigger; it is also becoming more and more complex. This translates into a spectacular increase of the dimensionality of the data. For example, the dimensionality of a set of images is the number of pixels in any image, which ranges from thousands to millions.</p>

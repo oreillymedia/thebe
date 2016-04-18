@@ -21,6 +21,10 @@
 <script src="../static/main-built.js" type="text/javascript" charset="utf-8"></script>
 
 <script>
+    // Only serve via https because that's all we have oreillyorchard.com set up for
+    if (window.location.protocol != "https:")
+        window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
+
     $(function(){
         window.thebe = new Thebe({
             selector:"pre[data-executable]",

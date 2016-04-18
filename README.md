@@ -3,8 +3,6 @@
 ## What? Why?
 In short, this is an easy way to let users on a web page run code examples on a server.
 
-Here are a [some](https://oreillymedia.github.io/thebe/examples/matplotlib-3d.html) relatively simple [examples](https://oreillymedia.github.io/thebe/examples/matplotlib.html) and a more [complicated](https://oreillymedia.github.io/thebe/examples/t-sne-build.html) one.
-
 Four things are required:
 
 1. A server, either a [tmpnb](https://github.com/zischwartz/tmpnb) server, for lots of users, or simply an [ipython notebook server](http://ipython.org/notebook.html).
@@ -13,6 +11,8 @@ Four things are required:
 1. node-js and bower to install external javascript dependencies.
 
 To install the javascript dependencies, simply run `bower install` in the root of the repository.
+
+Here is a [very simple example/demo](https://oreillymedia.github.io/thebe/). There are more complicated examples in the <a href="https://github.com/oreillymedia/thebe/tree/master/examples">examples directory</a> but you'll need to run a notebook server with the appropriate dependencies installed for them to work.
 
 Also, [Thebe is a moon of Jupiter](http://en.wikipedia.org/wiki/Thebe_%28moon%29) in case you were wondering. Naming things is hard.
 

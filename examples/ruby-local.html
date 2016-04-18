@@ -25,6 +25,9 @@
     <!-- // <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script> -->
 
     <script>
+      // Only serve via https because that's all we have oreillyorchard.com set up for
+      if (window.location.protocol != "https:")
+          window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
       // We need this because we're not actually including jquery with require
       // For compiled js, the equivalent of this line is in wrap.end
       define('jquery', [], jQuery);

@@ -11,10 +11,22 @@
     
     <link rel="stylesheet" href="../static/thebe/site.css" type="text/css"/>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+<script>
+    // Only serve via https because that's what orchard and tmpnb.org use
+    if (window.location.protocol != "https:")
+        window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
+
+    $(function(){
+        new Thebe({url:"https://tmp39.tmpnb.org", append_kernel_controls_to: "body"});
+    });
+</script>
+
     <script src="../static/main-built.js" type="text/javascript" charset="utf-8"></script>
+
 </head>
 
-<body data-type="book" data-runnable="true">
+<body data-type="book" >
 	
 <section data-type='chapter'>
 <h1>Three-dimensional Plotting in Matplotlib</h1>
