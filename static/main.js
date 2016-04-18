@@ -285,6 +285,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           controls = $("<div class='thebe_controls' data-cell-id='" + i + "'>" + (_this.controls_html()) + "</div>");
           wrap.append(cell.element.children());
           $(el).replaceWith(cell.element.empty().append(wrap));
+          _this.fix_cm_indent(cell);
           _this.cells.push(cell);
           if (!_this.server_error) {
             $(wrap).append(controls);
@@ -769,6 +770,19 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
           }
         };
       })(this));
+    };
+
+    Thebe.prototype.fix_cm_indent = function(cell) {
+      var basePadding, charWidth;
+      charWidth = cell.code_mirror.defaultCharWidth();
+      basePadding = 4;
+      cell.code_mirror.on("renderLine", function(cm, line, elt) {
+        var offset;
+        offset = CodeMirror.countColumn(line.text, null, cm.getOption("tabSize")) * charWidth;
+        elt.style.textIndent = "-" + offset + "px";
+        return elt.style.paddingLeft = (basePadding + offset) + "px";
+      });
+      return cell.code_mirror.refresh();
     };
 
     Thebe.prototype.get_param_from_qs = function(name) {
