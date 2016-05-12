@@ -133,6 +133,7 @@ define([
             scrollPastEnd: true,
             lineNumbers: true,
             matchBrackets: true,
+            lineWrapping: true, // added by Zach XXX
             autoCloseBrackets: true
         },
         highlight_modes : {

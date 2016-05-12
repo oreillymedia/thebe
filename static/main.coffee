@@ -312,6 +312,9 @@ define [
         wrap.append cell.element.children()
         $(el).replaceWith(cell.element.empty().append(wrap))
         # cell.refresh() # not needed currently, but useful 
+        # fix codemirror indent issue, requires lineWrapping:true in codecell.js too
+        @fix_cm_indent(cell)
+        # push it
         @cells.push cell
         unless @server_error
           $(wrap).append controls
@@ -702,6 +705,15 @@ define [
         if settings.url.indexOf(server_url) isnt -1
           @log "Ajax Error!"
           @set_state(@disc_state)
+    
+    fix_cm_indent:(cell)->
+      charWidth = cell.code_mirror.defaultCharWidth()
+      basePadding = 4;
+      cell.code_mirror.on "renderLine", (cm, line, elt) ->
+        offset = CodeMirror.countColumn(line.text, null, cm.getOption("tabSize")) * charWidth
+        elt.style.textIndent = "-" + offset + "px"
+        elt.style.paddingLeft = (basePadding + offset) + "px";
+      cell.code_mirror.refresh()
 
     # really only used for debugging/dev @options, not for use in prod
     get_param_from_qs: (name)->
