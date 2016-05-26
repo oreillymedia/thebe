@@ -4,7 +4,6 @@ define [
   'components/es6-promise/promise.min'
   'thebe/dotimeout'
   'notebook/js/notebook'
-  'thebe/jquery-cookie'
   'thebe/default_css'
   'contents'
   'services/config'
@@ -35,13 +34,13 @@ define [
   'nbextensions/widgets/notebook/js/extension'
 
   'custom/custom'
-], (IPython, $, promise, doTimeout, notebook, jqueryCookie, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) ->
-  
+], (IPython, $, promise, doTimeout, notebook, default_css, contents, configmod, utils, page, events, actions, kernelselector, kernel, CodeMirror, terminado, Terminal, custom) ->
+
   # promise.polyfill()
 
   class Thebe
     default_options:
-      # jquery selector for elements we want to make runnable 
+      # jquery selector for elements we want to make runnable
       selector: 'pre[data-executable]'
       # the url of either a tmnb server or a notebook server
       # (default url assumes user is running tmpnb via boot2docker)
@@ -82,8 +81,6 @@ define [
       container_selector: "body"
       # for setting what docker image you want to run on the back end
       image_name: "jupyter/notebook"
-      # should we remember the url that we connect to
-      set_url_cookie: true
       # show messages from @log()
       debug: false
 
@@ -120,9 +117,9 @@ define [
       if @options.error_addendum is false then @ui['error_addendum']  = ""
       else if @options.error_addendum is true
         @ui['error_addendum']  = "<button data-action='run-above'>Run All Above</button> <div class='thebe-message'>It looks like there was an error. You might need to run the code examples above for this one to work.</div>"
-      else @ui['error_addendum'] = @options.error_addendum 
-   
-    # See default_options above 
+      else @ui['error_addendum'] = @options.error_addendum
+
+    # See default_options above
     constructor: (@options={})->
       # important flags
       @has_kernel_connected = false
@@ -133,7 +130,7 @@ define [
       {@selector, @url, @debug} = _.defaults(@options, @default_options)
 
       @setup_constants()
-      
+
       # For dev/debug: because these values change a lot it's useful to be able to
       # override the values that are in the html file where thebe is instantiated
       [qs_url, qs_tmpnb] = [@get_param_from_qs('url'), @get_param_from_qs('tmpnb_mode')]
@@ -145,7 +142,7 @@ define [
       if @url then @url = @url.replace(/\/?$/, '/')
       # if we have a protocol relative url, add the current protocol
       if @url[0..1] is '//' then @url=window.location.protocol+@url
-      
+
       if @options.tmpnb_mode
         @log 'Thebe is in tmpnb mode'
         @tmpnb_url = @url
@@ -160,22 +157,7 @@ define [
       @setup_resources()
       # click handlers
       @setup_user_events()
-      # Does the user already have a container running
-      thebe_url = $.cookie 'thebe_url'
-      # passing a notebook url takes precedence over a cookie
-      if thebe_url and @url is ''
-        # if we're in tmpnb mode
-        if @options.tmpnb_mode
-          # and the tmpnb url hasn't changed
-          if @tmpnb_url is thebe_url[0..@tmpnb_url.length-1]
-            @check_existing_container(thebe_url)
-          else $.removeCookie 'thebe_url'
-        else
-          @check_existing_container(thebe_url)
-      
-      # check that the tmpnb server is up
-      if @tmpnb_url then @check_server()
-      
+
       if not @options.terminal_mode
         # Start the notebook front end, creating cells with codemirror instances inside
         # and get everything set up for when the user hits run that first time
@@ -185,7 +167,7 @@ define [
           throw new Error "You should have one, and only one #{@selector} element in terminal mode. Change the selector option or change your html."
         @start_terminal()
 
-    
+
     # NETWORKING
     # ----------------------
     #
@@ -199,13 +181,12 @@ define [
       invo = new XMLHttpRequest
       invo.open 'POST', @tmpnb_url+@spawn_path, true
       payload = JSON.stringify {image_name: @options.image_name}
-      invo.onreadystatechange = (e)=> 
+      invo.onreadystatechange = (e)=>
         # if we're done, call the spawn handler
         if invo.readyState is 4 then  @spawn_handler(e, cb)
       invo.onerror = (e)=>
-        @log "Cannot connect to tmpnb server", true 
+        @log "Cannot connect to tmpnb server", true
         @set_state(@cant_state)
-        $.removeCookie 'thebe_url'
         @track 'call_spawn_fail'
       invo.send(payload)
 
@@ -222,26 +203,6 @@ define [
         @log 'Tmpnb server seems to be up'
       invo.send()
 
-    check_existing_container: (url, invo=new XMLHttpRequest)->
-      @log "checking existing container", url
-      # no trailing slash for api url
-      invo.open 'GET', url+'api/kernels', true
-      invo.onerror = (e)=>
-        $.removeCookie 'thebe_url'
-        @log 'server error when checking existing container'
-      invo.onload = (e)=>
-        # if we can parse the response, it's the actual api
-        try
-          JSON.parse e.target.responseText
-          @url = url
-          @log 'cookie with notebook server url was right, use as needed'
-        # otherwise it's a notebook_not_found, a page that would js redirect you to /spawn
-        catch
-          $.removeCookie 'thebe_url'
-          @log 'cookie was wrong/outdated, call spawn as needed'
-      # Actually send the request
-      invo.send()
-
     spawn_handler: (e, cb) =>
       @log 'spawn handler called'
       # is the server up?
@@ -256,7 +217,7 @@ define [
           @log "Couldn't parse spawn response"
           @track 'call_spawn_error'
         # is it full up of active containers?
-        if data.status is 'full' 
+        if data.status is 'full'
           @log 'tmpnb server full', true
           @set_state(@full_state)
           @track 'call_spawn_full'
@@ -276,11 +237,9 @@ define [
             @start_kernel(cb)
           else
             @start_terminal_backend(cb)
-          if @options.set_url_cookie
-            $.cookie 'thebe_url', @url
           @track 'call_spawn_success'
 
-    
+
     # STARTUP & DOM MANIPULATION
     # ----------------------
     #
@@ -311,10 +270,7 @@ define [
         controls = $("<div class='thebe_controls' data-cell-id='#{i}'>#{@controls_html()}</div>")
         wrap.append cell.element.children()
         $(el).replaceWith(cell.element.empty().append(wrap))
-        # cell.refresh() # not needed currently, but useful 
-        # fix codemirror indent issue, requires lineWrapping:true in codecell.js too
-        @fix_cm_indent(cell)
-        # push it
+        # cell.refresh() # not needed currently, but useful
         @cells.push cell
         unless @server_error
           $(wrap).append controls
@@ -329,7 +285,7 @@ define [
 
       # We're not using the real notebook
       @notebook_el.hide()
-      
+
       # Just to get metric on which cells are being edited
       # The flag ensures we only send once per focus, but only on edit
       focus_edit_flag = false
@@ -358,15 +314,15 @@ define [
         # finally, this is just for metrics
         else if focus_edit_flag
           cell_id = get_cell_id_from_event(e)
-          @track 'cell_edit', {cell_id: cell_id} 
+          @track 'cell_edit', {cell_id: cell_id}
           focus_edit_flag = false
         # XXX otherwise code will be uneditable!
         return true
-      
+
       # Interrupt on ctrl-c, because terminal
       $(window).on 'keydown', (e)=>
         if e.which is 67 and e.ctrlKey then @kernel.interrupt()
-      
+
       # Used for a successful reconnection
       @events.on 'kernel_connected.Kernel', =>
         # Empty string = already connected but lost it
@@ -435,7 +391,7 @@ define [
         html = @ui[@state]
         if reconnect_time then html += " in #{reconnect_time} seconds"
         $(".thebe_controls").html @controls_html(@state, html)
-        
+
         if @state is @disc_state
           $(".thebe_controls button").prop('disabled', true)
 
@@ -458,7 +414,7 @@ define [
       if state is @user_error
         result+=@ui["error_addendum"]
       result
-    
+
     get_controls_html: (cell)=>
       $(cell.element).find(".thebe_controls").html()
 
@@ -473,14 +429,14 @@ define [
     # The combo of the callback and range makes it a little awkward
     run_cell: (cell_id, end_id=false)=>
       @track 'run_cell', {cell_id: cell_id, end_id: end_id}
-      
+
       # This deals with when we allow a user to try to call spawn again after a disconnect
       # A bit confusing, because @error_states contains gaveup and cant
       # but we don't want it to count in this special case, because we're
       # starting over after a disconnect
       if @state in [@gaveup_state, @cant_state]
         @log 'Lets reconnect thebe to the server'
-        # Reset flags, using blank string to be falsy 
+        # Reset flags, using blank string to be falsy
         # but different from the initial value of @has_kernel_connected
         @has_kernel_connected = ''
         # and this will cause us to call_spawn
@@ -494,7 +450,7 @@ define [
 
       # The actual run cell logic, depends on if we've already connected or not
       cell = @cells[cell_id]
-      
+
       if not @get_controls_html(cell) then return
 
       if not @has_kernel_connected
@@ -567,20 +523,20 @@ define [
     # This sets up the jupyter notebook frontend
     # Stubbing a bunch of stuff we don't care about and would throw errors
     start_notebook: =>
-      contents = 
+      contents =
         list_checkpoints: -> new Promise (resolve, reject) -> resolve {}
-      keyboard_manager = 
+      keyboard_manager =
         edit_mode: ->
         command_mode: ->
         register_events: ->
         enable: ->
         disable: ->
       keyboard_manager.edit_shortcuts = handles: ->
-      save_widget = 
+      save_widget =
         update_document_title: ->
         contents: ->
       config_section =  {data: {data:{}}}
-      common_options = 
+      common_options =
         ws_url: ''
         base_url: ''
         notebook_path: ''
@@ -596,9 +552,9 @@ define [
         config: config_section
         codemirror_theme_name: @options.codemirror_theme_name
       }, common_options))
-  
+
       @notebook.kernel_selector =
-        set_kernel : -> 
+        set_kernel : ->
 
       @events.trigger 'app_initialized.NotebookApp'
       @notebook.load_notebook common_options.notebook_path, @options.codemirror_mode_name
@@ -615,18 +571,17 @@ define [
         if @url then @start_terminal_backend()
         else @call_spawn(->)
 
-    # equivalent to @start_kernel 
+    # equivalent to @start_kernel
     # i.e. actually starts terminal on the server (after spawn if needed)
     start_terminal_backend: =>
       invo = new XMLHttpRequest
       invo.open "POST", @url+"api/terminals", true
-      invo.onreadystatechange = (e)=> 
+      invo.onreadystatechange = (e)=>
         if invo.readyState is 4
           @terminal_start_handler(e)
       invo.onerror = (e)=>
-        @log "Cannot connect to jupyter server to start terminal", true 
+        @log "Cannot connect to jupyter server to start terminal", true
         @set_state(@cant_state)
-        $.removeCookie 'thebe_url'
         @track 'start_terminal_fail'
       invo.send()
 
@@ -636,7 +591,7 @@ define [
       terminal_name = res["name"]
       ws_url = @url.replace('http', 'ws')+"terminals/websocket/#{terminal_name}"
       @log "Thebe is in terminal mode, i.e. not running as a notebook", true
-      
+
       # remove any content in our element
       $(@selector).html("")
 
@@ -686,7 +641,7 @@ define [
       # Add some CSS links to the page
       if @options.load_css
         urls = [
-           "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css" 
+           "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.css"
           ]
         $.when($.each(urls, (i, url) ->
           $.get url, ->

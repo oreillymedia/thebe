@@ -15,16 +15,16 @@ define([
      * should generally not be constructed directly, but be created
      * by.  the `Session` object. Once created, this object should be
      * used to communicate with the kernel.
-     * 
+     *
      * Preliminary documentation for the REST API is at
      * https://github.com/ipython/ipython/wiki/IPEP-16%3A-Notebook-multi-directory-dashboard-and-URL-mapping#kernels-api
-     * 
+     *
      * @class Kernel
      * @param {string} kernel_service_url - the URL to access the kernel REST api
-     * @param {string} ws_url - the websockets URL
+     * @param {string} base_ws_url - the websockets URL
      * @param {string} name - the kernel type (e.g. python3)
      */
-    var Kernel = function (kernel_service_url, ws_url, name) {
+    var Kernel = function (kernel_service_url, base_ws_url, name) {
         this.events = events;
 
         this.id = null;
@@ -33,12 +33,12 @@ define([
 
         this.kernel_service_url = kernel_service_url;
         this.kernel_url = null;
-        this.ws_url = ws_url || utils.get_body_data("wsUrl");
-        if (!this.ws_url) {
+        this.base_ws_url = base_ws_url || utils.get_body_data("wsUrl");
+        if (!this.base_ws_url) {
             // trailing 's' in https will become wss for secure web sockets
-            this.ws_url = location.protocol.replace('http', 'ws') + "//" + location.host;
-        }
-
+            this.base_ws_url = location.protocol.replace('http', 'ws') + "//" + location.host;
+        };
+        this.ws_url =null;
         this.username = "username";
         this.session_id = utils.uuid();
         this._msg_callbacks = {};
@@ -52,11 +52,11 @@ define([
         } else {
             alert('Your browser does not have WebSocket support, please try Chrome, Safari or Firefox ≥ 6. Firefox 4 and 5 are also supported by you have to enable WebSockets in about:config.');
         }
-        
+
         this.bind_events();
         this.init_iopub_handlers();
         this.comm_manager = new comm.CommManager(this);
-        
+
         this.last_msg_id = null;
         this.last_msg_callbacks = {};
 
@@ -91,7 +91,7 @@ define([
      */
     Kernel.prototype.bind_events = function () {
         var that = this;
-        this.events.on('send_input_reply.Kernel', function(evt, data) { 
+        this.events.on('send_input_reply.Kernel', function(evt, data) {
             that.send_input_reply(data);
         });
 
@@ -134,7 +134,7 @@ define([
         this.register_iopub_handler('status', $.proxy(this._handle_status_message, this));
         this.register_iopub_handler('clear_output', $.proxy(this._handle_clear_output, this));
         this.register_iopub_handler('execute_input', $.proxy(this._handle_input_message, this));
-        
+
         for (var i=0; i < output_msg_types.length; i++) {
             this.register_iopub_handler(output_msg_types[i], $.proxy(this._handle_output_message, this));
         }
@@ -191,6 +191,18 @@ define([
                 success(data, status, xhr);
             }
         };
+        //
+        //var i = new XMLHttpRequest();
+        //i.open("POST",url, !0);
+        //i.setRequestHeader("Content-Type", "application/json");
+	     // var n = JSON.stringify({name: this.name});
+        //var successFunction  = this._on_success(on_success);
+        //i.onreadystatechange = function () {
+        //  if(xmlhttp.readyState === XMLHttpRequest.DONE && (xmlhttp.status === 200 || xmlhttp.status === 201)){
+        //    successFunction();
+        //  }
+        //};
+        //i.send(n);
 
         $.ajax(url, {
             processData: false,
@@ -202,7 +214,7 @@ define([
             // depending on how it's run and installed, does not like sometimes
             // XXX Removed by Zach
             //
-            // contentType: 'application/json',
+            contentType: 'application/json',
             dataType: "json",
             success: this._on_success(on_success),
             error: this._on_error(error)
@@ -353,6 +365,24 @@ define([
         this.start_channels();
     };
 
+
+    Kernel.prototype.keep_alive = function () {
+      var url = this.kernel_service_url.replace('kernels','keepalive');
+      this._keep_alive_helper(url);
+    }
+
+    Kernel.prototype._keep_alive_helper = function (url) {
+        var that = this;
+        $.ajax(url, {
+            processData: false,
+            cache: false,
+            type: "GET",
+            dataType: "json",
+            success: function(){setTimeout(function(){that._keep_alive_helper(url)},5000)},
+            error: function(){console.log('Error in keep alive')}
+        });
+    }
+
     Kernel.prototype._on_success = function (success) {
         /**
          * Handle a successful AJAX request by updating the kernel id and
@@ -365,10 +395,26 @@ define([
         var that = this;
         return function (data, status, xhr) {
             if (data) {
-                that.id = data.id;
-                that.name = data.name;
+                if (data.url){
+                  that.url = data.url;
+                  that.name = data.name;
+                  that.ws_url = data.url;
+                    that.base_ws_url = that.ws_url.replace('/channels', '');
+                  that.kernel_url = that.base_ws_url.replace('ws', 'http');
+                    that.keep_alive();
+                }else{
+                  that.id = data.id;
+                  that.name = data.name;
+                  that.kernel_url = utils.url_join_encode(that.kernel_service_url, that.id);
+                  if (this.base_ws_url != null){
+                    that.base_ws_url = that.ws_url.replace('/channels', '');
+                  }
+                  that.ws_url = utils.url_join_encode(that.kernel_url.replace('http', 'ws'), 'channels');
+                }
+            }else{
+                that.kernel_url = utils.url_join_encode(that.kernel_service_url, that.id);
             }
-            that.kernel_url = utils.url_join_encode(that.kernel_service_url, that.id);
+
             if (success) {
                 success(data, status, xhr);
             }
@@ -399,8 +445,13 @@ define([
          * @function _kernel_created
          * @param {Object} data - information about the kernel including id
          */
-        this.id = data.id;
-        this.kernel_url = utils.url_join_encode(this.kernel_service_url, this.id);
+        if (data.url){
+          this.url = data.url;
+          this.kernel_url = data.url;
+        }else{
+          this.id = data.id;
+          this.kernel_url = utils.url_join_encode(this.kernel_service_url, this.id);
+        }
         this.start_channels();
     };
 
@@ -441,22 +492,10 @@ define([
          */
         var that = this;
         this.stop_channels();
-        var ws_host_url = this.ws_url + this.kernel_url;
+        var ws_host_url = this.base_ws_url + this.kernel_url;
 
-        // console.log("Starting WebSockets:", ws_host_url);
-        // This console.log was not accurate to begin with!
-        // var ws_url = [
-        //         that.ws_url,
-        //         utils.url_join_encode(that.kernel_url, 'channels'),
-        //         "?session_id=" + that.session_id
-        //     ].join('')
+        this.ws = new this.WebSocket(this.ws_url + "?session_id=" + that.session_id);
 
-        // CHANGED BY ZACH XXX
-        var ws_url = utils.url_join_encode(that.kernel_url.replace('http', 'ws'), 'channels')+"?session_id=" + that.session_id
-        // console.log('Actuall ws_url:', ws_url);
-
-        this.ws = new this.WebSocket(ws_url);
-        
         var already_called_onclose = false; // only alert once
         var ws_closed_early = function(evt){
             if (already_called_onclose){
@@ -520,7 +559,7 @@ define([
         }
     };
 
-    Kernel.prototype._ws_closed = function(ws_url, error) {
+    Kernel.prototype._ws_closed = function(base_ws_url, error) {
         /**
          * Handle a websocket entering the closed state.  If the websocket
          * was not closed due to an error, try to reconnect to the kernel.
@@ -533,12 +572,12 @@ define([
 
         this.events.trigger('kernel_disconnected.Kernel', {kernel: this});
         if (error) {
-            console.log('WebSocket connection failed: ', ws_url);
-            this.events.trigger('kernel_connection_failed.Kernel', {kernel: this, ws_url: ws_url, attempt: this._reconnect_attempt});
+            console.log('WebSocket connection failed: ', base_ws_url);
+            this.events.trigger('kernel_connection_failed.Kernel', {kernel: this, base_ws_url: base_ws_url, attempt: this._reconnect_attempt});
         }
         this._schedule_reconnect();
     };
-    
+
     Kernel.prototype._schedule_reconnect = function () {
         /**
          * function to call when kernel connection is lost
@@ -556,7 +595,7 @@ define([
             console.log("Failed to reconnect, giving up.");
         }
     };
-    
+
     Kernel.prototype.stop_channels = function () {
         /**
          * Close the websocket. After successful close, the value
@@ -610,7 +649,7 @@ define([
          */
         return (this.ws === null);
     };
-    
+
     Kernel.prototype.send_shell_message = function (msg_type, content, callbacks, metadata, buffers) {
         /**
          * Send a message on the Kernel's shell channel
@@ -662,7 +701,7 @@ define([
         if (callback) {
             callbacks = { shell : { reply : callback } };
         }
-        
+
         var content = {
             code : code,
             cursor_pos : cursor_pos,
@@ -817,7 +856,7 @@ define([
             delete this._msg_callbacks[msg_id];
         }
     };
-    
+
     /**
      * @function _finish_shell
      */
@@ -843,12 +882,12 @@ define([
             }
         }
     };
-    
+
     /**
      * Set callbacks for a particular message.
      * Callbacks should be a struct of the following form:
      * shell : {
-     * 
+     *
      * }
      *
      * @function set_callbacks_for_msg
@@ -867,7 +906,7 @@ define([
             this.last_msg_callbacks = {};
         }
     };
-    
+
     Kernel.prototype._handle_ws_message = function (e) {
         var that = this;
         this._msg_queue = this._msg_queue.then(function() {
@@ -891,7 +930,7 @@ define([
                 console.error("unrecognized message channel", msg.channel, msg);
         }
     };
-    
+
     Kernel.prototype._handle_shell_reply = function (reply) {
         this.events.trigger('shell_reply.Kernel', {kernel: this, reply:reply});
         var that = this;
@@ -904,10 +943,10 @@ define([
             return;
         }
         var shell_callbacks = callbacks.shell;
-        
+
         // signal that shell callbacks are done
         this._finish_shell(parent_id);
-        
+
         if (shell_callbacks.reply !== undefined) {
             promise = promise.then(function() {return shell_callbacks.reply(reply)});
         }
@@ -943,7 +982,7 @@ define([
     Kernel.prototype._handle_status_message = function (msg) {
         var execution_state = msg.content.execution_state;
         var parent_id = msg.parent_header.msg_id;
-        
+
         // dispatch status msg callbacks, if any
         var callbacks = this.get_callbacks_for_msg(parent_id);
         if (callbacks && callbacks.iopub && callbacks.iopub.status) {
@@ -953,7 +992,7 @@ define([
                 console.log("Exception in status msg handler", e, e.stack);
             }
         }
-        
+
         if (execution_state === 'busy') {
             this.events.trigger('kernel_busy.Kernel', {kernel: this});
 
@@ -962,7 +1001,7 @@ define([
             // async output may still arrive,
             // but only for the most recent request
             this._finish_iopub(parent_id);
-            
+
             // trigger status_idle event
             this.events.trigger('kernel_idle.Kernel', {kernel: this});
 
@@ -988,7 +1027,7 @@ define([
             this._kernel_dead();
         }
     };
-    
+
     /**
      * Handle clear_output message
      *
