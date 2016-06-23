@@ -5,7 +5,7 @@ In short, this is an easy way to let users on a web page run code examples on a 
 
 Four things are required:
 
-1. A server, either a [tmpnb](https://github.com/zischwartz/tmpnb) server, for lots of users, or simply an [ipython notebook server](http://ipython.org/notebook.html).
+1. A server, either a [tmpnb](https://github.com/zischwartz/tmpnb) server, for lots of users, or simply a [Jupyter notebook server](http://jupyter.org).
 1. A web page with some code examples
 1. A script tag in the page that includes the compiled javascript of `Thebe`, which is in this repo at `static/main-built.js`
 1. node-js and bower to install external javascript dependencies.
