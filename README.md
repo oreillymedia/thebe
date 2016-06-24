@@ -178,7 +178,7 @@ r.js -o build.js baseUrl=. name=almond include=main out=main-built.js
 
 First, you need docker (and boot2docker if you're on a OS X) installed. 
 
-Pull the images. [This version](https://github.com/zischwartz/tmpnb) is a slightly different fork of the [main repo](https://github.com/jupyter/tmpnb), which adds a API route for `/spawn` ( `/api/spawn`).
+Pull the images. [This version](https://github.com/zischwartz/tmpnb) is a slightly different fork of the [main repo](https://github.com/jupyter/tmpnb), which adds an API route for `/spawn` ( `/api/spawn`).
 
 ```
 docker pull jupyter/configurable-http-proxy
