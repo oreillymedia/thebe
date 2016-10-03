@@ -1,0 +1,22 @@
+{
+  "name": "thebe",
+  "version": "1.0.0",
+  "description": "Connect to jupyter notebooks",
+  "main": "static/main.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oreillymedia/thebe.git"
+  },
+  "author": "O'Reilly Media",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/oreillymedia/thebe/issues"
+  },
+  "homepage": "https://github.com/oreillymedia/thebe#readme"
+}
