@@ -693,7 +693,7 @@ define(['base/js/namespace', 'jquery', 'components/es6-promise/promise.min', 'th
       if (this.options.load_mathjax) {
         script = document.createElement("script");
         script.type = "text/javascript";
-        script.src = "//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+        script.src = "//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
         document.getElementsByTagName("head")[0].appendChild(script);
       }
       if (this.options.inject_css) {
