@@ -634,7 +634,7 @@ define [
       if @options.load_mathjax
         script = document.createElement("script")
         script.type = "text/javascript"
-        script.src  = "//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+        script.src  = "//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
         document.getElementsByTagName("head")[0].appendChild(script)
       # inject default styles directly into the page
       if @options.inject_css then $("<style>#{default_css.css}</style>").appendTo('head')
